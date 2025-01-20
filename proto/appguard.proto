@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package appguard;
+
+service AppGuard {
+  // Sample
+  rpc Sample (SampleMessage) returns (SampleResponse);
+}
+
+// Input -----------------------------------------------------------------------------------------------------------------
+
+message SampleMessage {
+  uint32 value = 1;
+}
+
+// Output -----------------------------------------------------------------------------------------------------------------
+
+message SampleResponse {
+  uint32 value = 1;
+}
