@@ -15,7 +15,6 @@ use crate::helpers::{
     client_setup, count_rows_in_table, db_setup, server_clean, server_setup, NUM_ITER,
 };
 use crate::ip_info::retrieve_stored_ipinfos;
-use crate::rpc::handle_tcp_connection;
 use crate::tcp_connection::{
     retrieve_stored_tcp_connections, sample_tcp_connection, sample_tcp_connection_2,
 };
@@ -23,7 +22,6 @@ use crate::tcp_connection::{
 mod config;
 mod helpers;
 mod ip_info;
-mod rpc;
 mod tcp_connection;
 
 // run tests with:
@@ -51,7 +49,7 @@ async fn test_grpc_server_durable_storage() {
 
     for _ in 1..=NUM_ITER {
         // handle_tcp_connection
-        handle_tcp_connection(&mut client, sample_tcp_connection("HTTP".to_string()))
+        client.handle_tcp_connection(None, sample_tcp_connection("HTTP".to_string()))
             .await
             .unwrap();
     }
@@ -124,7 +122,7 @@ async fn test_grpc_server_durable_storage_with_more_data_and_then_expire() {
         } else {
             sample_tcp_connection_2("HTTP".to_string())
         };
-        handle_tcp_connection(&mut client, tcp_connection)
+        client.handle_tcp_connection(None, tcp_connection)
             .await
             .unwrap();
     }
@@ -234,7 +232,7 @@ async fn test_grpc_server_durable_storage_with_empty_data() {
 
     for _ in 1..=NUM_ITER {
         // handle_tcp_connection
-        handle_tcp_connection(&mut client, AppGuardTcpConnection::default())
+        client.handle_tcp_connection(None, AppGuardTcpConnection::default())
             .await
             .unwrap();
     }
@@ -290,7 +288,7 @@ async fn test_grpc_server_with_log_requests_disabled() {
 
     for _ in 1..=NUM_ITER {
         // handle_tcp_connection
-        handle_tcp_connection(&mut client, AppGuardTcpConnection::default())
+        client.handle_tcp_connection(None, AppGuardTcpConnection::default())
             .await
             .unwrap();
     }
@@ -332,7 +330,7 @@ async fn test_grpc_server_with_log_responses_disabled() {
 
     for _ in 1..=NUM_ITER {
         // handle_tcp_connection
-        handle_tcp_connection(&mut client, AppGuardTcpConnection::default())
+        client.handle_tcp_connection(None, AppGuardTcpConnection::default())
             .await
             .unwrap();
     }

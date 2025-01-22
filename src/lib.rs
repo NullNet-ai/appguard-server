@@ -26,10 +26,7 @@ pub mod serialize;
 pub mod to_sql;
 
 use crate::proto::appguard::app_guard_client::AppGuardClient;
-use crate::proto::appguard::{
-    AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardTcpConnection,
-    AppGuardTcpInfo, AppGuardTcpResponse, FirewallPolicy,
-};
+use crate::proto::appguard::{AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse, FirewallPolicy};
 use std::future::Future;
 use tonic::transport::{Channel, ClientTlsConfig};
 use tonic::{Request, Response, Status};
@@ -108,6 +105,42 @@ impl AppGuardGrpcInterface {
     ) -> Result<AppGuardResponse, Status> {
         self.client
             .handle_http_response(Request::new(http_response))
+            .wait_until_timeout(
+                timeout,
+                AppGuardResponse {
+                    policy: default_policy as i32,
+                },
+            )
+            .await
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    pub async fn handle_smtp_request(
+        &mut self,
+        timeout: Option<u64>,
+        default_policy: FirewallPolicy,
+        smtp_request: AppGuardSmtpRequest,
+    ) -> Result<AppGuardResponse, Status> {
+        self.client
+            .handle_smtp_request(Request::new(smtp_request))
+            .wait_until_timeout(
+                timeout,
+                AppGuardResponse {
+                    policy: default_policy as i32,
+                },
+            )
+            .await
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    pub async fn handle_smtp_response(
+        &mut self,
+        timeout: Option<u64>,
+        default_policy: FirewallPolicy,
+        smtp_response: AppGuardSmtpResponse,
+    ) -> Result<AppGuardResponse, Status> {
+        self.client
+            .handle_smtp_response(Request::new(smtp_response))
             .wait_until_timeout(
                 timeout,
                 AppGuardResponse {

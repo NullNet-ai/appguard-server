@@ -3,8 +3,9 @@ use std::process::Command;
 use std::thread;
 
 use rusqlite::Connection;
-use tonic::transport::{Channel, ClientTlsConfig, Server};
+use tonic::transport::{Server};
 use tonic::{Request, Response, Status};
+use appguard::AppGuardGrpcInterface;
 
 use appguard::config::Config;
 use appguard::constants::{ADDR, AI_PORT, PORT, SQLITE_PATH};
@@ -12,7 +13,6 @@ use appguard::db::tables::DbTable;
 use appguard::entrypoint::start_appguard;
 use appguard::proto::aiguard::ai_guard_server::{AiGuard, AiGuardServer};
 use appguard::proto::aiguard::{AiGuardHttpRequest, AiGuardResponse};
-use appguard::proto::appguard::app_guard_client::AppGuardClient;
 
 use crate::config::write_config_to_file;
 
@@ -56,21 +56,8 @@ pub fn server_clean() {
     }
 }
 
-pub async fn client_setup() -> AppGuardClient<Channel> {
-    // let server_ca = Certificate::from_pem(SERVER_CA_PEM.as_str());
-    let tls = ClientTlsConfig::new().with_native_roots();
-    // .ca_certificate(server_ca);
-    // .domain_name("example.com");
-
-    let channel = Channel::from_shared(format!("https://{ADDR}:{PORT}"))
-        .unwrap()
-        .tls_config(tls)
-        .unwrap()
-        .connect()
-        .await
-        .unwrap();
-
-    AppGuardClient::new(channel)
+pub async fn client_setup() -> AppGuardGrpcInterface {
+    AppGuardGrpcInterface::new(ADDR, PORT, true).await.unwrap()
 }
 
 pub fn db_setup() -> Connection {

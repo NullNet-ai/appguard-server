@@ -9,7 +9,6 @@ use crate::config::write_config_to_file;
 use crate::helpers::{
     client_setup, count_rows_in_table, db_setup, server_clean, server_setup, NUM_ITER,
 };
-use crate::rpc::{handle_smtp_request, handle_smtp_response, handle_tcp_connection};
 use crate::smtp_request::{
     retrieve_stored_smtp_requests, sample_smtp_request, sample_smtp_request_2,
 };
@@ -21,7 +20,6 @@ use crate::tcp_connection::sample_tcp_connection;
 mod config;
 mod helpers;
 mod ip_info;
-mod rpc;
 mod smtp_headers;
 mod smtp_request;
 mod smtp_response;
@@ -52,13 +50,13 @@ async fn test_grpc_server_durable_storage() {
 
     for i in 1..=NUM_ITER {
         // handle_smtp_request
-        let ret_val = handle_smtp_request(&mut client, sample_smtp_request(i, true))
+        let ret_val = client.handle_smtp_request(None, FirewallPolicy::Allow, sample_smtp_request(i, true))
             .await
             .unwrap();
         assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
 
         // handle_smtp_response
-        let ret_val = handle_smtp_response(&mut client, sample_smtp_response(0, true))
+        let ret_val = client.handle_smtp_response(None, FirewallPolicy::Allow, sample_smtp_response(0, true))
             .await
             .unwrap();
         assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
@@ -129,13 +127,13 @@ async fn test_grpc_server_durable_storage_with_more_data_and_then_expire() {
         // handle_smtp_request
         if i % 2 == 0 {
             let smtp_request = sample_smtp_request(i, true);
-            let ret_val = handle_smtp_request(&mut client, smtp_request)
+            let ret_val = client.handle_smtp_request(None, FirewallPolicy::Allow, smtp_request)
                 .await
                 .unwrap();
             assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
         } else {
             let smtp_request = sample_smtp_request_2(true);
-            let ret_val = handle_smtp_request(&mut client, smtp_request)
+            let ret_val = client.handle_smtp_request(None, FirewallPolicy::Allow, smtp_request)
                 .await
                 .unwrap();
             assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
@@ -144,13 +142,13 @@ async fn test_grpc_server_durable_storage_with_more_data_and_then_expire() {
         // handle_smtp_response
         if i % 2 == 0 {
             let smtp_response = sample_smtp_response(0, true);
-            let ret_val = handle_smtp_response(&mut client, smtp_response)
+            let ret_val = client.handle_smtp_response(None, FirewallPolicy::Allow, smtp_response)
                 .await
                 .unwrap();
             assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
         } else {
             let smtp_response = sample_smtp_response_2(true);
-            let ret_val = handle_smtp_response(&mut client, smtp_response)
+            let ret_val = client.handle_smtp_response(None, FirewallPolicy::Allow,smtp_response)
                 .await
                 .unwrap();
             assert_eq!(ret_val.policy, FirewallPolicy::Deny as i32);
@@ -270,13 +268,13 @@ async fn test_grpc_server_durable_storage_with_empty_data() {
 
     for _ in 1..=NUM_ITER {
         // handle_smtp_request
-        let ret_val = handle_smtp_request(&mut client, AppGuardSmtpRequest::default())
+        let ret_val = client.handle_smtp_request(None, FirewallPolicy::Allow, AppGuardSmtpRequest::default())
             .await
             .unwrap();
         assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
 
         // handle_smtp_response
-        let ret_val = handle_smtp_response(&mut client, AppGuardSmtpResponse::default())
+        let ret_val = client.handle_smtp_response(None, FirewallPolicy::Allow, AppGuardSmtpResponse::default())
             .await
             .unwrap();
         assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
@@ -354,12 +352,12 @@ async fn test_grpc_server_with_log_requests_disabled() {
 
     for _ in 1..=NUM_ITER {
         // handle_smtp_request
-        handle_smtp_request(&mut client, AppGuardSmtpRequest::default())
+        client.handle_smtp_request(None, FirewallPolicy::Allow, AppGuardSmtpRequest::default())
             .await
             .unwrap();
 
         // handle_smtp_response
-        handle_smtp_response(&mut client, AppGuardSmtpResponse::default())
+        client.handle_smtp_response(None, FirewallPolicy::Allow, AppGuardSmtpResponse::default())
             .await
             .unwrap();
     }
@@ -406,12 +404,12 @@ async fn test_grpc_server_with_log_responses_disabled() {
 
     for _ in 1..=NUM_ITER {
         // handle_smtp_request
-        handle_smtp_request(&mut client, AppGuardSmtpRequest::default())
+        client.handle_smtp_request(None, FirewallPolicy::Allow, AppGuardSmtpRequest::default())
             .await
             .unwrap();
 
         // handle_smtp_response
-        handle_smtp_response(&mut client, AppGuardSmtpResponse::default())
+        client.handle_smtp_response(None, FirewallPolicy::Allow, AppGuardSmtpResponse::default())
             .await
             .unwrap();
     }
@@ -485,19 +483,19 @@ async fn test_grpc_server_smtp_response_time() {
 
     for i in 1..=NUM_ITER {
         // handle_tcp_connection
-        let ret_val = handle_tcp_connection(&mut client, sample_tcp_connection("SMTP".to_string()))
+        let ret_val = client.handle_tcp_connection(None, sample_tcp_connection("SMTP".to_string()))
             .await
             .unwrap();
         let tcp_id = ret_val.tcp_info.as_ref().unwrap().tcp_id;
         assert_eq!(tcp_id, i);
 
         // handle_smtp_request
-        handle_smtp_request(&mut client, sample_smtp_request(tcp_id, true))
+        client.handle_smtp_request(None, FirewallPolicy::Allow, sample_smtp_request(tcp_id, true))
             .await
             .unwrap();
 
         // handle_smtp_response
-        handle_smtp_response(&mut client, sample_smtp_response(tcp_id, true))
+        client.handle_smtp_response(None, FirewallPolicy::Allow, sample_smtp_response(tcp_id, true))
             .await
             .unwrap();
     }
