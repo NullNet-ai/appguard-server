@@ -13,12 +13,10 @@ keywords = ["firewall", "network", "application", "centralized", "monitor"]
 categories = ["network-programming"]
 #include = []
 
-[lib]
-name = "appguard"
-
 [features]
 no-ai = []
 no-tls = []
+grpc-lib-only = []
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }

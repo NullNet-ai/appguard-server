@@ -3,10 +3,6 @@ workflow:
     on_new_commit: conservative
     on_job_failure: all
 
-variables:
-  GIT_SUBMODULE_STRATEGY: recursive
-  GIT_SUBMODULE_FORCE_HTTPS: "true"
-
 default:
   tags:
     - docker-52-1-21

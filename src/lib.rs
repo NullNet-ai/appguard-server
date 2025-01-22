@@ -8,25 +8,40 @@
     clippy::missing_panics_doc
 )]
 
-pub mod ai;
-pub mod app_guard_impl;
-pub mod config;
-pub mod constants;
-pub mod db;
-pub mod deserialize;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod ai;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod app_guard_impl;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod config;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod constants;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod db;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod deserialize;
+#[cfg(not(feature = "grpc-lib-only"))]
 pub mod entrypoint;
-pub mod error;
-pub mod fetch_data;
-pub mod firewall;
-pub mod from_sql;
-pub mod helpers;
-pub mod ip_info;
-pub mod proto;
-pub mod serialize;
-pub mod to_sql;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod error;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod fetch_data;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod firewall;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod from_sql;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod helpers;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod ip_info;
+mod proto;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod serialize;
+#[cfg(not(feature = "grpc-lib-only"))]
+mod to_sql;
 
 use crate::proto::appguard::app_guard_client::AppGuardClient;
-use crate::proto::appguard::{
+pub use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse,
     FirewallPolicy,
