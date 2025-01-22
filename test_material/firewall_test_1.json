@@ -1,0 +1,129 @@
+[
+  {
+    "policy": "deny",
+    "infix_tokens": [
+      {
+        "type": "predicate",
+        "condition": "contains",
+        "field": {
+          "type": "http_request",
+          "original_url": [
+            ".php"
+          ]
+        }
+      },
+      {
+        "type": "operator",
+        "value": "or"
+      },
+      {
+        "type": "predicate",
+        "condition": "equal",
+        "field": {
+          "type": "tcp_connection",
+          "protocol": [
+            "HTTP",
+            "HTTPS"
+          ]
+        }
+      },
+      {
+        "type": "operator",
+        "value": "and"
+      },
+      {
+        "type": "predicate",
+        "condition": "equal",
+        "field": {
+          "type": "ip_info",
+          "country": [
+            "US"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "policy": "allow",
+    "infix_tokens": [
+      {
+        "type": "predicate",
+        "condition": "contains",
+        "field": {
+          "type": "smtp_request",
+          "body": [
+            "Hello"
+          ]
+        }
+      },
+      {
+        "type": "operator",
+        "value": "or"
+      },
+      {
+        "type": "predicate",
+        "condition": "greater_equal",
+        "field": {
+          "type": "smtp_request",
+          "header_val": [
+            "From",
+            [
+              "foo@bar.com",
+              "bar@foo.com"
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "policy": "deny",
+    "infix_tokens": [
+      {
+        "type": "predicate",
+        "condition": "lower_than",
+        "field": {
+          "type": "smtp_response",
+          "response_code": [
+            205,
+            206
+          ]
+        }
+      },
+      {
+        "type": "operator",
+        "value": "or"
+      },
+      {
+        "type": "predicate",
+        "condition": "not_starts_with",
+        "field": {
+          "type": "http_request",
+          "query_val": [
+            "Name",
+            [
+              "giuliano",
+              "giacomo"
+            ]
+          ]
+        }
+      },
+      {
+        "type": "operator",
+        "value": "or"
+      },
+      {
+        "type": "predicate",
+        "condition": "ends_with",
+        "field": {
+          "type": "http_response",
+          "response_size": [
+            100,
+            200,
+            300
+          ]
+        }
+      }
+    ]
+  }
+]

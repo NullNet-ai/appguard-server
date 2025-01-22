@@ -1,0 +1,71 @@
+name: Rust
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      PAT:
+        required: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+# Linters inspired from here: https://github.com/actions-rs/meta/blob/master/recipes/quickstart.md
+jobs:
+
+  rust:
+    timeout-minutes: 10
+    name: ${{ matrix.os }}-latest
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: macos
+          - os: ubuntu
+#          - os: windows
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.PAT }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install macOS dependencies
+        if: matrix.os == 'macos'
+        run: |
+          curl -OL https://github.com/google/protobuf/releases/download/v3.20.3/protoc-3.20.3-osx-x86_64.zip
+          unzip protoc-3.20.3-osx-x86_64.zip -d protoc3
+          sudo mv protoc3/bin/* /usr/local/bin/
+          sudo mv protoc3/include/* /usr/local/include/
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu'
+        run: |
+          curl -OL https://github.com/google/protobuf/releases/download/v3.20.3/protoc-3.20.3-linux-x86_64.zip
+          unzip protoc-3.20.3-linux-x86_64.zip -d protoc3
+          sudo mv protoc3/bin/* /usr/local/bin/
+          sudo mv protoc3/include/* /usr/local/include/
+
+#      - name: Install Windows dependencies
+#        if: matrix.os == 'windows'
+#        run: |
+#          Invoke-WebRequest -Uri "https://github.com/google/protobuf/releases/download/v3.20.3/protoc-3.20.3-win64.zip" -OutFile "C:\protoc.zip"
+#          Expand-Archive -LiteralPath "C:\protoc.zip" -DestinationPath C:\protoc
+#          echo "C:\protoc\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: fmt
+        run: cargo fmt --all -- --check
+
+      - name: build
+        run: cargo build --verbose
+
+      - name: clippy
+        run: cargo clippy -- -D warnings
+
+      - name: test
+        if: matrix.os != 'windows'
+        run: cargo test -- --nocapture

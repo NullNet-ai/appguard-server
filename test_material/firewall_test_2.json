@@ -1,0 +1,11 @@
+[
+  {
+    "policy": "allow",
+    "infix_tokens": [
+      {
+        "type": "operator",
+        "value": "and"
+      }
+    ]
+  }
+]

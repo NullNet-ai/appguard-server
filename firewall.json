@@ -1,0 +1,78 @@
+[
+  {
+    "policy": "deny",
+    "infix_tokens": [
+      {
+        "type": "predicate",
+        "condition": "greater_equal",
+        "field": {
+          "type": "ip_info",
+          "blacklist": [
+            1
+          ]
+        }
+      },
+      {
+        "type": "operator",
+        "value": "or"
+      },
+      {
+        "type": "predicate",
+        "condition": "not_equal",
+        "field": {
+          "type": "ip_info",
+          "country": [
+            "US",
+            "PH",
+            "IT",
+            "CA"
+          ]
+        }
+      },
+      {
+        "type": "operator",
+        "value": "or"
+      },
+      {
+        "type": "predicate",
+        "condition": "contains",
+        "field": {
+          "type": "http_request",
+          "original_url": [
+            ".php",
+            ".env"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "policy": "allow",
+    "infix_tokens": [
+      {
+        "type": "predicate",
+        "condition": "equal",
+        "field": {
+          "type": "ip_info",
+          "org": [
+            "EVOQUE"
+          ]
+        }
+      },
+      {
+        "type": "operator",
+        "value": "and"
+      },
+      {
+        "type": "predicate",
+        "condition": "equal",
+        "field": {
+          "type": "ip_info",
+          "country": [
+            "US"
+          ]
+        }
+      }
+    ]
+  }
+]

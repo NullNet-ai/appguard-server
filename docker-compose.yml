@@ -1,0 +1,27 @@
+version: '3.7'
+
+networks:
+  appguard:
+
+volumes:
+  appguard-opt:
+
+services:
+  appguard:
+    image: registry.dnamicro.com/appguard:$VERSION_TAG
+    container_name: appguard
+    build:
+      context: .
+      dockerfile: Dockerfile
+      platforms:
+        - linux/amd64
+      args:
+        - VERSION_TAG=$VERSION_TAG
+        - API_KEY=$API_KEY
+        - MMDB_KEY=$MMDB_KEY
+    networks:
+      - appguard
+    ports:
+      - '50051:50051'
+    volumes:
+      - ./opt:/opt

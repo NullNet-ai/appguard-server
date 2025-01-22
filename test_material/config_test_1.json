@@ -1,0 +1,6 @@
+{
+  "log_requests": true,
+  "log_responses": false,
+  "retention_sec": 60,
+  "ip_info_cache_size": 999
+}

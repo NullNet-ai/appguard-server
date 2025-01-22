@@ -3,18 +3,87 @@ syntax = "proto3";
 package appguard;
 
 service AppGuard {
-  // Sample
-  rpc Sample (SampleMessage) returns (SampleResponse);
+  // TCP
+  rpc HandleTcpConnection (AppGuardTcpConnection) returns (AppGuardTcpResponse);
+  // HTTP
+  rpc HandleHttpRequest (AppGuardHttpRequest) returns (AppGuardResponse);
+  rpc HandleHttpResponse (AppGuardHttpResponse) returns (AppGuardResponse);
+  // SMTP
+  rpc HandleSmtpRequest (AppGuardSmtpRequest) returns (AppGuardResponse);
+  rpc HandleSmtpResponse (AppGuardSmtpResponse) returns (AppGuardResponse);
 }
 
-// Input -----------------------------------------------------------------------------------------------------------------
+// TCP -----------------------------------------------------------------------------------------------------------------
 
-message SampleMessage {
-  uint32 value = 1;
+message AppGuardTcpConnection {
+  optional string source_ip = 1;
+  optional uint32 source_port = 2;
+  optional string destination_ip = 3;
+  optional uint32 destination_port = 4;
+  string protocol = 5;
 }
 
-// Output -----------------------------------------------------------------------------------------------------------------
+message AppGuardIpInfo {
+  string ip = 1;
+  optional string country = 2;
+  optional string asn = 3;
+  optional string org = 4;
+  optional string continent_code = 5;
+  optional string city = 6;
+  optional string region = 7;
+  optional string postal = 8;
+  optional string timezone = 9;
+  uint32 blacklist = 100;
+}
 
-message SampleResponse {
-  uint32 value = 1;
+message AppGuardTcpInfo {
+  AppGuardTcpConnection connection = 1;
+  AppGuardIpInfo ip_info = 2;
+  uint64 tcp_id = 3;
+}
+
+// HTTP ----------------------------------------------------------------------------------------------------------------
+
+message AppGuardHttpRequest {
+  string original_url = 1;
+  map<string, string> headers = 2;
+  string method = 3;
+  optional string body = 4;
+  map<string, string> query = 5;
+  AppGuardTcpInfo tcp_info = 100;
+}
+
+message AppGuardHttpResponse {
+  uint32 code = 1;
+  map<string, string> headers = 2;
+  AppGuardTcpInfo tcp_info = 100;
+}
+
+// SMTP ----------------------------------------------------------------------------------------------------------------
+
+message AppGuardSmtpRequest {
+  map<string, string> headers = 1;
+  optional string body = 2;
+  AppGuardTcpInfo tcp_info = 100;
+}
+
+message AppGuardSmtpResponse {
+  optional uint32 code = 1;
+  AppGuardTcpInfo tcp_info = 100;
+}
+
+// Response ------------------------------------------------------------------------------------------------------------
+
+message AppGuardResponse {
+  FirewallPolicy policy = 2;
+}
+
+message AppGuardTcpResponse {
+  AppGuardTcpInfo tcp_info = 1;
+}
+
+enum FirewallPolicy {
+  UNKNOWN = 0;
+  ALLOW = 1;
+  DENY = 2;
 }

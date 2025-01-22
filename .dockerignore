@@ -1,0 +1,13 @@
+.idea
+.DS_Store
+*.sqlite
+*.db
+.prettierrc
+node_modules
+target
+tests
+test_material
+*sqlite-journal
+*.mmdb
+opt
+.env
