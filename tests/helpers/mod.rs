@@ -2,10 +2,10 @@ use std::net::ToSocketAddrs;
 use std::process::Command;
 use std::thread;
 
-use rusqlite::Connection;
-use tonic::transport::{Server};
-use tonic::{Request, Response, Status};
 use appguard::AppGuardGrpcInterface;
+use rusqlite::Connection;
+use tonic::transport::Server;
+use tonic::{Request, Response, Status};
 
 use appguard::config::Config;
 use appguard::constants::{ADDR, AI_PORT, PORT, SQLITE_PATH};

@@ -64,13 +64,15 @@ async fn test_grpc_server_durable_storage() {
 
     for i in 1..=NUM_ITER {
         // handle_http_request
-        let ret_val = client.handle_http_request(None, FirewallPolicy::Allow, sample_http_request(i, true))
+        let ret_val = client
+            .handle_http_request(None, FirewallPolicy::Allow, sample_http_request(i, true))
             .await
             .unwrap();
         assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
 
         // handle_http_response
-        let ret_val = client.handle_http_response(None, FirewallPolicy::Allow, sample_http_response(0, true))
+        let ret_val = client
+            .handle_http_response(None, FirewallPolicy::Allow, sample_http_response(0, true))
             .await
             .unwrap();
         assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
@@ -151,13 +153,15 @@ async fn test_grpc_server_durable_storage_with_more_data_and_then_expire() {
         // handle_http_request
         if i % 2 == 0 {
             let http_request = sample_http_request(i, true);
-            let ret_val = client.handle_http_request(None, FirewallPolicy::Allow, http_request)
+            let ret_val = client
+                .handle_http_request(None, FirewallPolicy::Allow, http_request)
                 .await
                 .unwrap();
             assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
         } else {
             let http_request = sample_http_request_2(0, true);
-            let ret_val = client.handle_http_request(None, FirewallPolicy::Allow, http_request)
+            let ret_val = client
+                .handle_http_request(None, FirewallPolicy::Allow, http_request)
                 .await
                 .unwrap();
             assert_eq!(ret_val.policy, FirewallPolicy::Deny as i32);
@@ -166,13 +170,15 @@ async fn test_grpc_server_durable_storage_with_more_data_and_then_expire() {
         // handle_http_response
         if i % 2 == 0 {
             let http_response = sample_http_response(0, true);
-            let ret_val = client.handle_http_response(None, FirewallPolicy::Allow, http_response)
+            let ret_val = client
+                .handle_http_response(None, FirewallPolicy::Allow, http_response)
                 .await
                 .unwrap();
             assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
         } else {
             let http_response = sample_http_response_2(true);
-            let ret_val = client.handle_http_response(None, FirewallPolicy::Allow, http_response)
+            let ret_val = client
+                .handle_http_response(None, FirewallPolicy::Allow, http_response)
                 .await
                 .unwrap();
             assert_eq!(ret_val.policy, FirewallPolicy::Deny as i32);
@@ -309,13 +315,15 @@ async fn test_grpc_server_durable_storage_with_empty_data() {
 
     for _ in 1..=NUM_ITER {
         // handle_http_request
-        let ret_val = client.handle_http_request(None, FirewallPolicy::Allow, AppGuardHttpRequest::default())
+        let ret_val = client
+            .handle_http_request(None, FirewallPolicy::Allow, AppGuardHttpRequest::default())
             .await
             .unwrap();
         assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
 
         // handle_http_response
-        let ret_val = client.handle_http_response(None, FirewallPolicy::Allow, AppGuardHttpResponse::default())
+        let ret_val = client
+            .handle_http_response(None, FirewallPolicy::Allow, AppGuardHttpResponse::default())
             .await
             .unwrap();
         assert_eq!(ret_val.policy, FirewallPolicy::Allow as i32);
@@ -394,12 +402,14 @@ async fn test_grpc_server_with_log_requests_disabled() {
 
     for _ in 1..=NUM_ITER {
         // handle_http_request
-        client.handle_http_request(None, FirewallPolicy::Allow, AppGuardHttpRequest::default())
+        client
+            .handle_http_request(None, FirewallPolicy::Allow, AppGuardHttpRequest::default())
             .await
             .unwrap();
 
         // handle_http_response
-        client.handle_http_response(None, FirewallPolicy::Allow, AppGuardHttpResponse::default())
+        client
+            .handle_http_response(None, FirewallPolicy::Allow, AppGuardHttpResponse::default())
             .await
             .unwrap();
     }
@@ -446,12 +456,14 @@ async fn test_grpc_server_with_log_responses_disabled() {
 
     for _ in 1..=NUM_ITER {
         // handle_http_request
-        client.handle_http_request(None, FirewallPolicy::Allow, AppGuardHttpRequest::default())
+        client
+            .handle_http_request(None, FirewallPolicy::Allow, AppGuardHttpRequest::default())
             .await
             .unwrap();
 
         // handle_http_response
-        client.handle_http_response(None, FirewallPolicy::Allow, AppGuardHttpResponse::default())
+        client
+            .handle_http_response(None, FirewallPolicy::Allow, AppGuardHttpResponse::default())
             .await
             .unwrap();
     }
@@ -525,18 +537,29 @@ async fn test_grpc_server_http_response_time() {
 
     for _ in 1..=NUM_ITER {
         // handle_tcp_connection
-        let ret_val = client.handle_tcp_connection(None, sample_tcp_connection("HTTP".to_string()))
+        let ret_val = client
+            .handle_tcp_connection(None, sample_tcp_connection("HTTP".to_string()))
             .await
             .unwrap();
         let tcp_id = ret_val.tcp_info.as_ref().unwrap().tcp_id;
 
         // handle_http_request
-        client.handle_http_request(None, FirewallPolicy::Allow, sample_http_request(tcp_id, true))
+        client
+            .handle_http_request(
+                None,
+                FirewallPolicy::Allow,
+                sample_http_request(tcp_id, true),
+            )
             .await
             .unwrap();
 
         // handle_http_response
-        client.handle_http_response(None, FirewallPolicy::Allow, sample_http_response(tcp_id, true))
+        client
+            .handle_http_response(
+                None,
+                FirewallPolicy::Allow,
+                sample_http_response(tcp_id, true),
+            )
             .await
             .unwrap();
     }
@@ -586,14 +609,19 @@ async fn test_grpc_server_http_request_ai_dataset() {
 
     for _ in 1..=NUM_ITER {
         // handle_tcp_connection
-        let ret_val =
-            client.handle_tcp_connection(None, sample_tcp_connection_2("HTTP".to_string()))
-                .await
-                .unwrap();
+        let ret_val = client
+            .handle_tcp_connection(None, sample_tcp_connection_2("HTTP".to_string()))
+            .await
+            .unwrap();
         let tcp_id = ret_val.tcp_info.as_ref().unwrap().tcp_id;
 
         // handle_http_request
-        client.handle_http_request(None, FirewallPolicy::Allow, sample_http_request_2(tcp_id, true))
+        client
+            .handle_http_request(
+                None,
+                FirewallPolicy::Allow,
+                sample_http_request_2(tcp_id, true),
+            )
             .await
             .unwrap();
     }

@@ -49,7 +49,8 @@ async fn test_grpc_server_durable_storage() {
 
     for _ in 1..=NUM_ITER {
         // handle_tcp_connection
-        client.handle_tcp_connection(None, sample_tcp_connection("HTTP".to_string()))
+        client
+            .handle_tcp_connection(None, sample_tcp_connection("HTTP".to_string()))
             .await
             .unwrap();
     }
@@ -122,7 +123,8 @@ async fn test_grpc_server_durable_storage_with_more_data_and_then_expire() {
         } else {
             sample_tcp_connection_2("HTTP".to_string())
         };
-        client.handle_tcp_connection(None, tcp_connection)
+        client
+            .handle_tcp_connection(None, tcp_connection)
             .await
             .unwrap();
     }
@@ -232,7 +234,8 @@ async fn test_grpc_server_durable_storage_with_empty_data() {
 
     for _ in 1..=NUM_ITER {
         // handle_tcp_connection
-        client.handle_tcp_connection(None, AppGuardTcpConnection::default())
+        client
+            .handle_tcp_connection(None, AppGuardTcpConnection::default())
             .await
             .unwrap();
     }
@@ -288,7 +291,8 @@ async fn test_grpc_server_with_log_requests_disabled() {
 
     for _ in 1..=NUM_ITER {
         // handle_tcp_connection
-        client.handle_tcp_connection(None, AppGuardTcpConnection::default())
+        client
+            .handle_tcp_connection(None, AppGuardTcpConnection::default())
             .await
             .unwrap();
     }
@@ -330,7 +334,8 @@ async fn test_grpc_server_with_log_responses_disabled() {
 
     for _ in 1..=NUM_ITER {
         // handle_tcp_connection
-        client.handle_tcp_connection(None, AppGuardTcpConnection::default())
+        client
+            .handle_tcp_connection(None, AppGuardTcpConnection::default())
             .await
             .unwrap();
     }

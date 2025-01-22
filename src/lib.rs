@@ -26,7 +26,11 @@ pub mod serialize;
 pub mod to_sql;
 
 use crate::proto::appguard::app_guard_client::AppGuardClient;
-use crate::proto::appguard::{AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse, FirewallPolicy};
+use crate::proto::appguard::{
+    AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
+    AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse,
+    FirewallPolicy,
+};
 use std::future::Future;
 use tonic::transport::{Channel, ClientTlsConfig};
 use tonic::{Request, Response, Status};
