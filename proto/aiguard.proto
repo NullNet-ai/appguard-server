@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package aiguard;
+
+service AiGuard {
+  // HTTP request
+  rpc HandleHttpRequest (AiGuardHttpRequest) returns (AiGuardResponse);
+}
+
+// HTTP request ----------------------------------------------------------------------------------------------------------------
+
+message AiGuardHttpRequest {
+  AiGuardCommonParams common = 1;
+  AiGuardHttpRequestParams params = 2;
+}
+
+message AiGuardHttpRequestParams {
+  string original_url = 1;
+  optional string user_agent = 2;
+  map<string, string> headers = 3;
+  string method = 4;
+  map<string, string> query = 5;
+  optional string cookies = 6;
+}
+
+// Common --------------------------------------------------------------------------------------------------------------
+
+message AiGuardCommonParams {
+  string timestamp = 1;
+  optional string source_ip = 2;
+  optional uint32 source_port = 3;
+  optional string country = 4;
+  optional string asn = 5;
+  optional string org = 6;
+  uint32 blacklist = 7;
+}
+
+// Response ------------------------------------------------------------------------------------------------------------
+
+message AiGuardResponse {
+  double confidence = 1;
+  repeated string columns = 2;
+}

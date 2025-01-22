@@ -13,6 +13,9 @@ keywords = ["firewall", "network", "application", "centralized", "monitor"]
 categories = ["network-programming"]
 #include = []
 
+[lib]
+name = "appguard"
+
 [features]
 no-ai = []
 no-tls = []
