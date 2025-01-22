@@ -25,5 +25,5 @@ pub trait StoreWithDetails {
 pub trait StoreWithId {
     const TABLE: DbTable;
 
-    fn store_with_id(&self, conn: &Arc<Mutex<Connection>>, id: &u64) -> Result<(), Error>;
+    fn store_with_id(&self, conn: &Arc<Mutex<Connection>>, id: u64) -> Result<(), Error>;
 }

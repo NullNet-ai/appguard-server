@@ -85,7 +85,7 @@ pub fn delete_old_entries(
         let mut oldest = get_timestamp_string();
         let mut num_deleted = 0;
 
-        for table_name in DbTable::ALL.iter().map(DbTable::to_str) {
+        for table_name in DbTable::ALL.into_iter().map(DbTable::to_str) {
             num_deleted += conn
                 .lock()
                 .handle_err(location!())?

@@ -6,7 +6,7 @@ pub enum DbView {
 impl DbView {
     pub const ALL: [DbView; 1] = [DbView::HttpRequestDataset];
 
-    pub fn to_str(&self) -> &'static str {
+    pub fn to_str(self) -> &'static str {
         match self {
             DbView::HttpRequestDataset => "http_request_dataset",
         }

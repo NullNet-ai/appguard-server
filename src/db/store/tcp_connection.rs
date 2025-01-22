@@ -13,7 +13,7 @@ use crate::proto::appguard::AppGuardTcpConnection;
 impl StoreWithId for AppGuardTcpConnection {
     const TABLE: DbTable = DbTable::TcpConnection;
 
-    fn store_with_id(&self, conn: &Arc<Mutex<Connection>>, id: &u64) -> Result<(), Error> {
+    fn store_with_id(&self, conn: &Arc<Mutex<Connection>>, id: u64) -> Result<(), Error> {
         let table_name = Self::TABLE.to_str();
         conn.lock().handle_err(location!())?
             .execute(

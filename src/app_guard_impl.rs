@@ -303,7 +303,7 @@ impl AppGuardImpl {
 
         if self.config_log_requests()? {
             let id = self.table_ids.get_next(DbTable::HttpRequest)?;
-            let details = DbDetails::new(id, fw_res, &req.get_ref().tcp_info, None);
+            let details = DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), None);
             self.tx_store
                 .send(DbEntry::HttpRequest((req.get_ref().clone(), details)))
                 .handle_err(location!())?;
@@ -342,7 +342,8 @@ impl AppGuardImpl {
             let response_time = self.compute_response_time(tcp_id);
             let id = self.table_ids.get_next(DbTable::HttpResponse)?;
 
-            let details = DbDetails::new(id, fw_res, &req.get_ref().tcp_info, response_time);
+            let details =
+                DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), response_time);
             self.tx_store
                 .send(DbEntry::HttpResponse((req.into_inner(), details)))
                 .handle_err(location!())?;
@@ -366,7 +367,7 @@ impl AppGuardImpl {
 
         if self.config_log_requests()? {
             let id = self.table_ids.get_next(DbTable::SmtpRequest)?;
-            let details = DbDetails::new(id, fw_res, &req.get_ref().tcp_info, None);
+            let details = DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), None);
             self.tx_store
                 .send(DbEntry::SmtpRequest((req.into_inner(), details)))
                 .handle_err(location!())?;
@@ -398,7 +399,8 @@ impl AppGuardImpl {
             let response_time = self.compute_response_time(tcp_id);
             let id = self.table_ids.get_next(DbTable::SmtpResponse)?;
 
-            let details = DbDetails::new(id, fw_res, &req.get_ref().tcp_info, response_time);
+            let details =
+                DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), response_time);
             self.tx_store
                 .send(DbEntry::SmtpResponse((req.into_inner(), details)))
                 .handle_err(location!())?;

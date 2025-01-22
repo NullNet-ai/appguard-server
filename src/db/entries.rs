@@ -45,7 +45,7 @@ impl DbEntry {
                 }
             }
             DbEntry::TcpConnection((e, id)) => {
-                e.store_with_id(conn, id)?;
+                e.store_with_id(conn, *id)?;
                 log::info!("TCP connection #{id} stored at {}", SQLITE_PATH.as_str());
             }
         }
@@ -65,14 +65,13 @@ impl DbDetails {
     pub fn new(
         id: u64,
         fw_res: FirewallResult,
-        tcp_info: &Option<AppGuardTcpInfo>,
+        tcp_info: Option<&AppGuardTcpInfo>,
         response_time: Option<u64>,
     ) -> Self {
         Self {
             id,
             fw_res,
             ip: tcp_info
-                .as_ref()
                 .unwrap_or(&AppGuardTcpInfo::default())
                 .connection
                 .as_ref()
@@ -81,10 +80,7 @@ impl DbDetails {
                 .as_ref()
                 .unwrap_or(&String::default())
                 .to_owned(),
-            tcp_id: tcp_info
-                .as_ref()
-                .unwrap_or(&AppGuardTcpInfo::default())
-                .tcp_id,
+            tcp_id: tcp_info.unwrap_or(&AppGuardTcpInfo::default()).tcp_id,
             response_time,
         }
     }

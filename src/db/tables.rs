@@ -27,7 +27,7 @@ impl DbTable {
         DbTable::HttpRequestAi,
     ];
 
-    pub fn to_str(&self) -> &'static str {
+    pub fn to_str(self) -> &'static str {
         match self {
             DbTable::TcpConnection => "tcp_connection",
             DbTable::HttpRequest => "http_request",
