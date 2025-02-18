@@ -16,8 +16,7 @@ use appguard_server::proto::appguard::{
 
 use crate::config::write_config_to_file;
 use crate::helpers::{
-    client_setup, count_rows_in_table, db_setup, server_clean,
-    server_setup, NUM_ITER,
+    client_setup, count_rows_in_table, db_setup, server_clean, server_setup, NUM_ITER,
 };
 use crate::http_request::{
     retrieve_stored_http_requests, sample_http_request, sample_http_request_2,

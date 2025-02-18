@@ -11,8 +11,7 @@ use appguard_server::proto::appguard::AppGuardTcpConnection;
 
 use crate::config::write_config_to_file;
 use crate::helpers::{
-    client_setup, count_rows_in_table, db_setup, server_clean,
-    server_setup, NUM_ITER,
+    client_setup, count_rows_in_table, db_setup, server_clean, server_setup, NUM_ITER,
 };
 use crate::ip_info::retrieve_stored_ipinfos;
 use crate::tcp_connection::{
