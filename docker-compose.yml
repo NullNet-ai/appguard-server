@@ -18,7 +18,6 @@ services:
       args:
         - VERSION_TAG=$VERSION_TAG
         - API_KEY=$API_KEY
-        - MMDB_KEY=$MMDB_KEY
     networks:
       - appguard
     ports:

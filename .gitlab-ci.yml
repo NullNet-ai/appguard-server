@@ -53,7 +53,5 @@ push-image:
     - echo VERSION_TAG=$CI_COMMIT_REF_NAME-$CI_PIPELINE_ID > .env
     - echo >> .env
     - echo API_KEY=$API_KEY >> .env
-    - echo >> .env
-    - echo MMDB_KEY=$MMDB_KEY >> .env
     - docker compose build
     - docker compose push
