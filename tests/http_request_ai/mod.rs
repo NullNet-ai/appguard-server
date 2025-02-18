@@ -1,8 +1,8 @@
-use appguard::db::tables::DbTable;
+use appguard_server::db::tables::DbTable;
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
 
-use appguard::proto::aiguard::AiGuardResponse;
+use appguard_server::proto::aiguard::AiGuardResponse;
 
 pub struct StoredHttpRequestAi {
     _id: u32,

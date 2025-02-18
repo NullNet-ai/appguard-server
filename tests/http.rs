@@ -3,15 +3,15 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use serial_test::serial;
 
-use appguard::config::Config;
-use appguard::constants::{API_KEY, BLACKLIST_PATH};
-use appguard::db::tables::DbTable;
-use appguard::db::views::DbView;
-use appguard::fetch_data::{client_builder_with_ua, MmdbReader};
-use appguard::firewall::firewall::FirewallResult;
-use appguard::helpers::get_env;
-use appguard::proto::aiguard::AiGuardResponse;
-use appguard::proto::appguard::{
+use appguard_server::config::Config;
+use appguard_server::constants::{API_KEY, BLACKLIST_PATH};
+use appguard_server::db::tables::DbTable;
+use appguard_server::db::views::DbView;
+use appguard_server::fetch_data::{client_builder_with_ua, MmdbReader};
+use appguard_server::firewall::firewall::FirewallResult;
+use appguard_server::helpers::get_env;
+use appguard_server::proto::aiguard::AiGuardResponse;
+use appguard_server::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, FirewallPolicy,
 };
 

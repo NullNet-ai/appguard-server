@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use appguard::db::views::DbView;
+use appguard_server::db::views::DbView;
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
 
-use appguard::firewall::firewall::FirewallResult;
-use appguard::proto::aiguard::AiGuardResponse;
+use appguard_server::firewall::firewall::FirewallResult;
+use appguard_server::proto::aiguard::AiGuardResponse;
 
 pub struct StoredHttpRequestDataset {
     _id: u32,

@@ -1,5 +1,5 @@
-use appguard::config::Config;
-use appguard::constants::CONFIG_FILE;
+use appguard_server::config::Config;
+use appguard_server::constants::CONFIG_FILE;
 
 pub fn write_config_to_file(config: &Config) {
     let json = serde_json::to_string(&config).unwrap();

@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
 
-use appguard::db::tables::DbTable;
-use appguard::firewall::firewall::FirewallResult;
-use appguard::proto::appguard::{AppGuardHttpRequest, AppGuardTcpInfo};
+use appguard_server::db::tables::DbTable;
+use appguard_server::firewall::firewall::FirewallResult;
+use appguard_server::proto::appguard::{AppGuardHttpRequest, AppGuardTcpInfo};
 
 use crate::http_headers::{
     get_sample_headers, get_sample_headers_2, get_sample_queries, get_sample_queries_2,

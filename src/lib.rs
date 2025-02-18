@@ -9,37 +9,40 @@
 )]
 
 #[cfg(not(feature = "grpc-lib-only"))]
-mod ai;
+pub mod ai;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod app_guard_impl;
+pub mod app_guard_impl;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod config;
+pub mod config;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod constants;
+pub mod constants;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod db;
+pub mod db;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod deserialize;
+pub mod deserialize;
 #[cfg(not(feature = "grpc-lib-only"))]
 pub mod entrypoint;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod fetch_data;
+pub mod fetch_data;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod firewall;
+pub mod firewall;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod from_sql;
+pub mod from_sql;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod helpers;
+pub mod helpers;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod ip_info;
+pub mod ip_info;
+#[cfg(not(feature = "grpc-lib-only"))]
+pub mod proto;
+#[cfg(feature = "grpc-lib-only")]
 mod proto;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod serialize;
+pub mod serialize;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod to_sql;
+pub mod to_sql;
 
-use crate::proto::appguard::app_guard_client::AppGuardClient;
-pub use crate::proto::appguard::{
+use proto::appguard::app_guard_client::AppGuardClient;
+pub use proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse,
     FirewallPolicy,

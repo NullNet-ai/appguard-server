@@ -1,9 +1,9 @@
 use serial_test::serial;
 
-use appguard::config::Config;
-use appguard::db::tables::DbTable;
-use appguard::firewall::firewall::FirewallResult;
-use appguard::proto::appguard::{AppGuardSmtpRequest, AppGuardSmtpResponse, FirewallPolicy};
+use appguard_server::config::Config;
+use appguard_server::db::tables::DbTable;
+use appguard_server::firewall::firewall::FirewallResult;
+use appguard_server::proto::appguard::{AppGuardSmtpRequest, AppGuardSmtpResponse, FirewallPolicy};
 
 use crate::config::write_config_to_file;
 use crate::helpers::{

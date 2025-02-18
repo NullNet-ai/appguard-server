@@ -2,13 +2,13 @@ use std::sync::{Arc, Mutex, RwLock};
 
 use serial_test::serial;
 
-use appguard::config::Config;
-use appguard::constants::{API_KEY, BLACKLIST_PATH};
-use appguard::db::tables::DbTable;
-use appguard::fetch_data::{client_builder_with_ua, MmdbReader};
-use appguard::helpers::get_env;
-use appguard::proto::appguard::AppGuardIpInfo;
-use appguard::proto::appguard::AppGuardTcpConnection;
+use appguard_server::config::Config;
+use appguard_server::constants::{API_KEY, BLACKLIST_PATH};
+use appguard_server::db::tables::DbTable;
+use appguard_server::fetch_data::{client_builder_with_ua, MmdbReader};
+use appguard_server::helpers::get_env;
+use appguard_server::proto::appguard::AppGuardIpInfo;
+use appguard_server::proto::appguard::AppGuardTcpConnection;
 
 use crate::config::write_config_to_file;
 use crate::helpers::{

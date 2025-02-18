@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
 
-use appguard::db::tables::DbTable;
-use appguard::proto::appguard::AppGuardTcpConnection;
+use appguard_server::db::tables::DbTable;
+use appguard_server::proto::appguard::AppGuardTcpConnection;
 
 pub fn sample_tcp_connection(protocol: String) -> AppGuardTcpConnection {
     AppGuardTcpConnection {

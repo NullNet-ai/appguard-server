@@ -2,17 +2,17 @@ use std::net::ToSocketAddrs;
 use std::process::Command;
 use std::thread;
 
-use appguard::AppGuardGrpcInterface;
+use appguard_server::AppGuardGrpcInterface;
 use rusqlite::Connection;
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 
-use appguard::config::Config;
-use appguard::constants::{ADDR, AI_PORT, PORT, SQLITE_PATH};
-use appguard::db::tables::DbTable;
-use appguard::entrypoint::start_appguard;
-use appguard::proto::aiguard::ai_guard_server::{AiGuard, AiGuardServer};
-use appguard::proto::aiguard::{AiGuardHttpRequest, AiGuardResponse};
+use appguard_server::config::Config;
+use appguard_server::constants::{ADDR, AI_PORT, PORT, SQLITE_PATH};
+use appguard_server::db::tables::DbTable;
+use appguard_server::entrypoint::start_appguard;
+use appguard_server::proto::aiguard::ai_guard_server::{AiGuard, AiGuardServer};
+use appguard_server::proto::aiguard::{AiGuardHttpRequest, AiGuardResponse};
 
 use crate::config::write_config_to_file;
 

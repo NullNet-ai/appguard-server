@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
 
-use appguard::db::tables::DbTable;
-use appguard::proto::appguard::AppGuardIpInfo;
+use appguard_server::db::tables::DbTable;
+use appguard_server::proto::appguard::AppGuardIpInfo;
 
 #[allow(dead_code)]
 pub struct StoredIpInfo {

@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use rusqlite::Connection;
 
-use appguard::db::tables::DbTable;
-use appguard::firewall::firewall::FirewallResult;
-use appguard::proto::appguard::{AppGuardHttpResponse, AppGuardTcpInfo};
+use appguard_server::db::tables::DbTable;
+use appguard_server::firewall::firewall::FirewallResult;
+use appguard_server::proto::appguard::{AppGuardHttpResponse, AppGuardTcpInfo};
 
 use crate::http_headers::{get_sample_headers, get_sample_headers_2};
 use crate::ip_info::{sample_ip_info, sample_ip_info_2};
