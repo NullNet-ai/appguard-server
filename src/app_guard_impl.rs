@@ -6,25 +6,22 @@ use std::time::Instant;
 use std::{process, thread};
 
 use indexmap::IndexMap;
-use reqwest::Client;
 use tokio::runtime::Handle;
 use tonic::{Request, Response, Status};
 
 use crate::ai::entries::AiEntry;
 use crate::ai::helpers::{ai_http_request, ai_interface};
 use crate::config::{watch_config, Config};
-use crate::constants::{
-    ADDR, AI_PORT, API_KEY, BLACKLIST_PATH, CONFIG_FILE, FIREWALL_FILE, SQLITE_PATH,
-};
+use crate::constants::{ADDR, AI_PORT, BLACKLIST_PATH, CONFIG_FILE, FIREWALL_FILE, SQLITE_PATH};
 use crate::db::entries::{DbDetails, DbEntry};
 use crate::db::helpers::{
     create_blacklist_tables, create_db_tables_and_views, delete_old_entries, get_initial_table_ids,
     get_ipinfo_from_db, store_entries,
 };
 use crate::db::tables::{DbTable, TableIds};
-use crate::fetch_data::{client_builder_with_ua, fetch_ip_data, MmdbReader};
+use crate::fetch_data::fetch_ip_data;
 use crate::firewall::firewall::{watch_firewall, Firewall};
-use crate::helpers::get_env;
+use crate::ip_info::ip_info_handler;
 use crate::proto::aiguard::ai_guard_client::AiGuardClient;
 use crate::proto::appguard::app_guard_server::AppGuard;
 use crate::proto::appguard::{
@@ -33,17 +30,16 @@ use crate::proto::appguard::{
     AppGuardTcpResponse, FirewallPolicy,
 };
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use nullnet_libipinfo::IpInfoHandler;
 
 pub struct AppGuardImpl {
-    web_client: Client,
     config_pair: Arc<(Mutex<Config>, Condvar)>,
     conn: Arc<Mutex<rusqlite::Connection>>,
     table_ids: TableIds,
     unanswered_connections: Arc<Mutex<HashMap<u64, Instant>>>,
     firewall: Arc<RwLock<Firewall>>,
     ip_info_cache: Arc<Mutex<IndexMap<String, AppGuardIpInfo>>>,
-    mmdb_reader: Arc<RwLock<MmdbReader>>,
-    api_key: String,
+    ip_info_handler: IpInfoHandler,
     blacklist_conn: Arc<Mutex<rusqlite::Connection>>,
     tx_store: Sender<DbEntry>,
     tx_ai: Sender<AiEntry>,
@@ -105,11 +101,10 @@ impl AppGuardImpl {
         let firewall_shared = Arc::new(RwLock::new(firewall));
         let firewall_shared_2 = firewall_shared.clone();
 
+        let ip_info_handler = ip_info_handler();
+
         let ip_info_cache = Arc::new(Mutex::new(IndexMap::new()));
         let ip_info_cache_2 = ip_info_cache.clone();
-
-        let mmdb_reader = Arc::new(RwLock::new(MmdbReader::default()));
-        let mmdb_reader_2 = mmdb_reader.clone();
 
         let (tx_store, rx_store) = mpsc::channel();
 
@@ -128,7 +123,7 @@ impl AppGuardImpl {
         }
 
         tokio::spawn(async move {
-            fetch_ip_data(&blacklist_conn_2, &mmdb_reader_2).await;
+            fetch_ip_data(&blacklist_conn_2).await;
         });
 
         thread::spawn(move || {
@@ -148,20 +143,14 @@ impl AppGuardImpl {
             store_entries(&conn_3, &rx_store);
         });
 
-        let api_key = get_env(API_KEY, "key", "IP info API key");
-
-        let web_client = client_builder_with_ua().build().handle_err(location!())?;
-
         Ok(AppGuardImpl {
-            web_client,
             config_pair,
             conn,
             table_ids,
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
             firewall: firewall_shared,
             ip_info_cache,
-            mmdb_reader,
-            api_key,
+            ip_info_handler,
             blacklist_conn,
             tx_store,
             tx_ai,
@@ -256,14 +245,8 @@ impl AppGuardImpl {
                 log::info!("IP information for {ip} already in database");
                 info
             } else {
-                ip_info = AppGuardIpInfo::lookup(
-                    ip,
-                    &self.web_client,
-                    &self.api_key,
-                    &self.mmdb_reader,
-                    &self.blacklist_conn,
-                )
-                .await?;
+                ip_info =
+                    AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.blacklist_conn).await?;
                 log::info!("Looked up new IP information: {ip_info:?}");
                 self.tx_store
                     .send(DbEntry::IpInfo(ip_info.clone()))

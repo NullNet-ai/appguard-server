@@ -1,18 +1,18 @@
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 
 use serial_test::serial;
 
 use appguard_server::config::Config;
-use appguard_server::constants::{API_KEY, BLACKLIST_PATH};
+use appguard_server::constants::BLACKLIST_PATH;
 use appguard_server::db::tables::DbTable;
-use appguard_server::fetch_data::{client_builder_with_ua, MmdbReader};
-use appguard_server::helpers::get_env;
+use appguard_server::ip_info::ip_info_handler;
 use appguard_server::proto::appguard::AppGuardIpInfo;
 use appguard_server::proto::appguard::AppGuardTcpConnection;
 
 use crate::config::write_config_to_file;
 use crate::helpers::{
-    client_setup, count_rows_in_table, db_setup, server_clean, server_setup, NUM_ITER,
+    client_setup, count_rows_in_table, db_setup, server_clean,
+    server_setup, NUM_ITER,
 };
 use crate::ip_info::retrieve_stored_ipinfos;
 use crate::tcp_connection::{
@@ -73,8 +73,7 @@ async fn test_grpc_server_durable_storage() {
     }
 
     // verify stored ipinfos
-    let api_key = get_env(API_KEY, "key", "IP info API key");
-    let reader = Arc::new(RwLock::new(MmdbReader::default()));
+    let ip_info_handler = ip_info_handler();
     let blacklist_conn = Arc::new(Mutex::new(
         rusqlite::Connection::open(BLACKLIST_PATH).expect("Test"),
     ));
@@ -83,15 +82,9 @@ async fn test_grpc_server_durable_storage() {
     for stored_ipinfo in stored_ipinfos.iter() {
         assert_eq!(
             stored_ipinfo.ip_info,
-            AppGuardIpInfo::lookup(
-                &stored_ipinfo.ip_info.ip,
-                &client_builder_with_ua().build().unwrap(),
-                &api_key,
-                &reader,
-                &blacklist_conn
-            )
-            .await
-            .unwrap()
+            AppGuardIpInfo::lookup(&stored_ipinfo.ip_info.ip, &ip_info_handler, &blacklist_conn)
+                .await
+                .unwrap()
         );
     }
 
@@ -152,8 +145,7 @@ async fn test_grpc_server_durable_storage_with_more_data_and_then_expire() {
     }
 
     // verify stored ipinfos
-    let api_key = get_env(API_KEY, "key", "IP info API key");
-    let reader = Arc::new(RwLock::new(MmdbReader::default()));
+    let ip_info_handler = ip_info_handler();
     let blacklist_conn = Arc::new(Mutex::new(
         rusqlite::Connection::open(BLACKLIST_PATH).expect("Test"),
     ));
@@ -163,15 +155,9 @@ async fn test_grpc_server_durable_storage_with_more_data_and_then_expire() {
         let i = 1 + i as u32;
         assert_eq!(
             stored_ipinfo.ip_info,
-            AppGuardIpInfo::lookup(
-                &stored_ipinfo.ip_info.ip,
-                &client_builder_with_ua().build().unwrap(),
-                &api_key,
-                &reader,
-                &blacklist_conn
-            )
-            .await
-            .unwrap()
+            AppGuardIpInfo::lookup(&stored_ipinfo.ip_info.ip, &ip_info_handler, &blacklist_conn)
+                .await
+                .unwrap()
         );
         if i % 2 == 0 {
             assert!(stored_ipinfo.ip_info.country.is_none());

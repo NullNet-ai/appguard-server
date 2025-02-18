@@ -33,19 +33,13 @@ pub fn get_header<'a, S: std::hash::BuildHasher>(
         .map(|(_, v)| v)
 }
 
-pub fn get_env(key: Option<&'static str>, query: &'static str, info: &'static str) -> String {
-    let mut env = String::new();
-    if let Some(mut val) = key {
-        val = val.trim();
-        if !val.is_empty() {
-            env = format!("?{query}={val}");
-            log::info!("Loaded {info}");
-        }
-    }
-    if env.is_empty() {
+pub fn get_env(key: Option<&'static str>, info: &'static str) -> &'static str {
+    let Some(env) = key else {
         log::warn!("{info} not found");
-    }
-    env
+        return "";
+    };
+    log::info!("Loaded {info}");
+    env.trim()
 }
 
 #[cfg(test)]
@@ -70,27 +64,24 @@ mod tests {
     #[test]
     fn test_get_env_some() {
         let key = Some("this-is-a-sample_value");
-        let query = "sample";
         let info = "print-me";
-        let env = get_env(key, query, info);
-        assert_eq!(env, "?sample=this-is-a-sample_value");
+        let env = get_env(key, info);
+        assert_eq!(env, "this-is-a-sample_value");
     }
 
     #[test]
     fn test_get_env_empty() {
         let key = Some(" \n \t ");
-        let query = "sample";
         let info = "print-me";
-        let env = get_env(key, query, info);
+        let env = get_env(key, info);
         assert_eq!(env, "");
     }
 
     #[test]
     fn test_get_env_none() {
         let key = None;
-        let query = "sample";
         let info = "print-me";
-        let env = get_env(key, query, info);
+        let env = get_env(key, info);
         assert_eq!(env, "");
     }
 }

@@ -3,7 +3,6 @@ use nullnet_liberror::{location, ErrorHandler, Location};
 // project-level constants
 pub const APP_GUARD_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const API_KEY: Option<&str> = option_env!("API_KEY");
-pub const MMDB_KEY: Option<&str> = option_env!("MMDB_KEY");
 pub const VERSION_TAG: Option<&str> = option_env!("VERSION_TAG");
 
 // -------------------------------------------------------------------------------------------------
@@ -55,8 +54,6 @@ pub const BLACKLIST_PATH: &str = "./test_material/blacklist_sample.sqlite";
 // -------------------------------------------------------------------------------------------------
 
 // remote source constants
-pub const IP_API_LINK: &str = "https://ipapi.co";
-pub const IP_MMDB_LINK: &str = "https://ipinfo.io/data/free/country_asn.mmdb";
 pub const BLACKLIST_LINK: &str =
     "https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt";
 

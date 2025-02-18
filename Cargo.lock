@@ -56,9 +56,9 @@ dependencies = [
  "gag",
  "indexmap 2.7.1",
  "log",
- "maxminddb",
  "notify",
  "nullnet-liberror",
+ "nullnet-libipinfo",
  "nullnet-liblogging",
  "once_cell",
  "prost",
@@ -278,6 +278,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
+name = "crc32fast"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a97769d94ddab943e4510d138150169a2758b5ef3eb191a9ee688de3e23ef7b3"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "ctrlc"
 version = "3.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -384,6 +393,16 @@ name = "fixedbitset"
 version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
+
+[[package]]
+name = "flate2"
+version = "1.0.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c936bfdafb507ebbf50b8074c54fa31c5be9a1e7e5f467dd659697041407d07c"
+dependencies = [
+ "crc32fast",
+ "miniz_oxide",
+]
 
 [[package]]
 name = "fnv"
@@ -1171,6 +1190,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08058827d471a931ba5616a68f51ad624c663e08efe2b43f33878a7591e75db0"
 dependencies = [
  "log",
+]
+
+[[package]]
+name = "nullnet-libipinfo"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95546581a02c4c57c1e99df1a49a08f4ac82001eed0d2b5d83905bb98b2abc1d"
+dependencies = [
+ "chrono",
+ "flate2",
+ "log",
+ "maxminddb",
+ "nullnet-liberror",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
 ]
 
 [[package]]

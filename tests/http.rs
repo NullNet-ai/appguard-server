@@ -1,15 +1,14 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 
 use serial_test::serial;
 
 use appguard_server::config::Config;
-use appguard_server::constants::{API_KEY, BLACKLIST_PATH};
+use appguard_server::constants::BLACKLIST_PATH;
 use appguard_server::db::tables::DbTable;
 use appguard_server::db::views::DbView;
-use appguard_server::fetch_data::{client_builder_with_ua, MmdbReader};
 use appguard_server::firewall::firewall::FirewallResult;
-use appguard_server::helpers::get_env;
+use appguard_server::ip_info::ip_info_handler;
 use appguard_server::proto::aiguard::AiGuardResponse;
 use appguard_server::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, FirewallPolicy,
@@ -17,7 +16,8 @@ use appguard_server::proto::appguard::{
 
 use crate::config::write_config_to_file;
 use crate::helpers::{
-    client_setup, count_rows_in_table, db_setup, server_clean, server_setup, NUM_ITER,
+    client_setup, count_rows_in_table, db_setup, server_clean,
+    server_setup, NUM_ITER,
 };
 use crate::http_request::{
     retrieve_stored_http_requests, sample_http_request, sample_http_request_2,
@@ -655,8 +655,7 @@ async fn test_grpc_server_http_request_ai_dataset() {
     }
 
     // verify stored dataset HTTP requests
-    let api_key = get_env(API_KEY, "key", "IP info API key");
-    let reader = Arc::new(RwLock::new(MmdbReader::default()));
+    let ip_info_handler = ip_info_handler();
     let blacklist_conn = Arc::new(Mutex::new(
         rusqlite::Connection::open(BLACKLIST_PATH).expect("Test"),
     ));
@@ -682,9 +681,7 @@ async fn test_grpc_server_http_request_ai_dataset() {
         assert_eq!(stored_request.sport, sample_tcp.source_port);
         let ip_info = AppGuardIpInfo::lookup(
             &sample_tcp.source_ip.unwrap(),
-            &client_builder_with_ua().build().unwrap(),
-            &api_key,
-            &reader,
+            &ip_info_handler,
             &blacklist_conn,
         )
         .await
