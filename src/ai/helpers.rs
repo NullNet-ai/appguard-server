@@ -10,7 +10,7 @@ use crate::helpers::{get_header, get_timestamp_string};
 use crate::proto::aiguard::ai_guard_client::AiGuardClient;
 use crate::proto::aiguard::{AiGuardCommonParams, AiGuardHttpRequest, AiGuardHttpRequestParams};
 use crate::proto::appguard::{AppGuardHttpRequest, AppGuardTcpInfo};
-use nullnet_liblogging::{location, ErrorHandler, Location};
+use nullnet_liberror::{location, ErrorHandler, Location};
 
 pub fn ai_interface(
     conn: &Arc<Mutex<Connection>>,

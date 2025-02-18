@@ -7,7 +7,7 @@ use crate::db::store::store::StoreWithDetails;
 use crate::db::tables::DbTable;
 use crate::helpers::get_timestamp_string;
 use crate::proto::appguard::AppGuardSmtpResponse;
-use nullnet_liblogging::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 impl StoreWithDetails for AppGuardSmtpResponse {
     const TABLE: DbTable = DbTable::SmtpResponse;

@@ -7,7 +7,7 @@ use crate::db::store::store::StoreWithDetails;
 use crate::db::tables::DbTable;
 use crate::helpers::{get_header, get_timestamp_string};
 use crate::proto::appguard::AppGuardHttpRequest;
-use nullnet_liblogging::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 impl StoreWithDetails for AppGuardHttpRequest {
     const TABLE: DbTable = DbTable::HttpRequest;

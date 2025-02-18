@@ -9,7 +9,7 @@ use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
 };
-use nullnet_liblogging::Error;
+use nullnet_liberror::Error;
 
 pub enum DbEntry {
     HttpRequest((AppGuardHttpRequest, DbDetails)),

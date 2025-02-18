@@ -8,7 +8,7 @@ use tonic::Request;
 use crate::helpers::get_timestamp_string;
 use crate::proto::aiguard::ai_guard_client::AiGuardClient;
 use crate::proto::aiguard::AiGuardHttpRequest;
-use nullnet_liblogging::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 pub enum AiEntry {
     HttpRequest((AiGuardHttpRequest, u64)),

@@ -3,7 +3,7 @@ use std::convert::TryFrom;
 
 use chrono::{DateTime, FixedOffset, Utc};
 
-use nullnet_liblogging::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 pub fn get_timestamp_string() -> String {
     Utc::now().to_rfc3339()

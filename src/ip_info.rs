@@ -8,7 +8,7 @@ use serde::Deserialize;
 use crate::constants::IP_API_LINK;
 use crate::fetch_data::MmdbReader;
 use crate::proto::appguard::AppGuardIpInfo;
-use nullnet_liblogging::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 #[derive(Deserialize, Debug, PartialEq, Default)]
 struct IpInfo {

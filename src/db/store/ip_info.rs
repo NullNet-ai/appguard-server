@@ -6,7 +6,7 @@ use crate::db::store::store::StoreUnique;
 use crate::db::tables::DbTable;
 use crate::helpers::get_timestamp_string;
 use crate::proto::appguard::AppGuardIpInfo;
-use nullnet_liblogging::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 impl StoreUnique for AppGuardIpInfo {
     const TABLE: DbTable = DbTable::IpInfo;

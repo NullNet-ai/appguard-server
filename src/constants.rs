@@ -1,4 +1,4 @@
-use nullnet_liblogging::{location, ErrorHandler, Location};
+use nullnet_liberror::{location, ErrorHandler, Location};
 
 // project-level constants
 pub const APP_GUARD_VERSION: &str = env!("CARGO_PKG_VERSION");

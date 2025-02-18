@@ -32,7 +32,7 @@ use crate::proto::appguard::{
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
     AppGuardTcpResponse, FirewallPolicy,
 };
-use nullnet_liblogging::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 pub struct AppGuardImpl {
     web_client: Client,

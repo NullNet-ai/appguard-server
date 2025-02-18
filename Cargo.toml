@@ -27,6 +27,8 @@ lto = true
 strip = true
 
 [dependencies]
+nullnet-liblogging = "0.1.1"
+nullnet-liberror = "0.1.0"
 serde = { version = "1.0.217", features = ["derive"] }
 reqwest = { version = "0.12.12", features = ["json"] }
 serde_json = "1.0.138"
@@ -37,7 +39,6 @@ tokio = { version = "1.43.0", features = ["rt-multi-thread"] }
 chrono = { version = "0.4.39", default-features = false, features = ["clock"] }
 notify = "8.0.0"
 ctrlc = { version = "3.4.5", features = ["termination"] }
-nullnet-liblogging = "0.1.0"
 log = "0.4.25"
 rpn-predicate-interpreter = { git = "https://github.com/GyulyVGC/postfix-predicate-interpreter.git", branch = "appguard" }
 indexmap = "2.7.1"

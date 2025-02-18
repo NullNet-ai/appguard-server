@@ -12,7 +12,7 @@ use crate::constants::{FIREWALL_DIR, FIREWALL_FILE};
 use crate::firewall::infix_firewall::InfixFirewall;
 use crate::firewall::rules::{FirewallExpression, FirewallRule};
 use crate::proto::appguard::FirewallPolicy;
-use nullnet_liblogging::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
 #[serde(transparent, rename_all = "snake_case")]

@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use nullnet_liblogging::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 #[derive(Copy, Clone)]
 pub enum DbTable {

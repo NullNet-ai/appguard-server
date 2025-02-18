@@ -4,7 +4,7 @@ use rusqlite::Connection;
 
 use crate::db::entries::DbDetails;
 use crate::db::tables::DbTable;
-use nullnet_liblogging::Error;
+use nullnet_liberror::Error;
 
 pub trait StoreUnique {
     const TABLE: DbTable;

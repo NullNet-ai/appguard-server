@@ -7,7 +7,8 @@ use crate::app_guard_impl::{terminate_app_guard, AppGuardImpl};
 use crate::constants::PORT;
 use crate::constants::{ADDR, SERVER_CERT, SERVER_KEY};
 use crate::proto::appguard::app_guard_server::AppGuardServer;
-use nullnet_liblogging::{location, Error, ErrorHandler, Location, Logger, SyslogEndpoint};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use nullnet_liblogging::{Logger, SyslogEndpoint};
 
 #[tokio::main]
 pub async fn start_appguard() -> Result<(), Error> {

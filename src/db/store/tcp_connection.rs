@@ -6,7 +6,7 @@ use crate::db::store::store::StoreWithId;
 use crate::db::tables::DbTable;
 use crate::helpers::get_timestamp_string;
 use crate::proto::appguard::AppGuardTcpConnection;
-use nullnet_liblogging::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 impl StoreWithId for AppGuardTcpConnection {
     const TABLE: DbTable = DbTable::TcpConnection;
