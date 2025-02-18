@@ -4,12 +4,12 @@ use rusqlite::Connection;
 
 use crate::constants::SQLITE_PATH;
 use crate::db::store::store::{StoreUnique, StoreWithDetails, StoreWithId};
-use crate::error::Error;
 use crate::firewall::firewall::FirewallResult;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
 };
+use nullnet_liblogging::Error;
 
 pub enum DbEntry {
     HttpRequest((AppGuardHttpRequest, DbDetails)),

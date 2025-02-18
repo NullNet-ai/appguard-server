@@ -5,11 +5,10 @@ use rusqlite::{params, Connection};
 use tonic::transport::Channel;
 use tonic::Request;
 
-use crate::error::{Error, ErrorHandler, Location};
 use crate::helpers::get_timestamp_string;
-use crate::location;
 use crate::proto::aiguard::ai_guard_client::AiGuardClient;
 use crate::proto::aiguard::AiGuardHttpRequest;
+use nullnet_liblogging::{location, Error, ErrorHandler, Location};
 
 pub enum AiEntry {
     HttpRequest((AiGuardHttpRequest, u64)),

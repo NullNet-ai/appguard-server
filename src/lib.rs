@@ -23,8 +23,6 @@ mod deserialize;
 #[cfg(not(feature = "grpc-lib-only"))]
 pub mod entrypoint;
 #[cfg(not(feature = "grpc-lib-only"))]
-mod error;
-#[cfg(not(feature = "grpc-lib-only"))]
 mod fetch_data;
 #[cfg(not(feature = "grpc-lib-only"))]
 mod firewall;

@@ -1,20 +1,17 @@
 use std::net::ToSocketAddrs;
 use std::panic;
 
-use log::LevelFilter;
-use simplelog::{ColorChoice, Target, TermLogger, TerminalMode};
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 
 use crate::app_guard_impl::{terminate_app_guard, AppGuardImpl};
 use crate::constants::PORT;
 use crate::constants::{ADDR, SERVER_CERT, SERVER_KEY};
-use crate::error::{Error, ErrorHandler, Location};
-use crate::location;
 use crate::proto::appguard::app_guard_server::AppGuardServer;
+use nullnet_liblogging::{location, Error, ErrorHandler, Location, Logger, SyslogEndpoint};
 
 #[tokio::main]
 pub async fn start_appguard() -> Result<(), Error> {
-    init_logger()?;
+    init_logger();
 
     #[cfg(not(debug_assertions))]
     let stdout = std::fs::File::create("/opt/stdout.txt").handle_err(location!())?;
@@ -43,36 +40,8 @@ pub async fn start_appguard() -> Result<(), Error> {
     Ok(())
 }
 
-fn init_logger() -> Result<(), Error> {
-    let logger_config = simplelog::ConfigBuilder::new()
-        .set_time_format_rfc3339()
-        .add_filter_allow_str("appguard")
-        .set_location_level(LevelFilter::Off)
-        .set_target_level(LevelFilter::Off)
-        .set_thread_level(LevelFilter::Off)
-        .set_write_log_enable_colors(cfg!(debug_assertions))
-        .set_level_color(log::Level::Error, Some(simplelog::Color::Red))
-        .set_level_color(log::Level::Warn, Some(simplelog::Color::Yellow))
-        .set_level_color(log::Level::Info, Some(simplelog::Color::Green))
-        .set_level_color(log::Level::Debug, Some(simplelog::Color::Blue))
-        .set_level_color(log::Level::Trace, Some(simplelog::Color::Magenta))
-        .build();
-
-    TermLogger::init(
-        LevelFilter::Trace,
-        logger_config,
-        TerminalMode::Custom {
-            error: Target::Stderr,
-            warn: Target::Stderr,
-            info: Target::Stdout,
-            debug: Target::Stdout,
-            trace: Target::Stdout,
-        },
-        ColorChoice::Auto,
-    )
-    .handle_err(location!())?;
-
-    Ok(())
+fn init_logger() {
+    Logger::init(SyslogEndpoint::Local, "appguard-server", vec![]);
 }
 
 async fn init_app_guard() -> Result<AppGuardImpl, Error> {

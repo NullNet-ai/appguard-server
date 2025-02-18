@@ -11,10 +11,9 @@ use crate::config::Config;
 use crate::db::entries::DbEntry;
 use crate::db::tables::{DbTable, TableIds};
 use crate::db::views::DbView;
-use crate::error::{Error, ErrorHandler, Location};
 use crate::helpers::{get_timestamp_string, timestamp_str_diff_usec};
-use crate::location;
 use crate::proto::appguard::AppGuardIpInfo;
+use nullnet_liblogging::{location, Error, ErrorHandler, Location};
 
 pub fn create_db_tables_and_views(conn: &Arc<Mutex<Connection>>) -> Result<(), Error> {
     let sql_1 = DbTable::ALL

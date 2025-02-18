@@ -9,9 +9,8 @@ use rusqlite::{params, Connection};
 use serde::Deserialize;
 
 use crate::constants::{APP_GUARD_VERSION, BLACKLIST_LINK, IP_MMDB_LINK, MMDB_KEY};
-use crate::error::{Error, ErrorHandler, Location};
 use crate::helpers::get_env;
-use crate::location;
+use nullnet_liblogging::{location, Error, ErrorHandler, Location};
 
 pub async fn fetch_ip_data(
     blacklist_conn: &Arc<Mutex<Connection>>,

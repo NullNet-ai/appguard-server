@@ -22,11 +22,9 @@ use crate::db::helpers::{
     get_ipinfo_from_db, store_entries,
 };
 use crate::db::tables::{DbTable, TableIds};
-use crate::error::{Error, ErrorHandler, Location};
 use crate::fetch_data::{client_builder_with_ua, fetch_ip_data, MmdbReader};
 use crate::firewall::firewall::{watch_firewall, Firewall};
 use crate::helpers::get_env;
-use crate::location;
 use crate::proto::aiguard::ai_guard_client::AiGuardClient;
 use crate::proto::appguard::app_guard_server::AppGuard;
 use crate::proto::appguard::{
@@ -34,6 +32,7 @@ use crate::proto::appguard::{
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
     AppGuardTcpResponse, FirewallPolicy,
 };
+use nullnet_liblogging::{location, Error, ErrorHandler, Location};
 
 pub struct AppGuardImpl {
     web_client: Client,

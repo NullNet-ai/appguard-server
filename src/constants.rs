@@ -1,5 +1,4 @@
-use crate::error::{ErrorHandler, Location};
-use crate::location;
+use nullnet_liblogging::{location, ErrorHandler, Location};
 
 // project-level constants
 pub const APP_GUARD_VERSION: &str = env!("CARGO_PKG_VERSION");

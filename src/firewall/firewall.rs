@@ -9,11 +9,10 @@ use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
 
 use crate::constants::{FIREWALL_DIR, FIREWALL_FILE};
-use crate::error::{Error, ErrorHandler, Location};
 use crate::firewall::infix_firewall::InfixFirewall;
 use crate::firewall::rules::{FirewallExpression, FirewallRule};
-use crate::location;
 use crate::proto::appguard::FirewallPolicy;
+use nullnet_liblogging::{location, Error, ErrorHandler, Location};
 
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
 #[serde(transparent, rename_all = "snake_case")]

@@ -6,10 +6,9 @@ use rusqlite::{Connection, OptionalExtension};
 use serde::Deserialize;
 
 use crate::constants::IP_API_LINK;
-use crate::error::{Error, ErrorHandler, Location};
 use crate::fetch_data::MmdbReader;
-use crate::location;
 use crate::proto::appguard::AppGuardIpInfo;
+use nullnet_liblogging::{location, Error, ErrorHandler, Location};
 
 #[derive(Deserialize, Debug, PartialEq, Default)]
 struct IpInfo {

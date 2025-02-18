@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::error::{Error, ErrorHandler, Location};
-use crate::location;
+use nullnet_liblogging::{location, Error, ErrorHandler, Location};
 
 #[derive(Copy, Clone)]
 pub enum DbTable {

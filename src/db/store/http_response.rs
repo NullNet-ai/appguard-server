@@ -5,11 +5,9 @@ use rusqlite::{params, Connection};
 use crate::db::entries::DbDetails;
 use crate::db::store::store::StoreWithDetails;
 use crate::db::tables::DbTable;
-use crate::error::Location;
-use crate::error::{Error, ErrorHandler};
 use crate::helpers::{get_header, get_timestamp_string};
-use crate::location;
 use crate::proto::appguard::AppGuardHttpResponse;
+use nullnet_liblogging::{location, Error, ErrorHandler, Location};
 
 impl StoreWithDetails for AppGuardHttpResponse {
     const TABLE: DbTable = DbTable::HttpResponse;
