@@ -34,12 +34,15 @@ pub fn get_header<'a, S: std::hash::BuildHasher>(
 }
 
 pub fn get_env(key: Option<&'static str>, info: &'static str) -> &'static str {
-    let Some(env) = key else {
-        log::warn!("{info} not found");
-        return "";
+    if let Some(env) = key {
+        let val = env.trim();
+        if !val.is_empty() {
+            log::info!("Loaded {info}");
+            return val;
+        }
     };
-    log::info!("Loaded {info}");
-    env.trim()
+    log::warn!("{info} not found");
+    ""
 }
 
 #[cfg(test)]
