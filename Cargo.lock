@@ -1211,9 +1211,9 @@ dependencies = [
 
 [[package]]
 name = "nullnet-liblogging"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57f1e76a5881283f1ff0739782c002ccda394d4c05446f5cecb3e8f850456d0c"
+checksum = "9435cae7d6737af0023d30b77874e70c4c3c8b651a1267f686ad630e1efb3393"
 dependencies = [
  "chrono",
  "log",

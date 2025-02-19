@@ -8,7 +8,7 @@ use crate::constants::PORT;
 use crate::constants::{ADDR, SERVER_CERT, SERVER_KEY};
 use crate::proto::appguard::app_guard_server::AppGuardServer;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
-use nullnet_liblogging::{Logger, SyslogEndpoint};
+use nullnet_liblogging::Logger;
 
 #[tokio::main]
 pub async fn start_appguard() -> Result<(), Error> {
@@ -42,7 +42,7 @@ pub async fn start_appguard() -> Result<(), Error> {
 }
 
 fn init_logger() {
-    Logger::init(SyslogEndpoint::Local, "appguard-server", vec![]);
+    Logger::init(None, "appguard-server", vec![]);
 }
 
 async fn init_app_guard() -> Result<AppGuardImpl, Error> {
