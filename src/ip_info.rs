@@ -52,8 +52,13 @@ impl AppGuardIpInfo {
 }
 
 pub fn ip_info_handler() -> IpInfoHandler {
+    #[cfg(not(debug_assertions))]
+    let url = "https://ipapi.co/{ip}/json/?key={api_key}";
+    #[cfg(debug_assertions)]
+    let url = "https://ipapi.co/{ip}/json";
+
     IpInfoHandler::new(vec![IpInfoProvider::new_api_provider(
-        "https://ipapi.co/{ip}/json/?key={api_key}",
+        url,
         get_env(API_KEY, "IP info API key"),
         ApiFields {
             country: Some("/country"),

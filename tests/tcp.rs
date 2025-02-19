@@ -2,10 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use serial_test::serial;
 
-use crate::helpers::ip_info_handler;
 use appguard_server::config::Config;
 use appguard_server::constants::BLACKLIST_PATH;
 use appguard_server::db::tables::DbTable;
+use appguard_server::ip_info::ip_info_handler;
 use appguard_server::proto::appguard::AppGuardIpInfo;
 use appguard_server::proto::appguard::AppGuardTcpConnection;
 

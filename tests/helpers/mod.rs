@@ -1,4 +1,3 @@
-use nullnet_libipinfo::{ApiFields, IpInfoHandler, IpInfoProvider};
 use std::net::ToSocketAddrs;
 use std::process::Command;
 use std::thread;
@@ -82,24 +81,6 @@ pub fn count_rows_in_table(conn: &Connection, table: &str) -> u64 {
     let count: u64 = stmt.query_row([], |row| row.get(0)).unwrap();
 
     count
-}
-
-pub fn ip_info_handler() -> IpInfoHandler {
-    IpInfoHandler::new(vec![IpInfoProvider::new_api_provider(
-        "https://ipapi.co/{ip}/json",
-        "",
-        ApiFields {
-            country: Some("/country"),
-            asn: Some("/asn"),
-            org: Some("/org"),
-            continent_code: Some("/continent_code"),
-            city: Some("/city"),
-            region: Some("/region"),
-            postal: Some("/postal"),
-            timezone: Some("/timezone"),
-        },
-    )])
-    .unwrap()
 }
 
 #[tokio::main]
