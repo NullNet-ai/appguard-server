@@ -1,11 +1,10 @@
 use crate::helpers::get_timestamp_string;
 use crate::proto::appguard::AppGuardIpInfo;
-use nullnet_liberror::Error;
 use serde_json::json;
 
 impl AppGuardIpInfo {
-    pub(crate) fn to_json(&self) -> Result<String, Error> {
-        Ok(json!({
+    pub(crate) fn to_json(&self) -> String {
+        json!({
             "timestamp": get_timestamp_string(),
             "ip": self.ip,
             "country": self.country,
@@ -18,6 +17,6 @@ impl AppGuardIpInfo {
             "timezone": self.timezone,
             "blacklist": self.blacklist,
         })
-        .to_string())
+        .to_string()
     }
 }

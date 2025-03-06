@@ -1,11 +1,10 @@
 use crate::helpers::get_timestamp_string;
 use crate::proto::appguard::AppGuardTcpConnection;
-use nullnet_liberror::Error;
 use serde_json::json;
 
 impl AppGuardTcpConnection {
-    pub(crate) fn to_json(&self, id: &u64) -> Result<String, Error> {
-        Ok(json!({
+    pub(crate) fn to_json(&self, id: u64) -> String {
+        json!({
             "id": id,
             "timestamp": get_timestamp_string(),
             "source": self.source_ip,
@@ -14,6 +13,6 @@ impl AppGuardTcpConnection {
             "dport": self.destination_port,
             "proto": self.protocol,
         })
-        .to_string())
+        .to_string()
     }
 }

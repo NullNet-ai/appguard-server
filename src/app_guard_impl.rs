@@ -258,7 +258,7 @@ impl AppGuardImpl {
 
     fn handle_http_request_impl(
         &self,
-        req: Request<AppGuardHttpRequest>,
+        req: &Request<AppGuardHttpRequest>,
     ) -> Result<FirewallPolicy, Error> {
         let fw_res = self
             .firewall
@@ -401,7 +401,7 @@ impl AppGuard for AppGuardImpl {
         &self,
         req: Request<AppGuardHttpRequest>,
     ) -> Result<Response<AppGuardResponse>, Status> {
-        self.handle_http_request_impl(req)
+        self.handle_http_request_impl(&req)
             .map(|policy| {
                 Response::new(AppGuardResponse {
                     policy: policy.into(),

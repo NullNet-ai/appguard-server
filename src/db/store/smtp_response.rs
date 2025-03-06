@@ -1,12 +1,11 @@
 use crate::db::entries::DbDetails;
 use crate::helpers::get_timestamp_string;
 use crate::proto::appguard::AppGuardSmtpResponse;
-use nullnet_liberror::Error;
 use serde_json::json;
 
 impl AppGuardSmtpResponse {
-    pub(crate) fn to_json(&self, details: &DbDetails) -> Result<String, Error> {
-        Ok(json!({
+    pub(crate) fn to_json(&self, details: &DbDetails) -> String {
+        json!({
             "id": details.id,
             "timestamp": get_timestamp_string(),
             "fw_policy": details.fw_res.policy,
@@ -16,6 +15,6 @@ impl AppGuardSmtpResponse {
             "code": self.code,
             "time": details.response_time,
         })
-        .to_string())
+        .to_string()
     }
 }
