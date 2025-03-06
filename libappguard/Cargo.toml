@@ -1,0 +1,29 @@
+[package]
+name = "nullnet-libappguard"
+version = "0.1.0"
+edition = "2021"
+authors = ["Giuliano Bellini <gyulyvgc99@gmail.com>", "Anton Liashkevich <anton.liashkevich.eng@gmail.com>"]
+description = "An application-level firewall designed to secure and control network traffic"
+readme = "../README.md"
+#homepage = ""
+repository = "https://github.com/NullNet-ai/appguard-server"
+#documentation = ""
+license = "MIT"
+keywords = ["firewall", "network", "application", "centralized", "monitor"]
+categories = ["network-programming"]
+#include = []
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+
+[dependencies]
+tonic = { version = "0.12.3", features = ["tls", "tls-roots"] }
+prost = "0.13.5"
+tokio = "1.43.0"
+#serde = { version = "1.0.218", features = ["derive"] }
+#log = "0.4.26"
+
+[badges]
+maintenance = { status = "actively-developed" }

@@ -1,45 +1,4 @@
-#![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
-#![allow(
-    clippy::used_underscore_binding,
-    clippy::module_name_repetitions,
-    clippy::wildcard_imports,
-    clippy::missing_errors_doc,
-    clippy::must_use_candidate,
-    clippy::missing_panics_doc
-)]
-
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod ai;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod app_guard_impl;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod config;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod constants;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod db;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod deserialize;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod entrypoint;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod fetch_data;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod firewall;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod from_sql;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod helpers;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod ip_info;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod proto;
-#[cfg(feature = "grpc-lib-only")]
 mod proto;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod serialize;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod to_sql;
 
 use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::appguard::{
