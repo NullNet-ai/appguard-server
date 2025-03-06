@@ -1,29 +1,48 @@
-use std::sync::{Arc, Mutex};
-
-use rusqlite::Connection;
-
-use crate::db::entries::DbDetails;
+use crate::db::entries::DbEntry;
 use crate::db::tables::DbTable;
+use nullnet_libdatastore::{CreateBody, CreateParams, CreateRequest, Query, ResponseData};
+use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::Error;
 
-pub trait StoreUnique {
-    const TABLE: DbTable;
-
-    fn store_unique(&self, conn: &Arc<Mutex<Connection>>) -> Result<Option<u64>, Error>;
+#[derive(Debug, Clone)]
+pub struct DatastoreWrapper {
+    inner: DatastoreClient,
 }
 
-pub trait StoreWithDetails {
-    const TABLE: DbTable;
+impl DatastoreWrapper {
+    pub(crate) async fn new() -> Result<Self, Error> {
+        let config = DatastoreConfig::from_env();
+        let inner = DatastoreClient::new(config).await?;
+        Ok(Self { inner })
+    }
 
-    fn store_with_details(
-        &self,
-        conn: &Arc<Mutex<Connection>>,
-        details: &DbDetails,
-    ) -> Result<(), Error>;
+    pub(crate) async fn insert(
+        &mut self,
+        record: &DbEntry,
+        token: &str,
+    ) -> Result<ResponseData, Error> {
+        let record = record.json_record()?;
+        let table = record.db_table();
+
+        let request = CreateRequest {
+            params: Some(CreateParams {
+                table: table.to_str(),
+            }),
+            query: Some(Query {
+                pluck: String::from("id"),
+                durability: String::from("soft"),
+            }),
+            body: Some(CreateBody {
+                record,
+                entity_prefix: String::from("LO"),
+            }),
+        };
+
+        self.inner.create(request, token).await
+    }
 }
 
-pub trait StoreWithId {
-    const TABLE: DbTable;
-
-    fn store_with_id(&self, conn: &Arc<Mutex<Connection>>, id: u64) -> Result<(), Error>;
+pub trait ToDatastore {
+    fn json_record(&self) -> Result<String, Error>;
+    fn db_table(&self) -> DbTable;
 }

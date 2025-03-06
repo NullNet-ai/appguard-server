@@ -16,7 +16,6 @@ categories = ["network-programming"]
 [features]
 no-ai = []
 no-tls = []
-grpc-lib-only = []
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }
@@ -27,20 +26,20 @@ lto = true
 strip = true
 
 [dependencies]
-nullnet-liblogging = "0.1.2"
-nullnet-liberror = "0.1.0"
+nullnet-libdatastore = "0.3.0"
+nullnet-liblogging = "0.2.0"
+nullnet-liberror = "0.1.1"
 nullnet-libipinfo = "0.1.0"
-serde = { version = "1.0.217", features = ["derive"] }
+serde = { version = "1.0.218", features = ["derive"] }
 reqwest = { version = "0.12.12", features = ["json"] }
-serde_json = "1.0.138"
-rusqlite = { version = "0.33.0", features = ["bundled"] }
+serde_json = "1.0.139"
 tonic = { version = "0.12.3", features = ["tls", "tls-roots"] }
 prost = "0.13.5"
 tokio = { version = "1.43.0", features = ["rt-multi-thread"] }
 chrono = { version = "0.4.39", default-features = false, features = ["clock"] }
 notify = "8.0.0"
 ctrlc = { version = "3.4.5", features = ["termination"] }
-log = "0.4.25"
+log = "0.4.26"
 rpn-predicate-interpreter = { git = "https://github.com/GyulyVGC/postfix-predicate-interpreter.git", branch = "appguard" }
 indexmap = "2.7.1"
 gag = "1.0.0"

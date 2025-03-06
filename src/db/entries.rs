@@ -1,9 +1,5 @@
-use std::sync::{Arc, Mutex};
-
-use rusqlite::Connection;
-
 use crate::constants::SQLITE_PATH;
-use crate::db::store::store::{StoreUnique, StoreWithDetails, StoreWithId};
+use crate::db::store::store::{DatastoreWrapper};
 use crate::firewall::firewall::FirewallResult;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardSmtpRequest,
@@ -21,31 +17,31 @@ pub enum DbEntry {
 }
 
 impl DbEntry {
-    pub fn store(&self, conn: &Arc<Mutex<Connection>>) -> Result<(), Error> {
+    pub async fn store(&self, ds: &DatastoreWrapper) -> Result<(), Error> {
         match self {
-            DbEntry::HttpRequest((e, d)) => {
-                e.store_with_details(conn, d)?;
-                log::info!("HTTP request #{} stored at {}", d.id, SQLITE_PATH.as_str());
+            DbEntry::HttpRequest((_, d)) => {
+                &mut ds.clone().insert(&self, "").await?;
+                log::info!("HTTP request #{} inserted in datastore", d.id);
             }
-            DbEntry::HttpResponse((e, d)) => {
-                e.store_with_details(conn, d)?;
+            DbEntry::HttpResponse((_, d)) => {
+                &mut ds.clone().insert(&self, "").await?;
                 log::info!("HTTP response #{} stored at {}", d.id, SQLITE_PATH.as_str());
             }
-            DbEntry::SmtpRequest((e, d)) => {
-                e.store_with_details(conn, d)?;
+            DbEntry::SmtpRequest((_, d)) => {
+                &mut ds.clone().insert(&self, "").await?;
                 log::info!("SMTP request #{} stored at {}", d.id, SQLITE_PATH.as_str());
             }
-            DbEntry::SmtpResponse((e, d)) => {
-                e.store_with_details(conn, d)?;
+            DbEntry::SmtpResponse((_, d)) => {
+                &mut ds.clone().insert(&self, "").await?;
                 log::info!("SMTP response #{} stored at {}", d.id, SQLITE_PATH.as_str());
             }
-            DbEntry::IpInfo(e) => {
-                if let Some(id) = e.store_unique(conn)? {
-                    log::info!("IP info #{id} stored at {}", SQLITE_PATH.as_str());
-                }
+            DbEntry::IpInfo(_) => {
+                &mut ds.clone().insert(&self, "").await?;
+                // todo: assert store unique!
+                // log::info!("IP info #{id} stored at {}", SQLITE_PATH.as_str());
             }
-            DbEntry::TcpConnection((e, id)) => {
-                e.store_with_id(conn, *id)?;
+            DbEntry::TcpConnection((_, id)) => {
+                &mut ds.clone().insert(&self, "").await?;
                 log::info!("TCP connection #{id} stored at {}", SQLITE_PATH.as_str());
             }
         }

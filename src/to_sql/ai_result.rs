@@ -1,6 +1,3 @@
-use rusqlite::types::ToSqlOutput;
-use rusqlite::ToSql;
-
 use crate::proto::aiguard::AiGuardResponse;
 
 impl ToSql for AiGuardResponse {

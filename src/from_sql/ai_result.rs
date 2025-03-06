@@ -1,7 +1,5 @@
 use std::str::FromStr;
 
-use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, Type, ValueRef};
-
 use crate::proto::aiguard::AiGuardResponse;
 
 impl FromSql for AiGuardResponse {

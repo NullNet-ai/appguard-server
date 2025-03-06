@@ -6,23 +6,17 @@ use std::time::Instant;
 use std::{process, thread};
 
 use indexmap::IndexMap;
-use tokio::runtime::Handle;
 use tonic::{Request, Response, Status};
 
-use crate::ai::entries::AiEntry;
-use crate::ai::helpers::{ai_http_request, ai_interface};
 use crate::config::{watch_config, Config};
-use crate::constants::{ADDR, AI_PORT, BLACKLIST_PATH, CONFIG_FILE, FIREWALL_FILE, SQLITE_PATH};
+use crate::constants::{CONFIG_FILE, FIREWALL_FILE};
 use crate::db::entries::{DbDetails, DbEntry};
-use crate::db::helpers::{
-    create_blacklist_tables, create_db_tables_and_views, delete_old_entries, get_initial_table_ids,
-    get_ipinfo_from_db, store_entries,
-};
+use crate::db::helpers::store_entries;
+use crate::db::store::store::DatastoreWrapper;
 use crate::db::tables::{DbTable, TableIds};
 use crate::fetch_data::fetch_ip_data;
 use crate::firewall::firewall::{watch_firewall, Firewall};
 use crate::ip_info::ip_info_handler;
-use crate::proto::aiguard::ai_guard_client::AiGuardClient;
 use crate::proto::appguard::app_guard_server::AppGuard;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
@@ -34,15 +28,14 @@ use nullnet_libipinfo::IpInfoHandler;
 
 pub struct AppGuardImpl {
     config_pair: Arc<(Mutex<Config>, Condvar)>,
-    conn: Arc<Mutex<rusqlite::Connection>>,
+    ds: DatastoreWrapper,
     table_ids: TableIds,
     unanswered_connections: Arc<Mutex<HashMap<u64, Instant>>>,
     firewall: Arc<RwLock<Firewall>>,
     ip_info_cache: Arc<Mutex<IndexMap<String, AppGuardIpInfo>>>,
     ip_info_handler: IpInfoHandler,
-    blacklist_conn: Arc<Mutex<rusqlite::Connection>>,
     tx_store: Sender<DbEntry>,
-    tx_ai: Sender<AiEntry>,
+    // tx_ai: Sender<AiEntry>,
 }
 
 #[cfg(not(test))]
@@ -63,26 +56,15 @@ pub fn terminate_app_guard(exit_code: i32) -> Result<(), Error> {
 
 impl AppGuardImpl {
     pub async fn new() -> Result<AppGuardImpl, Error> {
-        let conn = Arc::new(Mutex::new(
-            rusqlite::Connection::open(SQLITE_PATH.as_str()).handle_err(location!())?,
-        ));
-        let conn_2 = conn.clone();
-        let conn_3 = conn.clone();
-        let conn_4 = conn.clone();
+        let ds = DatastoreWrapper::new().await?;
+        // let ds_2 = ds.clone();
+        let ds_3 = ds.clone();
+        let ds_4 = ds.clone();
 
-        log::info!("Opened SQLite database at {}", SQLITE_PATH.as_str());
+        log::info!("Connected to Datastore");
 
-        let blacklist_conn = Arc::new(Mutex::new(
-            rusqlite::Connection::open(BLACKLIST_PATH).handle_err(location!())?,
-        ));
-        let blacklist_conn_2 = blacklist_conn.clone();
-
-        log::info!("Opened blacklist SQLite database at {BLACKLIST_PATH}");
-
-        create_db_tables_and_views(&conn)?;
-        create_blacklist_tables(&blacklist_conn)?;
-
-        let table_ids = get_initial_table_ids(&conn)?;
+        // todo
+        // let table_ids = get_initial_table_ids(&ds)?;
 
         let config = Config::from_file(CONFIG_FILE).unwrap_or_default();
         log::info!(
@@ -91,7 +73,7 @@ impl AppGuardImpl {
         );
         let config_pair = Arc::new((Mutex::new(config), Condvar::new()));
         let config_pair_2 = config_pair.clone();
-        let config_pair_3 = config_pair.clone();
+        // let config_pair_3 = config_pair.clone();
 
         let firewall = Firewall::load_from_infix(FIREWALL_FILE).unwrap_or_default();
         log::info!(
@@ -104,26 +86,26 @@ impl AppGuardImpl {
         let ip_info_handler = ip_info_handler();
 
         let ip_info_cache = Arc::new(Mutex::new(IndexMap::new()));
-        let ip_info_cache_2 = ip_info_cache.clone();
+        // let ip_info_cache_2 = ip_info_cache.clone();
 
         let (tx_store, rx_store) = mpsc::channel();
 
-        let (tx_ai, rx_ai) = mpsc::channel();
-
-        if cfg!(all(not(test), not(feature = "no-ai"))) {
-            let ai_client = AiGuardClient::connect(format!("http://{ADDR}:{AI_PORT}"))
-                .await
-                .handle_err(location!())?;
-            log::info!("Connected to AiGuard server at {ADDR}:{AI_PORT}");
-
-            let rt_handle = Handle::current();
-            thread::spawn(move || {
-                ai_interface(&conn_4, &rx_ai, &ai_client, &rt_handle);
-            });
-        }
+        // let (tx_ai, rx_ai) = mpsc::channel();
+        //
+        // if cfg!(all(not(test), not(feature = "no-ai"))) {
+        //     let ai_client = AiGuardClient::connect(format!("http://{ADDR}:{AI_PORT}"))
+        //         .await
+        //         .handle_err(location!())?;
+        //     log::info!("Connected to AiGuard server at {ADDR}:{AI_PORT}");
+        //
+        //     let rt_handle = Handle::current();
+        //     thread::spawn(move || {
+        //         ai_interface(&ds_4, &rx_ai, &ai_client, &rt_handle);
+        //     });
+        // }
 
         tokio::spawn(async move {
-            fetch_ip_data(&blacklist_conn_2).await;
+            fetch_ip_data(&ds_4).await;
         });
 
         thread::spawn(move || {
@@ -134,26 +116,27 @@ impl AppGuardImpl {
             watch_firewall(&firewall_shared_2).expect("Watch firewall thread failed");
         });
 
-        thread::spawn(move || {
-            delete_old_entries(&config_pair_3, &conn_2, &ip_info_cache_2)
-                .expect("Delete old entries thread failed");
-        });
+        // todo
+        // thread::spawn(move || {
+        //     delete_old_entries(&config_pair_3, &ds_2, &ip_info_cache_2)
+        //         .expect("Delete old entries thread failed");
+        // });
 
         thread::spawn(move || {
-            store_entries(&conn_3, &rx_store);
+            store_entries(&ds_3, &rx_store);
         });
 
         Ok(AppGuardImpl {
             config_pair,
-            conn,
-            table_ids,
+            ds: ds,
+            // todo
+            table_ids: TableIds::default(),
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
             firewall: firewall_shared,
             ip_info_cache,
             ip_info_handler,
-            blacklist_conn,
             tx_store,
-            tx_ai,
+            // tx_ai,
         })
     }
 
@@ -241,12 +224,15 @@ impl AppGuardImpl {
             ip_info = if let Some(info) = info_opt {
                 log::info!("IP information for {ip} already in cache");
                 info
-            } else if let Ok(Some(info)) = get_ipinfo_from_db(ip, &self.conn) {
-                log::info!("IP information for {ip} already in database");
-                info
-            } else {
+            }
+            // todo
+            // else if let Ok(Some(info)) = get_ipinfo_from_db(ip, &self.ds) {
+            //     log::info!("IP information for {ip} already in database");
+            //     info
+            // }
+            else {
                 ip_info =
-                    AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.blacklist_conn).await?;
+                    AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.ds).await?;
                 log::info!("Looked up new IP information: {ip_info:?}");
                 self.tx_store
                     .send(DbEntry::IpInfo(ip_info.clone()))
@@ -290,12 +276,12 @@ impl AppGuardImpl {
                 .send(DbEntry::HttpRequest((req.get_ref().clone(), details)))
                 .handle_err(location!())?;
 
-            if cfg!(all(not(test), not(feature = "no-ai"))) {
-                let ai_http_request = ai_http_request(req.into_inner());
-                self.tx_ai
-                    .send(AiEntry::HttpRequest((ai_http_request, id)))
-                    .handle_err(location!())?;
-            }
+            // if cfg!(all(not(test), not(feature = "no-ai"))) {
+            //     let ai_http_request = ai_http_request(req.into_inner());
+            //     self.tx_ai
+            //         .send(AiEntry::HttpRequest((ai_http_request, id)))
+            //         .handle_err(location!())?;
+            // }
         }
 
         Ok(policy)

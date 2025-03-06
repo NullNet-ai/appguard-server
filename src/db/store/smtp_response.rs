@@ -1,29 +1,20 @@
-use std::sync::{Arc, Mutex};
-
-use rusqlite::{params, Connection};
-
 use crate::db::entries::DbDetails;
-use crate::db::store::store::StoreWithDetails;
-use crate::db::tables::DbTable;
 use crate::helpers::get_timestamp_string;
 use crate::proto::appguard::AppGuardSmtpResponse;
-use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::Error;
+use serde_json::json;
 
-impl StoreWithDetails for AppGuardSmtpResponse {
-    const TABLE: DbTable = DbTable::SmtpResponse;
-
-    fn store_with_details(
-        &self,
-        conn: &Arc<Mutex<Connection>>,
-        details: &DbDetails,
-    ) -> Result<(), Error> {
-        let table_name = Self::TABLE.to_str();
-        conn.lock().handle_err(location!())?.execute(
-                &format!("INSERT INTO {table_name} (id, timestamp, fw_res, tcp_id, ip, code, time) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)"),
-                params![details.id, get_timestamp_string(), details.fw_res, details.tcp_id, &details.ip, &self.code, details.response_time,],
-            )
-            .handle_err(location!())?;
-
-        Ok(())
+impl AppGuardSmtpResponse {
+    pub(crate) fn json_record(&self, details: &DbDetails) -> Result<String, Error> {
+        Ok(json!({
+            "id": details.id,
+            "timestamp": get_timestamp_string(),
+            "fw_res": details.fw_res,
+            "tcp_id": details.tcp_id,
+            "ip": details.ip,
+            "code": self.code,
+            "time": details.response_time,
+        })
+        .to_string())
     }
 }

@@ -1,6 +1,3 @@
-use rusqlite::types::ToSqlOutput;
-use rusqlite::ToSql;
-
 use crate::firewall::firewall::FirewallResult;
 use crate::proto::appguard::FirewallPolicy;
 

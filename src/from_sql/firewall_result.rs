@@ -1,5 +1,3 @@
-use rusqlite::types::{FromSql, FromSqlError, FromSqlResult, Type, ValueRef};
-
 use crate::firewall::firewall::FirewallResult;
 use crate::proto::appguard::FirewallPolicy;
 
