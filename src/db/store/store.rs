@@ -1,5 +1,4 @@
 use crate::db::entries::DbEntry;
-use crate::db::tables::DbTable;
 use nullnet_libdatastore::{CreateBody, CreateParams, CreateRequest, Query, ResponseData};
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::Error;
@@ -18,15 +17,15 @@ impl DatastoreWrapper {
 
     pub(crate) async fn insert(
         &mut self,
-        record: &DbEntry,
+        entry: &DbEntry,
         token: &str,
     ) -> Result<ResponseData, Error> {
-        let record = record.json_record()?;
-        let table = record.db_table();
+        let record = entry.to_json()?;
+        let table = entry.table();
 
         let request = CreateRequest {
             params: Some(CreateParams {
-                table: table.to_str(),
+                table: table.to_str().into(),
             }),
             query: Some(Query {
                 pluck: String::from("id"),
@@ -40,9 +39,4 @@ impl DatastoreWrapper {
 
         self.inner.create(request, token).await
     }
-}
-
-pub trait ToDatastore {
-    fn json_record(&self) -> Result<String, Error>;
-    fn db_table(&self) -> DbTable;
 }

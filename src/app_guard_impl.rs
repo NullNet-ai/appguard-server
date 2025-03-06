@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::sync::mpsc::Sender;
-use std::sync::{mpsc, Arc, Condvar, Mutex, RwLock};
+use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::time::Instant;
 use std::{process, thread};
 
@@ -25,6 +24,8 @@ use crate::proto::appguard::{
 };
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::UnboundedSender;
 
 pub struct AppGuardImpl {
     config_pair: Arc<(Mutex<Config>, Condvar)>,
@@ -34,7 +35,7 @@ pub struct AppGuardImpl {
     firewall: Arc<RwLock<Firewall>>,
     ip_info_cache: Arc<Mutex<IndexMap<String, AppGuardIpInfo>>>,
     ip_info_handler: IpInfoHandler,
-    tx_store: Sender<DbEntry>,
+    tx_store: UnboundedSender<DbEntry>,
     // tx_ai: Sender<AiEntry>,
 }
 
@@ -88,7 +89,7 @@ impl AppGuardImpl {
         let ip_info_cache = Arc::new(Mutex::new(IndexMap::new()));
         // let ip_info_cache_2 = ip_info_cache.clone();
 
-        let (tx_store, rx_store) = mpsc::channel();
+        let (tx_store, mut rx_store) = mpsc::unbounded_channel();
 
         // let (tx_ai, rx_ai) = mpsc::channel();
         //
@@ -122,13 +123,13 @@ impl AppGuardImpl {
         //         .expect("Delete old entries thread failed");
         // });
 
-        thread::spawn(move || {
-            store_entries(&ds_3, &rx_store);
+        tokio::spawn(async move {
+            store_entries(&ds_3, &mut rx_store).await;
         });
 
         Ok(AppGuardImpl {
             config_pair,
-            ds: ds,
+            ds,
             // todo
             table_ids: TableIds::default(),
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
@@ -231,8 +232,7 @@ impl AppGuardImpl {
             //     info
             // }
             else {
-                ip_info =
-                    AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.ds).await?;
+                ip_info = AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.ds).await?;
                 log::info!("Looked up new IP information: {ip_info:?}");
                 self.tx_store
                     .send(DbEntry::IpInfo(ip_info.clone()))

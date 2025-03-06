@@ -5,7 +5,7 @@ use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use serde_json::json;
 
 impl AppGuardSmtpRequest {
-    pub(crate) fn json_record(&self, details: &DbDetails) -> Result<String, Error> {
+    pub(crate) fn to_json(&self, details: &DbDetails) -> Result<String, Error> {
         let headers = &self.headers;
 
         let user_agent = get_header(headers, "User-Agent");
@@ -15,7 +15,8 @@ impl AppGuardSmtpRequest {
         Ok(json!({
             "id": details.id,
             "timestamp": get_timestamp_string(),
-            "fw_res": details.fw_res,
+            "fw_policy": details.fw_res.policy,
+            "fw_reasons": details.fw_res.reasons,
             "tcp_id": details.tcp_id,
             "ip": details.ip,
             "user_agent": user_agent,

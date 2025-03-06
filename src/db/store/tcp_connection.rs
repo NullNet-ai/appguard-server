@@ -4,7 +4,7 @@ use nullnet_liberror::Error;
 use serde_json::json;
 
 impl AppGuardTcpConnection {
-    pub(crate) fn json_record(&self, id: &u64) -> Result<String, Error> {
+    pub(crate) fn to_json(&self, id: &u64) -> Result<String, Error> {
         Ok(json!({
             "id": id,
             "timestamp": get_timestamp_string(),

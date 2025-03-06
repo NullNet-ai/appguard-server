@@ -4,7 +4,7 @@ use nullnet_liberror::Error;
 use serde_json::json;
 
 impl AppGuardIpInfo {
-    pub(crate) fn json_record(&self) -> Result<String, Error> {
+    pub(crate) fn to_json(&self) -> Result<String, Error> {
         Ok(json!({
             "timestamp": get_timestamp_string(),
             "ip": self.ip,

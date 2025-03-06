@@ -15,7 +15,7 @@ pub const ADDR: &str = "appguard";
 
 pub const PORT: u16 = 50051;
 
-pub const AI_PORT: u16 = 50052;
+// pub const AI_PORT: u16 = 50052;
 
 // -------------------------------------------------------------------------------------------------
 
@@ -44,18 +44,11 @@ pub static SQLITE_PATH: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::n
     format!("{SQLITE_DIR}/db-{version_tag}.sqlite")
 });
 
-#[cfg(not(debug_assertions))]
-pub const BLACKLIST_PATH: &str = "./blacklist.sqlite";
-#[cfg(all(debug_assertions, not(test)))]
-pub const BLACKLIST_PATH: &str = "./test_material/blacklist.sqlite";
-#[cfg(all(debug_assertions, test))]
-pub const BLACKLIST_PATH: &str = "./test_material/blacklist_sample.sqlite";
-
 // -------------------------------------------------------------------------------------------------
 
 // remote source constants
-pub const BLACKLIST_LINK: &str =
-    "https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt";
+// pub const BLACKLIST_LINK: &str =
+//     "https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt";
 
 // -------------------------------------------------------------------------------------------------
 

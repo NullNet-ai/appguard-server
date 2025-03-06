@@ -1,8 +1,6 @@
-use std::sync::mpsc::Receiver;
-
 use crate::db::entries::DbEntry;
 use crate::db::store::store::DatastoreWrapper;
-use nullnet_liberror::{location, ErrorHandler, Location};
+use tokio::sync::mpsc::UnboundedReceiver;
 
 // todo: create tables in datastore
 // pub fn create_db_tables_and_views(conn: &Arc<Mutex<Connection>>) -> Result<(), Error> {
@@ -147,9 +145,9 @@ use nullnet_liberror::{location, ErrorHandler, Location};
 //     stmt.query_row([], |row| row.get(0)).handle_err(location!())
 // }
 
-pub async fn store_entries(ds: &DatastoreWrapper, rx: &Receiver<DbEntry>) {
+pub async fn store_entries(ds: &DatastoreWrapper, rx: &mut UnboundedReceiver<DbEntry>) {
     loop {
-        if let Ok(entry) = rx.recv().handle_err(location!()) {
+        if let Some(entry) = rx.recv().await {
             entry.store(ds).await.unwrap_or_default();
         }
     }

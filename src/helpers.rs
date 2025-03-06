@@ -1,26 +1,23 @@
 use std::collections::HashMap;
-use std::convert::TryFrom;
 
-use chrono::{DateTime, FixedOffset, Utc};
-
-use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use chrono::Utc;
 
 pub fn get_timestamp_string() -> String {
     Utc::now().to_rfc3339()
 }
 
-pub fn timestamp_str_diff_usec(timestamp1: &str, timestamp2: &str) -> Result<u64, Error> {
-    let datetime1: DateTime<FixedOffset> =
-        DateTime::parse_from_rfc3339(timestamp1).handle_err(location!())?;
-    let datetime2: DateTime<FixedOffset> =
-        DateTime::parse_from_rfc3339(timestamp2).handle_err(location!())?;
-    let time_delta = datetime1.signed_duration_since(datetime2);
-    let micros = time_delta
-        .num_microseconds()
-        .ok_or("Invalid time delta")
-        .handle_err(location!())?;
-    u64::try_from(micros).handle_err(location!())
-}
+// pub fn timestamp_str_diff_usec(timestamp1: &str, timestamp2: &str) -> Result<u64, Error> {
+//     let datetime1: DateTime<FixedOffset> =
+//         DateTime::parse_from_rfc3339(timestamp1).handle_err(location!())?;
+//     let datetime2: DateTime<FixedOffset> =
+//         DateTime::parse_from_rfc3339(timestamp2).handle_err(location!())?;
+//     let time_delta = datetime1.signed_duration_since(datetime2);
+//     let micros = time_delta
+//         .num_microseconds()
+//         .ok_or("Invalid time delta")
+//         .handle_err(location!())?;
+//     u64::try_from(micros).handle_err(location!())
+// }
 
 pub fn get_header<'a, S: std::hash::BuildHasher>(
     headers: &'a HashMap<String, String, S>,
