@@ -30,6 +30,7 @@ nullnet-libdatastore = "0.3.0"
 nullnet-liblogging = "0.2.0"
 nullnet-liberror = "0.1.1"
 nullnet-libipinfo = "0.1.0"
+nullnet-libtoken = "0.1.1"
 serde = { version = "1.0.218", features = ["derive"] }
 reqwest = { version = "0.12.12", features = ["json"] }
 serde_json = "1.0.139"

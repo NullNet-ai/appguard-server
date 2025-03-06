@@ -20,7 +20,7 @@ use crate::proto::appguard::app_guard_server::AppGuard;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    AppGuardTcpResponse, FirewallPolicy,
+    AppGuardTcpResponse, Authentication, FirewallPolicy, LoginRequest,
 };
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
@@ -195,6 +195,21 @@ impl AppGuardImpl {
         }
     }
 
+    async fn login_impl(&self, request: Request<LoginRequest>) -> Result<Authentication, Error> {
+        let login_request = request.into_inner();
+
+        let token = self
+            .ds
+            .login(login_request.app_id, login_request.app_secret)
+            .await?;
+
+        if token.is_empty() {
+            return Err("Datastore login failed: Wrong credentials").handle_err(location!());
+        }
+
+        Ok(Authentication { token })
+    }
+
     async fn handle_tcp_connection_impl(
         &self,
         req: Request<AppGuardTcpConnection>,
@@ -235,7 +250,10 @@ impl AppGuardImpl {
                 ip_info = AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.ds).await?;
                 log::info!("Looked up new IP information: {ip_info:?}");
                 self.tx_store
-                    .send(DbEntry::IpInfo(ip_info.clone()))
+                    .send(DbEntry::IpInfo((
+                        ip_info.clone(),
+                        req.get_ref().auth.clone(),
+                    )))
                     .handle_err(location!())?;
                 ip_info
             };
@@ -380,6 +398,16 @@ impl AppGuardImpl {
 
 #[tonic::async_trait]
 impl AppGuard for AppGuardImpl {
+    async fn login(
+        &self,
+        request: Request<LoginRequest>,
+    ) -> Result<Response<Authentication>, Status> {
+        self.login_impl(request)
+            .await
+            .map(Response::new)
+            .map_err(|e| Status::internal(format!("{e:?}")))
+    }
+
     async fn handle_tcp_connection(
         &self,
         req: Request<AppGuardTcpConnection>,

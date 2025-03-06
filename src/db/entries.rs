@@ -2,9 +2,10 @@ use crate::constants::SQLITE_PATH;
 use crate::db::store::store::DatastoreWrapper;
 use crate::db::tables::DbTable;
 use crate::firewall::firewall::FirewallResult;
+use crate::helpers::authenticate;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardSmtpRequest,
-    AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
+    AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, Authentication,
 };
 use nullnet_liberror::Error;
 
@@ -13,36 +14,38 @@ pub enum DbEntry {
     HttpResponse((AppGuardHttpResponse, DbDetails)),
     SmtpRequest((AppGuardSmtpRequest, DbDetails)),
     SmtpResponse((AppGuardSmtpResponse, DbDetails)),
-    IpInfo(AppGuardIpInfo),
+    IpInfo((AppGuardIpInfo, Option<Authentication>)),
     TcpConnection((AppGuardTcpConnection, u64)),
 }
 
 impl DbEntry {
     pub async fn store(&self, ds: &DatastoreWrapper) -> Result<(), Error> {
+        let (token, _) = authenticate(self.get_auth())?;
+
         match self {
             DbEntry::HttpRequest((_, d)) => {
-                let _ = &mut ds.clone().insert(self, "").await?;
+                let _ = &mut ds.clone().insert(self, token.as_str()).await?;
                 log::info!("HTTP request #{} inserted in datastore", d.id);
             }
             DbEntry::HttpResponse((_, d)) => {
-                let _ = &mut ds.clone().insert(self, "").await?;
+                let _ = &mut ds.clone().insert(self, token.as_str()).await?;
                 log::info!("HTTP response #{} stored at {}", d.id, SQLITE_PATH.as_str());
             }
             DbEntry::SmtpRequest((_, d)) => {
-                let _ = &mut ds.clone().insert(self, "").await?;
+                let _ = &mut ds.clone().insert(self, token.as_str()).await?;
                 log::info!("SMTP request #{} stored at {}", d.id, SQLITE_PATH.as_str());
             }
             DbEntry::SmtpResponse((_, d)) => {
-                let _ = &mut ds.clone().insert(self, "").await?;
+                let _ = &mut ds.clone().insert(self, token.as_str()).await?;
                 log::info!("SMTP response #{} stored at {}", d.id, SQLITE_PATH.as_str());
             }
             DbEntry::IpInfo(_) => {
-                let _ = &mut ds.clone().insert(self, "").await?;
+                let _ = &mut ds.clone().insert(self, token.as_str()).await?;
                 // todo: assert store unique!
                 // log::info!("IP info #{id} stored at {}", SQLITE_PATH.as_str());
             }
             DbEntry::TcpConnection((_, id)) => {
-                let _ = &mut ds.clone().insert(self, "").await?;
+                let _ = &mut ds.clone().insert(self, token.as_str()).await?;
                 log::info!("TCP connection #{id} stored at {}", SQLITE_PATH.as_str());
             }
         }
@@ -55,7 +58,7 @@ impl DbEntry {
             DbEntry::HttpResponse((r, d)) => r.to_json(d),
             DbEntry::SmtpRequest((r, d)) => r.to_json(d),
             DbEntry::SmtpResponse((r, d)) => Ok(r.to_json(d)),
-            DbEntry::IpInfo(i) => Ok(i.to_json()),
+            DbEntry::IpInfo((i, _)) => Ok(i.to_json()),
             DbEntry::TcpConnection((c, id)) => Ok(c.to_json(*id)),
         }
     }
@@ -68,6 +71,17 @@ impl DbEntry {
             DbEntry::SmtpResponse(_) => DbTable::SmtpResponse,
             DbEntry::IpInfo(_) => DbTable::IpInfo,
             DbEntry::TcpConnection(_) => DbTable::TcpConnection,
+        }
+    }
+
+    fn get_auth(&self) -> Option<Authentication> {
+        match self {
+            DbEntry::HttpRequest((r, _)) => r.auth.clone(),
+            DbEntry::HttpResponse((r, _)) => r.auth.clone(),
+            DbEntry::SmtpRequest((r, _)) => r.auth.clone(),
+            DbEntry::SmtpResponse((r, _)) => r.auth.clone(),
+            DbEntry::IpInfo((_, a)) => a.clone(),
+            DbEntry::TcpConnection((c, _)) => c.auth.clone(),
         }
     }
 }

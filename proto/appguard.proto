@@ -3,6 +3,8 @@ syntax = "proto3";
 package appguard;
 
 service AppGuard {
+  // Authentication
+  rpc Login (LoginRequest) returns (Authentication);
   // TCP
   rpc HandleTcpConnection (AppGuardTcpConnection) returns (AppGuardTcpResponse);
   // HTTP
@@ -13,14 +15,26 @@ service AppGuard {
   rpc HandleSmtpResponse (AppGuardSmtpResponse) returns (AppGuardResponse);
 }
 
+// Authentication ------------------------------------------------------------------------------------------------------
+
+message LoginRequest {
+  string app_id = 1;
+  string app_secret = 2;
+}
+
+message Authentication {
+  string token = 1;
+}
+
 // TCP -----------------------------------------------------------------------------------------------------------------
 
 message AppGuardTcpConnection {
-  optional string source_ip = 1;
-  optional uint32 source_port = 2;
-  optional string destination_ip = 3;
-  optional uint32 destination_port = 4;
-  string protocol = 5;
+  Authentication auth = 1;
+  optional string source_ip = 2;
+  optional uint32 source_port = 3;
+  optional string destination_ip = 4;
+  optional uint32 destination_port = 5;
+  string protocol = 6;
 }
 
 message AppGuardIpInfo {
@@ -45,30 +59,34 @@ message AppGuardTcpInfo {
 // HTTP ----------------------------------------------------------------------------------------------------------------
 
 message AppGuardHttpRequest {
-  string original_url = 1;
-  map<string, string> headers = 2;
-  string method = 3;
-  optional string body = 4;
-  map<string, string> query = 5;
+  Authentication auth = 1;
+  string original_url = 2;
+  map<string, string> headers = 3;
+  string method = 4;
+  optional string body = 5;
+  map<string, string> query = 6;
   AppGuardTcpInfo tcp_info = 100;
 }
 
 message AppGuardHttpResponse {
-  uint32 code = 1;
-  map<string, string> headers = 2;
+  Authentication auth = 1;
+  uint32 code = 2;
+  map<string, string> headers = 3;
   AppGuardTcpInfo tcp_info = 100;
 }
 
 // SMTP ----------------------------------------------------------------------------------------------------------------
 
 message AppGuardSmtpRequest {
-  map<string, string> headers = 1;
-  optional string body = 2;
+  Authentication auth = 1;
+  map<string, string> headers = 2;
+  optional string body = 3;
   AppGuardTcpInfo tcp_info = 100;
 }
 
 message AppGuardSmtpResponse {
-  optional uint32 code = 1;
+  Authentication auth = 1;
+  optional uint32 code = 2;
   AppGuardTcpInfo tcp_info = 100;
 }
 

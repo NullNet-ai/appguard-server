@@ -1,5 +1,8 @@
 use crate::db::entries::DbEntry;
-use nullnet_libdatastore::{CreateBody, CreateParams, CreateRequest, Query, ResponseData};
+use nullnet_libdatastore::{
+    CreateBody, CreateParams, CreateRequest, LoginBody, LoginData, LoginRequest, Query,
+    ResponseData,
+};
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::Error;
 
@@ -38,5 +41,20 @@ impl DatastoreWrapper {
         };
 
         self.inner.create(request, token).await
+    }
+
+    pub async fn login(&self, account_id: String, account_secret: String) -> Result<String, Error> {
+        let request = LoginRequest {
+            body: Some(LoginBody {
+                data: Some(LoginData {
+                    account_id,
+                    account_secret,
+                }),
+            }),
+        };
+
+        let response = self.inner.clone().login(request).await?;
+
+        Ok(response.token)
     }
 }

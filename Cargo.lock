@@ -61,6 +61,7 @@ dependencies = [
  "nullnet-liberror",
  "nullnet-libipinfo",
  "nullnet-liblogging 0.2.0",
+ "nullnet-libtoken",
  "once_cell",
  "prost",
  "reqwest",
