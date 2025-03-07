@@ -267,6 +267,9 @@ pub mod app_guard_client {
             req.extensions_mut().insert(GrpcMethod::new("appguard.AppGuard", "Login"));
             self.inner.unary(req, path, codec).await
         }
+        ///  rpc Status (StatusRequest) returns (StatusResponse);
+        ///  rpc Setup (SetupRequest) returns (CommonResponse);
+        ///  rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
         /// TCP
         pub async fn handle_tcp_connection(
             &mut self,
@@ -410,6 +413,9 @@ pub mod app_guard_server {
             &self,
             request: tonic::Request<super::LoginRequest>,
         ) -> std::result::Result<tonic::Response<super::Authentication>, tonic::Status>;
+        ///  rpc Status (StatusRequest) returns (StatusResponse);
+        ///  rpc Setup (SetupRequest) returns (CommonResponse);
+        ///  rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
         /// TCP
         async fn handle_tcp_connection(
             &self,

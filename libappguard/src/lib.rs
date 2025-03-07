@@ -4,11 +4,12 @@ use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse,
-    FirewallPolicy,
+    FirewallPolicy, Authentication,
 };
 use std::future::Future;
 use tonic::transport::{Channel, ClientTlsConfig};
 use tonic::{Request, Response, Status};
+use crate::proto::appguard::LoginRequest;
 
 #[derive(Clone)]
 pub struct AppGuardGrpcInterface {
@@ -35,6 +36,17 @@ impl AppGuardGrpcInterface {
         Ok(Self {
             client: AppGuardClient::new(channel),
         })
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    pub async fn login(&mut self, app_id: String, app_secret: String) -> Result<String, String> {
+        let response = self
+            .client
+            .login(Request::new(LoginRequest { app_id, app_secret }))
+            .await
+            .map_err(|e| e.to_string())?;
+
+        Ok(response.into_inner().token)
     }
 
     #[allow(clippy::missing_errors_doc)]
