@@ -1,15 +1,18 @@
 mod proto;
 
+use crate::proto::appguard::{
+    CommonResponse, HeartbeatRequest, HeartbeatResponse, LoginRequest, StatusRequest,
+    StatusResponse,
+};
 use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse,
-    FirewallPolicy, Authentication,
+    Authentication, DeviceStatus, FirewallPolicy, SetupRequest,
 };
 use std::future::Future;
 use tonic::transport::{Channel, ClientTlsConfig};
 use tonic::{Request, Response, Status};
-use crate::proto::appguard::LoginRequest;
 
 #[derive(Clone)]
 pub struct AppGuardGrpcInterface {
@@ -47,6 +50,40 @@ impl AppGuardGrpcInterface {
             .map_err(|e| e.to_string())?;
 
         Ok(response.into_inner().token)
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    pub async fn setup(&mut self, request: SetupRequest) -> Result<CommonResponse, String> {
+        self.client
+            .setup(Request::new(request))
+            .await
+            .map(tonic::Response::into_inner)
+            .map_err(|e| e.to_string())
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    pub async fn status(&mut self, token: String) -> Result<StatusResponse, String> {
+        let response = self
+            .client
+            .status(Request::new(StatusRequest {
+                auth: Some(Authentication { token }),
+            }))
+            .await
+            .map(tonic::Response::into_inner)
+            .map_err(|e| e.to_string())?;
+
+        Ok(response)
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    pub async fn heartbeat(&mut self, token: String) -> Result<HeartbeatResponse, String> {
+        self.client
+            .heartbeat(Request::new(HeartbeatRequest {
+                auth: Some(Authentication { token }),
+            }))
+            .await
+            .map(tonic::Response::into_inner)
+            .map_err(|e| e.to_string())
     }
 
     #[allow(clippy::missing_errors_doc)]
