@@ -1,14 +1,14 @@
 mod proto;
 
 use crate::proto::appguard::{
-    CommonResponse, HeartbeatRequest, HeartbeatResponse, LoginRequest, StatusRequest,
+    CommonResponse, HeartbeatRequest, LoginRequest, StatusRequest,
     StatusResponse,
 };
 use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse,
-    Authentication, DeviceStatus, FirewallPolicy, SetupRequest,
+    Authentication, DeviceStatus, FirewallPolicy, SetupRequest,HeartbeatResponse
 };
 use std::future::Future;
 use tonic::transport::{Channel, ClientTlsConfig};
