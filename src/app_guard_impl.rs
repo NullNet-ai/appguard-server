@@ -20,10 +20,12 @@ use crate::proto::appguard::app_guard_server::AppGuard;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    AppGuardTcpResponse, Authentication, FirewallPolicy, LoginRequest,
+    AppGuardTcpResponse, Authentication, CommonResponse, FirewallPolicy, HeartbeatRequest,
+    HeartbeatResponse, LoginRequest, SetupRequest, StatusRequest, StatusResponse,
 };
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
+use nullnet_libtoken::Token;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -208,6 +210,77 @@ impl AppGuardImpl {
         }
 
         Ok(Authentication { token })
+    }
+
+    fn authenticate(auth: Option<Authentication>) -> Result<(String, Token), Error> {
+        let Some(auth_message) = auth else {
+            return Err("Authentication token is missing").handle_err(location!());
+        };
+
+        let jwt_token = auth_message.token.clone();
+
+        let token_info = Token::from_jwt(&jwt_token).handle_err(location!())?;
+
+        Ok((jwt_token, token_info))
+    }
+
+    async fn status_impl(&self, request: Request<StatusRequest>) -> Result<StatusResponse, Error> {
+        let status_request = request.into_inner();
+        let (jwt_token, token_info) = Self::authenticate(status_request.auth)?;
+
+        let status = self
+            .ds
+            .device_status(token_info.account.device.id, &jwt_token)
+            .await?;
+
+        Ok(StatusResponse {
+            status: status.into(),
+        })
+    }
+
+    async fn setup_impl(&self, request: Request<SetupRequest>) -> Result<CommonResponse, Error> {
+        let remote_address = request
+            .remote_addr()
+            .map_or_else(|| "Unknown".to_string(), |addr| addr.ip().to_string());
+
+        let setup_request = request.into_inner();
+
+        let (jwt_token, token_info) = Self::authenticate(setup_request.auth)?;
+
+        let _ = self
+            .ds
+            .device_setup(
+                &jwt_token,
+                token_info.account.device.id,
+                setup_request.device_version,
+                setup_request.device_uuid,
+                remote_address,
+            )
+            .await?;
+
+        Ok(CommonResponse {
+            message: String::from("Device setup completed successfully"),
+        })
+    }
+
+    async fn heartbeat_impl(
+        &self,
+        request: Request<HeartbeatRequest>,
+    ) -> Result<HeartbeatResponse, Error> {
+        let heartbeat_request = request.into_inner();
+
+        let (jwt_token, token_info) = Self::authenticate(heartbeat_request.auth)?;
+
+        let device_info = self
+            .ds
+            .heartbeat(&jwt_token, token_info.account.device.id)
+            .await?;
+
+        Ok(HeartbeatResponse {
+            status: device_info.status.into(),
+            is_remote_access_enabled: device_info.is_remote_access_enabled,
+            is_monitoring_enabled: device_info.is_monitoring_enabled,
+        })
     }
 
     async fn handle_tcp_connection_impl(
@@ -403,6 +476,36 @@ impl AppGuard for AppGuardImpl {
         request: Request<LoginRequest>,
     ) -> Result<Response<Authentication>, Status> {
         self.login_impl(request)
+            .await
+            .map(Response::new)
+            .map_err(|e| Status::internal(format!("{e:?}")))
+    }
+
+    async fn status(
+        &self,
+        request: Request<StatusRequest>,
+    ) -> Result<Response<StatusResponse>, Status> {
+        self.status_impl(request)
+            .await
+            .map(Response::new)
+            .map_err(|e| Status::internal(format!("{e:?}")))
+    }
+
+    async fn setup(
+        &self,
+        request: Request<SetupRequest>,
+    ) -> Result<Response<CommonResponse>, Status> {
+        self.setup_impl(request)
+            .await
+            .map(Response::new)
+            .map_err(|e| Status::internal(format!("{e:?}")))
+    }
+
+    async fn heartbeat(
+        &self,
+        request: Request<HeartbeatRequest>,
+    ) -> Result<Response<HeartbeatResponse>, Status> {
+        self.heartbeat_impl(request)
             .await
             .map(Response::new)
             .map_err(|e| Status::internal(format!("{e:?}")))

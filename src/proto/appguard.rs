@@ -12,6 +12,44 @@ pub struct Authentication {
     pub token: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StatusRequest {
+    #[prost(message, optional, tag = "1")]
+    pub auth: ::core::option::Option<Authentication>,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct StatusResponse {
+    #[prost(enumeration = "DeviceStatus", tag = "1")]
+    pub status: i32,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct HeartbeatResponse {
+    #[prost(enumeration = "DeviceStatus", tag = "1")]
+    pub status: i32,
+    #[prost(bool, tag = "2")]
+    pub is_remote_access_enabled: bool,
+    #[prost(bool, tag = "3")]
+    pub is_monitoring_enabled: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SetupRequest {
+    #[prost(message, optional, tag = "1")]
+    pub auth: ::core::option::Option<Authentication>,
+    #[prost(string, tag = "2")]
+    pub device_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub device_uuid: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct HeartbeatRequest {
+    #[prost(message, optional, tag = "1")]
+    pub auth: ::core::option::Option<Authentication>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CommonResponse {
+    #[prost(string, tag = "1")]
+    pub message: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AppGuardTcpConnection {
     #[prost(message, optional, tag = "1")]
     pub auth: ::core::option::Option<Authentication>,
@@ -127,6 +165,41 @@ pub struct AppGuardResponse {
 pub struct AppGuardTcpResponse {
     #[prost(message, optional, tag = "1")]
     pub tcp_info: ::core::option::Option<AppGuardTcpInfo>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum DeviceStatus {
+    DsDraft = 0,
+    DsActive = 1,
+    DsArchived = 2,
+    DsDeleted = 3,
+    DsUnknown = 4,
+}
+impl DeviceStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::DsDraft => "DS_DRAFT",
+            Self::DsActive => "DS_ACTIVE",
+            Self::DsArchived => "DS_ARCHIVED",
+            Self::DsDeleted => "DS_DELETED",
+            Self::DsUnknown => "DS_UNKNOWN",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "DS_DRAFT" => Some(Self::DsDraft),
+            "DS_ACTIVE" => Some(Self::DsActive),
+            "DS_ARCHIVED" => Some(Self::DsArchived),
+            "DS_DELETED" => Some(Self::DsDeleted),
+            "DS_UNKNOWN" => Some(Self::DsUnknown),
+            _ => None,
+        }
+    }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -267,9 +340,66 @@ pub mod app_guard_client {
             req.extensions_mut().insert(GrpcMethod::new("appguard.AppGuard", "Login"));
             self.inner.unary(req, path, codec).await
         }
-        ///  rpc Status (StatusRequest) returns (StatusResponse);
-        ///  rpc Setup (SetupRequest) returns (CommonResponse);
-        ///  rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+        pub async fn status(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StatusRequest>,
+        ) -> std::result::Result<tonic::Response<super::StatusResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/appguard.AppGuard/Status");
+            let mut req = request.into_request();
+            req.extensions_mut().insert(GrpcMethod::new("appguard.AppGuard", "Status"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn setup(
+            &mut self,
+            request: impl tonic::IntoRequest<super::SetupRequest>,
+        ) -> std::result::Result<tonic::Response<super::CommonResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/appguard.AppGuard/Setup");
+            let mut req = request.into_request();
+            req.extensions_mut().insert(GrpcMethod::new("appguard.AppGuard", "Setup"));
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn heartbeat(
+            &mut self,
+            request: impl tonic::IntoRequest<super::HeartbeatRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::HeartbeatResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/appguard.AppGuard/Heartbeat",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("appguard.AppGuard", "Heartbeat"));
+            self.inner.unary(req, path, codec).await
+        }
         /// TCP
         pub async fn handle_tcp_connection(
             &mut self,
@@ -413,9 +543,21 @@ pub mod app_guard_server {
             &self,
             request: tonic::Request<super::LoginRequest>,
         ) -> std::result::Result<tonic::Response<super::Authentication>, tonic::Status>;
-        ///  rpc Status (StatusRequest) returns (StatusResponse);
-        ///  rpc Setup (SetupRequest) returns (CommonResponse);
-        ///  rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+        async fn status(
+            &self,
+            request: tonic::Request<super::StatusRequest>,
+        ) -> std::result::Result<tonic::Response<super::StatusResponse>, tonic::Status>;
+        async fn setup(
+            &self,
+            request: tonic::Request<super::SetupRequest>,
+        ) -> std::result::Result<tonic::Response<super::CommonResponse>, tonic::Status>;
+        async fn heartbeat(
+            &self,
+            request: tonic::Request<super::HeartbeatRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::HeartbeatResponse>,
+            tonic::Status,
+        >;
         /// TCP
         async fn handle_tcp_connection(
             &self,
@@ -559,6 +701,137 @@ pub mod app_guard_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = LoginSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/appguard.AppGuard/Status" => {
+                    #[allow(non_camel_case_types)]
+                    struct StatusSvc<T: AppGuard>(pub Arc<T>);
+                    impl<T: AppGuard> tonic::server::UnaryService<super::StatusRequest>
+                    for StatusSvc<T> {
+                        type Response = super::StatusResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::StatusRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AppGuard>::status(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = StatusSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/appguard.AppGuard/Setup" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetupSvc<T: AppGuard>(pub Arc<T>);
+                    impl<T: AppGuard> tonic::server::UnaryService<super::SetupRequest>
+                    for SetupSvc<T> {
+                        type Response = super::CommonResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SetupRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AppGuard>::setup(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = SetupSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/appguard.AppGuard/Heartbeat" => {
+                    #[allow(non_camel_case_types)]
+                    struct HeartbeatSvc<T: AppGuard>(pub Arc<T>);
+                    impl<
+                        T: AppGuard,
+                    > tonic::server::UnaryService<super::HeartbeatRequest>
+                    for HeartbeatSvc<T> {
+                        type Response = super::HeartbeatResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::HeartbeatRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AppGuard>::heartbeat(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = HeartbeatSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

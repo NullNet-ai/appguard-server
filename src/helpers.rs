@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::proto::appguard::Authentication;
+use crate::proto::appguard::{Authentication, DeviceStatus};
 use chrono::Utc;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libtoken::Token;
@@ -55,6 +55,22 @@ pub(crate) fn authenticate(auth: Option<Authentication>) -> Result<(String, Toke
     let token_info = Token::from_jwt(&jwt_token).handle_err(location!())?;
 
     Ok((jwt_token, token_info))
+}
+
+pub fn map_status_value_to_enum(status: &str) -> DeviceStatus {
+    let lowercase: String = status.to_lowercase();
+
+    if lowercase.starts_with("draft") {
+        DeviceStatus::DsDraft
+    } else if lowercase.starts_with("active") {
+        DeviceStatus::DsActive
+    } else if lowercase.starts_with("archive") {
+        DeviceStatus::DsArchived
+    } else if lowercase.starts_with("delete") {
+        DeviceStatus::DsDeleted
+    } else {
+        DeviceStatus::DsUnknown
+    }
 }
 
 #[cfg(test)]
