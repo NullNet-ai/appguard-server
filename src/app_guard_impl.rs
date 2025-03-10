@@ -197,6 +197,18 @@ impl AppGuardImpl {
         }
     }
 
+    fn authenticate(auth: Option<Authentication>) -> Result<(String, Token), Error> {
+        let Some(auth_message) = auth else {
+            return Err("Authentication token is missing").handle_err(location!());
+        };
+
+        let jwt_token = auth_message.token.clone();
+
+        let token_info = Token::from_jwt(&jwt_token).handle_err(location!())?;
+
+        Ok((jwt_token, token_info))
+    }
+
     async fn login_impl(&self, request: Request<LoginRequest>) -> Result<Authentication, Error> {
         let login_request = request.into_inner();
 
@@ -209,19 +221,9 @@ impl AppGuardImpl {
             return Err("Datastore login failed: Wrong credentials").handle_err(location!());
         }
 
+        log::info!("Authenticated '{}' successfully", login_request.app_id);
+
         Ok(Authentication { token })
-    }
-
-    fn authenticate(auth: Option<Authentication>) -> Result<(String, Token), Error> {
-        let Some(auth_message) = auth else {
-            return Err("Authentication token is missing").handle_err(location!());
-        };
-
-        let jwt_token = auth_message.token.clone();
-
-        let token_info = Token::from_jwt(&jwt_token).handle_err(location!())?;
-
-        Ok((jwt_token, token_info))
     }
 
     async fn status_impl(&self, request: Request<StatusRequest>) -> Result<StatusResponse, Error> {
@@ -257,6 +259,11 @@ impl AppGuardImpl {
                 remote_address,
             )
             .await?;
+
+        log::info!(
+            "Device setup completed successfully for '{}'",
+            token_info.account.device.id
+        );
 
         Ok(CommonResponse {
             message: String::from("Device setup completed successfully"),
