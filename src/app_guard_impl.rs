@@ -214,7 +214,7 @@ impl AppGuardImpl {
 
         let token = self
             .ds
-            .login(login_request.app_id, login_request.app_secret)
+            .login(login_request.app_id.clone(), login_request.app_secret)
             .await?;
 
         if token.is_empty() {
@@ -253,7 +253,7 @@ impl AppGuardImpl {
             .ds
             .device_setup(
                 &jwt_token,
-                token_info.account.device.id,
+                token_info.account.device.id.clone(),
                 setup_request.device_version,
                 setup_request.device_uuid,
                 remote_address,
