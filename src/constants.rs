@@ -3,7 +3,6 @@ use nullnet_liberror::{location, ErrorHandler, Location};
 // project-level constants
 pub const APP_GUARD_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const API_KEY: Option<&str> = option_env!("API_KEY");
-pub const VERSION_TAG: Option<&str> = option_env!("VERSION_TAG");
 
 // -------------------------------------------------------------------------------------------------
 
@@ -29,20 +28,6 @@ pub const CONFIG_DIR: &str = "./test_material/config";
 pub const CONFIG_FILE: &str = "/opt/config/config.json";
 #[cfg(debug_assertions)]
 pub const CONFIG_FILE: &str = "./test_material/config/config.json";
-
-// -------------------------------------------------------------------------------------------------
-
-// database constants
-#[cfg(not(debug_assertions))]
-const SQLITE_DIR: &str = "/opt/db";
-#[cfg(debug_assertions)]
-const SQLITE_DIR: &str = "./test_material";
-
-pub static SQLITE_PATH: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::new(|| {
-    std::fs::create_dir(SQLITE_DIR).unwrap_or_default();
-    let version_tag = VERSION_TAG.unwrap_or("unknown");
-    format!("{SQLITE_DIR}/db-{version_tag}.sqlite")
-});
 
 // -------------------------------------------------------------------------------------------------
 

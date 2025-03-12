@@ -13,11 +13,9 @@ impl AppGuardHttpResponse {
         let headers_json = serde_json::to_string(headers).handle_err(location!())?;
 
         Ok(json!({
-            "id": details.id,
             "timestamp": get_timestamp_string(),
-                        "fw_policy": details.fw_res.policy,
-            "fw_reasons": details.fw_res.reasons,
-            "tcp_id": details.tcp_id,
+            "fw_policy": details.fw_res.policy.as_str_name(),
+            "fw_reasons": serde_json::to_string(&details.fw_res.reasons).handle_err(location!())?,
             "ip": details.ip,
             "code": self.code,
             "headers": headers_json,

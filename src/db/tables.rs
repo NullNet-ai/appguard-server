@@ -28,12 +28,12 @@ impl DbTable {
 
     pub fn to_str(self) -> &'static str {
         match self {
-            DbTable::TcpConnection => "tcp_connection",
-            DbTable::HttpRequest => "http_request",
-            DbTable::HttpResponse => "http_response",
+            DbTable::TcpConnection => "tcp_connections",
+            DbTable::HttpRequest => "http_requests",
+            DbTable::HttpResponse => "http_responses",
             DbTable::IpInfo => "ip_info",
-            DbTable::SmtpRequest => "smtp_request",
-            DbTable::SmtpResponse => "smtp_response",
+            DbTable::SmtpRequest => "smtp_requests",
+            DbTable::SmtpResponse => "smtp_responses",
             // DbTable::HttpRequestAi => "http_request_ai",
         }
     }

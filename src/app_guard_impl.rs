@@ -302,7 +302,7 @@ impl AppGuardImpl {
             .handle_err(location!())?
             .insert(tcp_id, Instant::now());
 
-        log::info!("TCP connection #{tcp_id}: {:?}", req.get_ref());
+        log::info!("TCP connection #{tcp_id}: {}", req.get_ref());
 
         self.tx_store
             .send(DbEntry::TcpConnection((req.get_ref().clone(), tcp_id)))
@@ -365,7 +365,7 @@ impl AppGuardImpl {
             .match_item(req.get_ref());
         let policy = fw_res.policy;
 
-        log::info!("***{policy:?}*** HTTP request: {:?}", req.get_ref());
+        log::info!("***{policy:?}*** HTTP request: {}", req.get_ref());
 
         if self.config_log_requests()? {
             let id = self.table_ids.get_next(DbTable::HttpRequest)?;
@@ -396,7 +396,7 @@ impl AppGuardImpl {
             .match_item(req.get_ref());
         let policy = fw_res.policy;
 
-        log::info!("***{policy:?}*** HTTP response: {:?}", req.get_ref());
+        log::info!("***{policy:?}*** HTTP response: {}", req.get_ref());
 
         if self.config_log_responses()? {
             let tcp_id = req
@@ -429,7 +429,7 @@ impl AppGuardImpl {
             .match_item(req.get_ref());
         let policy = fw_res.policy;
 
-        log::info!("***{policy:?}*** SMTP request: {:?}", req.get_ref());
+        log::info!("***{policy:?}*** SMTP request: {}", req.get_ref());
 
         if self.config_log_requests()? {
             let id = self.table_ids.get_next(DbTable::SmtpRequest)?;
@@ -453,7 +453,7 @@ impl AppGuardImpl {
             .match_item(req.get_ref());
         let policy = fw_res.policy;
 
-        log::info!("***{policy:?}*** SMTP response: {:?}", req.get_ref());
+        log::info!("***{policy:?}*** SMTP response: {}", req.get_ref());
 
         if self.config_log_responses()? {
             let tcp_id = req

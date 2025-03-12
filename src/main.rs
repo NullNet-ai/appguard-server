@@ -8,6 +8,7 @@ mod entrypoint;
 mod fetch_data;
 mod firewall;
 // mod from_sql;
+mod display;
 mod helpers;
 mod ip_info;
 mod proto;

@@ -41,7 +41,7 @@ impl DatastoreWrapper {
             }),
             body: Some(CreateBody {
                 record,
-                entity_prefix: String::from("LO"),
+                entity_prefix: String::from("AG"),
             }),
         };
 

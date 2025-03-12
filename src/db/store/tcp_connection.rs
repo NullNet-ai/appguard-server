@@ -3,9 +3,8 @@ use crate::proto::appguard::AppGuardTcpConnection;
 use serde_json::json;
 
 impl AppGuardTcpConnection {
-    pub(crate) fn to_json(&self, id: u64) -> String {
+    pub(crate) fn to_json(&self) -> String {
         json!({
-            "id": id,
             "timestamp": get_timestamp_string(),
             "source": self.source_ip,
             "sport": self.source_port,

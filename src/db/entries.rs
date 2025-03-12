@@ -1,4 +1,3 @@
-use crate::constants::SQLITE_PATH;
 use crate::db::store::store::DatastoreWrapper;
 use crate::db::tables::DbTable;
 use crate::firewall::firewall::FirewallResult;
@@ -29,24 +28,24 @@ impl DbEntry {
             }
             DbEntry::HttpResponse((_, d)) => {
                 let _ = &mut ds.clone().insert(self, token.as_str()).await?;
-                log::info!("HTTP response #{} stored at {}", d.id, SQLITE_PATH.as_str());
+                log::info!("HTTP response #{} inserted in datastore", d.id);
             }
             DbEntry::SmtpRequest((_, d)) => {
                 let _ = &mut ds.clone().insert(self, token.as_str()).await?;
-                log::info!("SMTP request #{} stored at {}", d.id, SQLITE_PATH.as_str());
+                log::info!("SMTP request #{} inserted in datastore", d.id);
             }
             DbEntry::SmtpResponse((_, d)) => {
                 let _ = &mut ds.clone().insert(self, token.as_str()).await?;
-                log::info!("SMTP response #{} stored at {}", d.id, SQLITE_PATH.as_str());
+                log::info!("SMTP response #{} inserted in datastore", d.id);
             }
-            DbEntry::IpInfo(_) => {
+            DbEntry::IpInfo((i, _)) => {
                 let _ = &mut ds.clone().insert(self, token.as_str()).await?;
                 // todo: assert store unique!
-                // log::info!("IP info #{id} stored at {}", SQLITE_PATH.as_str());
+                log::info!("IP info for {} inserted in datastore", i.ip);
             }
             DbEntry::TcpConnection((_, id)) => {
                 let _ = &mut ds.clone().insert(self, token.as_str()).await?;
-                log::info!("TCP connection #{id} stored at {}", SQLITE_PATH.as_str());
+                log::info!("TCP connection #{id} stored in datastore");
             }
         }
         Ok(())
@@ -57,9 +56,9 @@ impl DbEntry {
             DbEntry::HttpRequest((r, d)) => r.to_json(d),
             DbEntry::HttpResponse((r, d)) => r.to_json(d),
             DbEntry::SmtpRequest((r, d)) => r.to_json(d),
-            DbEntry::SmtpResponse((r, d)) => Ok(r.to_json(d)),
+            DbEntry::SmtpResponse((r, d)) => r.to_json(d),
             DbEntry::IpInfo((i, _)) => Ok(i.to_json()),
-            DbEntry::TcpConnection((c, id)) => Ok(c.to_json(*id)),
+            DbEntry::TcpConnection((c, _)) => Ok(c.to_json()),
         }
     }
 
@@ -90,7 +89,6 @@ pub struct DbDetails {
     pub id: u64,
     pub fw_res: FirewallResult,
     pub ip: String,
-    pub tcp_id: u64,
     pub response_time: Option<u64>,
 }
 
@@ -113,7 +111,6 @@ impl DbDetails {
                 .as_ref()
                 .unwrap_or(&String::default())
                 .to_owned(),
-            tcp_id: tcp_info.unwrap_or(&AppGuardTcpInfo::default()).tcp_id,
             response_time,
         }
     }
