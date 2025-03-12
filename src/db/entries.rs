@@ -41,7 +41,7 @@ impl DbEntry {
             }
             DbEntry::IpInfo((i, _)) => {
                 let _ = &mut ds.clone().insert(self, token.as_str()).await?;
-                // todo: assert store unique!
+                // todo: assert store unique IP info
                 log::info!("IP info for {} inserted in datastore", i.ip);
             }
             DbEntry::TcpConnection((_, id)) => {

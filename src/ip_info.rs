@@ -40,7 +40,7 @@ impl AppGuardIpInfo {
             region: info.region,
             postal: info.postal,
             timezone: info.timezone,
-            // todo
+            // todo: get blacklist count from datastore
             blacklist: 0,
         })
     }

@@ -66,9 +66,6 @@ impl AppGuardImpl {
 
         log::info!("Connected to Datastore");
 
-        // todo
-        // let table_ids = get_initial_table_ids(&ds)?;
-
         let config = Config::from_file(CONFIG_FILE).unwrap_or_default();
         log::info!(
             "Loaded AppGuard initial configuration: {}",
@@ -119,7 +116,7 @@ impl AppGuardImpl {
             watch_firewall(&firewall_shared_2).expect("Watch firewall thread failed");
         });
 
-        // todo
+        // todo: routine to delete old entries from datastore
         // thread::spawn(move || {
         //     delete_old_entries(&config_pair_3, &ds_2, &ip_info_cache_2)
         //         .expect("Delete old entries thread failed");
@@ -132,7 +129,6 @@ impl AppGuardImpl {
         Ok(AppGuardImpl {
             config_pair,
             ds,
-            // todo
             entry_ids: EntryIds::default(),
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
             firewall: firewall_shared,
@@ -321,7 +317,7 @@ impl AppGuardImpl {
                 log::info!("IP information for {ip} already in cache");
                 info
             }
-            // todo
+            // todo: get IP info from datastore
             // else if let Ok(Some(info)) = get_ipinfo_from_db(ip, &self.ds) {
             //     log::info!("IP information for {ip} already in database");
             //     info

@@ -2,32 +2,7 @@ use crate::db::entries::DbEntry;
 use crate::db::store::store::DatastoreWrapper;
 use tokio::sync::mpsc::UnboundedReceiver;
 
-// todo: create tables in datastore
-// pub fn create_db_tables_and_views(conn: &Arc<Mutex<Connection>>) -> Result<(), Error> {
-//     let sql_1 = DbTable::ALL
-//         .into_iter()
-//         .map(DbTable::sql_create)
-//         .collect::<Vec<String>>()
-//         .join("\n");
-//     conn.lock()
-//         .handle_err(location!())?
-//         .execute_batch(&format!("BEGIN TRANSACTION;\n{sql_1}\nCOMMIT;"))
-//         .handle_err(location!())?;
-//
-//     let sql_2 = DbView::ALL
-//         .into_iter()
-//         .map(DbView::sql_create)
-//         .collect::<Vec<String>>()
-//         .join("\n");
-//     conn.lock()
-//         .handle_err(location!())?
-//         .execute_batch(&format!("BEGIN TRANSACTION;\n{sql_2}\nCOMMIT;"))
-//         .handle_err(location!())?;
-//
-//     Ok(())
-// }
-
-// todo: create tables in datastore
+// todo: create blacklist table in datastore
 // pub fn create_blacklist_tables(blacklist_conn: &Arc<Mutex<Connection>>) -> Result<(), Error> {
 //     blacklist_conn
 //         .lock()
@@ -152,32 +127,3 @@ pub async fn store_entries(ds: &DatastoreWrapper, rx: &mut UnboundedReceiver<DbE
         }
     }
 }
-
-// todo: get initial table ids from datastore
-// pub fn get_initial_table_ids(conn: &Arc<Mutex<Connection>>) -> Result<TableIds, Error> {
-//     let c = conn.lock().handle_err(location!())?;
-//
-//     let tcp_connection = get_max_table_id(&c, DbTable::TcpConnection.to_str())?.unwrap_or_default();
-//     let http_request = get_max_table_id(&c, DbTable::HttpRequest.to_str())?.unwrap_or_default();
-//     let http_response = get_max_table_id(&c, DbTable::HttpResponse.to_str())?.unwrap_or_default();
-//     let smtp_request = get_max_table_id(&c, DbTable::SmtpRequest.to_str())?.unwrap_or_default();
-//     let smtp_response = get_max_table_id(&c, DbTable::SmtpResponse.to_str())?.unwrap_or_default();
-//
-//     Ok(TableIds {
-//         tcp_connection: Arc::new(Mutex::new(tcp_connection)),
-//         http_request: Arc::new(Mutex::new(http_request)),
-//         http_response: Arc::new(Mutex::new(http_response)),
-//         smtp_request: Arc::new(Mutex::new(smtp_request)),
-//         smtp_response: Arc::new(Mutex::new(smtp_response)),
-//     })
-// }
-
-// todo: get max table id from datastore
-// fn get_max_table_id(c: &MutexGuard<Connection>, table_name: &str) -> Result<Option<u64>, Error> {
-//     let mut stmt = c
-//         .prepare(&format!("SELECT MAX(id) FROM {table_name}",))
-//         .handle_err(location!())?;
-//
-//     // SELECT MAX returns NULL if the table is empty
-//     stmt.query_row([], |row| row.get(0)).handle_err(location!())
-// }

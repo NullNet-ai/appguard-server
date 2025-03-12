@@ -18,7 +18,7 @@ pub async fn fetch_ip_data(_ds: &DatastoreWrapper) {
         .unwrap_or_default();
 
     loop {
-        // todo: fetch_ip_blacklist
+        // todo: fetch custom IP blacklist
         // fetch_ip_blacklist(blacklist_conn, &client)
         //     .await
         //     .unwrap_or_default();
@@ -26,7 +26,7 @@ pub async fn fetch_ip_data(_ds: &DatastoreWrapper) {
     }
 }
 
-// todo: datastore + blacklist
+// todo: fetch custom IP blacklist and store it in datastore
 // pub async fn fetch_ip_blacklist(
 //     blacklist_conn: &Arc<Mutex<Connection>>,
 //     client: &Client,
