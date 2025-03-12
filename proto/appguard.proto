@@ -86,7 +86,7 @@ message AppGuardIpInfo {
   optional string region = 7;
   optional string postal = 8;
   optional string timezone = 9;
-  uint32 blacklist = 100;
+  bool blacklist = 100;
 }
 
 message AppGuardTcpInfo {

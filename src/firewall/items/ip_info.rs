@@ -15,7 +15,7 @@ pub enum IpInfoField {
     Region(Vec<String>),
     Postal(Vec<String>),
     Timezone(Vec<String>),
-    Blacklist(Vec<u32>),
+    // todo: exclude blacklisted IPs
 }
 
 impl IpInfoField {
@@ -29,7 +29,6 @@ impl IpInfoField {
             IpInfoField::Region(_) => "region",
             IpInfoField::Postal(_) => "postal",
             IpInfoField::Timezone(_) => "timezone",
-            IpInfoField::Blacklist(_) => "blacklist",
         }
     }
 
@@ -70,7 +69,6 @@ impl IpInfoField {
                 .timezone
                 .as_ref()
                 .map(|timezone| FirewallCompareType::String((timezone, v))),
-            IpInfoField::Blacklist(v) => Some(FirewallCompareType::U32((item.blacklist, v))),
         }
     }
 }

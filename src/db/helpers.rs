@@ -123,7 +123,8 @@ use tokio::sync::mpsc::UnboundedReceiver;
 pub async fn store_entries(ds: &DatastoreWrapper, rx: &mut UnboundedReceiver<DbEntry>) {
     loop {
         if let Some(entry) = rx.recv().await {
-            entry.store(ds).await.unwrap_or_default();
+            let ds = ds.clone();
+            tokio::spawn(async move { entry.store(ds).await.unwrap_or_default() });
         }
     }
 }

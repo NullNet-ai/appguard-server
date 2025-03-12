@@ -19,34 +19,34 @@ pub enum DbEntry {
 }
 
 impl DbEntry {
-    pub async fn store(&self, ds: &DatastoreWrapper) -> Result<(), Error> {
+    pub async fn store(&self, mut ds: DatastoreWrapper) -> Result<(), Error> {
         let (token, _) = authenticate(self.get_auth())?;
 
         match self {
             DbEntry::HttpRequest((_, d)) => {
-                let _ = &mut ds.clone().insert(self, token.as_str()).await?;
+                let _ = ds.insert(self, token.as_str()).await?;
                 log::info!("HTTP request #{} inserted in datastore", d.id);
             }
             DbEntry::HttpResponse((_, d)) => {
-                let _ = &mut ds.clone().insert(self, token.as_str()).await?;
+                let _ = ds.insert(self, token.as_str()).await?;
                 log::info!("HTTP response #{} inserted in datastore", d.id);
             }
             DbEntry::SmtpRequest((_, d)) => {
-                let _ = &mut ds.clone().insert(self, token.as_str()).await?;
+                let _ = ds.insert(self, token.as_str()).await?;
                 log::info!("SMTP request #{} inserted in datastore", d.id);
             }
             DbEntry::SmtpResponse((_, d)) => {
-                let _ = &mut ds.clone().insert(self, token.as_str()).await?;
+                let _ = ds.insert(self, token.as_str()).await?;
                 log::info!("SMTP response #{} inserted in datastore", d.id);
             }
             DbEntry::IpInfo((i, _)) => {
-                let _ = &mut ds.clone().insert(self, token.as_str()).await?;
+                let _ = ds.insert(self, token.as_str()).await?;
                 // todo: assert store unique IP info
                 log::info!("IP info for {} inserted in datastore", i.ip);
             }
             DbEntry::TcpConnection((_, id)) => {
-                let _ = &mut ds.clone().insert(self, token.as_str()).await?;
-                log::info!("TCP connection #{id} stored in datastore");
+                let _ = ds.insert(self, token.as_str()).await?;
+                log::info!("TCP connection #{id} inserted in datastore");
             }
         }
         Ok(())

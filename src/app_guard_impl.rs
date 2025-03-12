@@ -361,10 +361,10 @@ impl AppGuardImpl {
             .match_item(req.get_ref());
         let policy = fw_res.policy;
 
-        log::info!("***{policy:?}*** HTTP request: {}", req.get_ref());
+        let id = self.entry_ids.get_next(DbTable::HttpRequest)?;
+        log::info!("***{policy:?}*** HTTP request #{id}: {}", req.get_ref());
 
         if self.config_log_requests()? {
-            let id = self.entry_ids.get_next(DbTable::HttpRequest)?;
             let details = DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), None);
             self.tx_store
                 .send(DbEntry::HttpRequest((req.get_ref().clone(), details)))
@@ -392,7 +392,8 @@ impl AppGuardImpl {
             .match_item(req.get_ref());
         let policy = fw_res.policy;
 
-        log::info!("***{policy:?}*** HTTP response: {}", req.get_ref());
+        let id = self.entry_ids.get_next(DbTable::HttpResponse)?;
+        log::info!("***{policy:?}*** HTTP response #{id}: {}", req.get_ref());
 
         if self.config_log_responses()? {
             let tcp_id = req
@@ -402,7 +403,6 @@ impl AppGuardImpl {
                 .unwrap_or(&AppGuardTcpInfo::default())
                 .tcp_id;
             let response_time = self.compute_response_time(tcp_id);
-            let id = self.entry_ids.get_next(DbTable::HttpResponse)?;
 
             let details =
                 DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), response_time);
@@ -425,10 +425,10 @@ impl AppGuardImpl {
             .match_item(req.get_ref());
         let policy = fw_res.policy;
 
-        log::info!("***{policy:?}*** SMTP request: {}", req.get_ref());
+        let id = self.entry_ids.get_next(DbTable::SmtpRequest)?;
+        log::info!("***{policy:?}*** SMTP request #{id}: {}", req.get_ref());
 
         if self.config_log_requests()? {
-            let id = self.entry_ids.get_next(DbTable::SmtpRequest)?;
             let details = DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), None);
             self.tx_store
                 .send(DbEntry::SmtpRequest((req.into_inner(), details)))
@@ -449,7 +449,8 @@ impl AppGuardImpl {
             .match_item(req.get_ref());
         let policy = fw_res.policy;
 
-        log::info!("***{policy:?}*** SMTP response: {}", req.get_ref());
+        let id = self.entry_ids.get_next(DbTable::SmtpResponse)?;
+        log::info!("***{policy:?}*** SMTP response #{id}: {}", req.get_ref());
 
         if self.config_log_responses()? {
             let tcp_id = req
@@ -459,7 +460,6 @@ impl AppGuardImpl {
                 .unwrap_or(&AppGuardTcpInfo::default())
                 .tcp_id;
             let response_time = self.compute_response_time(tcp_id);
-            let id = self.entry_ids.get_next(DbTable::SmtpResponse)?;
 
             let details =
                 DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), response_time);
