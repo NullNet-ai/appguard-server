@@ -1,7 +1,3 @@
-use std::sync::{Arc, Mutex};
-
-use nullnet_liberror::{location, Error, ErrorHandler, Location};
-
 #[derive(Copy, Clone)]
 pub enum DbTable {
     // main tables
@@ -145,56 +141,4 @@ impl DbTable {
     //         // ),
     //     }
     // }
-}
-
-#[derive(Default)]
-pub struct TableIds {
-    pub tcp_connection: Arc<Mutex<u64>>,
-    pub http_request: Arc<Mutex<u64>>,
-    pub http_response: Arc<Mutex<u64>>,
-    pub smtp_request: Arc<Mutex<u64>>,
-    pub smtp_response: Arc<Mutex<u64>>,
-}
-
-impl TableIds {
-    pub fn get_next(&self, table: DbTable) -> Result<u64, Error> {
-        let mut id = match table {
-            DbTable::TcpConnection => &self.tcp_connection,
-            DbTable::HttpRequest => &self.http_request,
-            DbTable::HttpResponse => &self.http_response,
-            DbTable::SmtpRequest => &self.smtp_request,
-            DbTable::SmtpResponse => &self.smtp_response,
-            DbTable::IpInfo => {
-                return Err("IpInfo table IDs are automatically generated").handle_err(location!())
-            } // DbTable::HttpRequestAi => {
-              //     return Err("AI tables IDs are inherited from the corresponding table")
-              //         .handle_err(location!())
-              // }
-        }
-        .lock()
-        .handle_err(location!())?;
-        *id += 1;
-        Ok(*id)
-    }
-}
-
-#[cfg(test)]
-#[cfg_attr(coverage_nightly, coverage(off))]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_table_ids_get_next() {
-        let table_ids = TableIds::default();
-        assert_eq!(table_ids.get_next(DbTable::TcpConnection).unwrap(), 1);
-        assert_eq!(table_ids.get_next(DbTable::TcpConnection).unwrap(), 2);
-        assert_eq!(table_ids.get_next(DbTable::HttpRequest).unwrap(), 1);
-        assert_eq!(table_ids.get_next(DbTable::HttpResponse).unwrap(), 1);
-        assert_eq!(table_ids.get_next(DbTable::SmtpRequest).unwrap(), 1);
-        assert_eq!(table_ids.get_next(DbTable::SmtpResponse).unwrap(), 1);
-        assert_eq!(table_ids.get_next(DbTable::TcpConnection).unwrap(), 3);
-        assert_eq!(table_ids.get_next(DbTable::SmtpResponse).unwrap(), 2);
-        assert!(table_ids.get_next(DbTable::IpInfo).is_err());
-        assert!(table_ids.get_next(DbTable::HttpRequestAi).is_err());
-    }
 }

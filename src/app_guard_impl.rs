@@ -9,10 +9,10 @@ use tonic::{Request, Response, Status};
 
 use crate::config::{watch_config, Config};
 use crate::constants::{CONFIG_FILE, FIREWALL_FILE};
-use crate::db::entries::{DbDetails, DbEntry};
+use crate::db::entries::{DbDetails, DbEntry, EntryIds};
 use crate::db::helpers::store_entries;
 use crate::db::store::store::DatastoreWrapper;
-use crate::db::tables::{DbTable, TableIds};
+use crate::db::tables::DbTable;
 use crate::fetch_data::fetch_ip_data;
 use crate::firewall::firewall::{watch_firewall, Firewall};
 use crate::ip_info::ip_info_handler;
@@ -32,7 +32,7 @@ use tokio::sync::mpsc::UnboundedSender;
 pub struct AppGuardImpl {
     config_pair: Arc<(Mutex<Config>, Condvar)>,
     ds: DatastoreWrapper,
-    table_ids: TableIds,
+    entry_ids: EntryIds,
     unanswered_connections: Arc<Mutex<HashMap<u64, Instant>>>,
     firewall: Arc<RwLock<Firewall>>,
     ip_info_cache: Arc<Mutex<IndexMap<String, AppGuardIpInfo>>>,
@@ -133,7 +133,7 @@ impl AppGuardImpl {
             config_pair,
             ds,
             // todo
-            table_ids: TableIds::default(),
+            entry_ids: EntryIds::default(),
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
             firewall: firewall_shared,
             ip_info_cache,
@@ -294,7 +294,7 @@ impl AppGuardImpl {
         &self,
         req: Request<AppGuardTcpConnection>,
     ) -> Result<AppGuardTcpInfo, Error> {
-        let tcp_id = self.table_ids.get_next(DbTable::TcpConnection)?;
+        let tcp_id = self.entry_ids.get_next(DbTable::TcpConnection)?;
 
         // start measuring the time it takes to respond to this connection
         self.unanswered_connections
@@ -368,7 +368,7 @@ impl AppGuardImpl {
         log::info!("***{policy:?}*** HTTP request: {}", req.get_ref());
 
         if self.config_log_requests()? {
-            let id = self.table_ids.get_next(DbTable::HttpRequest)?;
+            let id = self.entry_ids.get_next(DbTable::HttpRequest)?;
             let details = DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), None);
             self.tx_store
                 .send(DbEntry::HttpRequest((req.get_ref().clone(), details)))
@@ -406,7 +406,7 @@ impl AppGuardImpl {
                 .unwrap_or(&AppGuardTcpInfo::default())
                 .tcp_id;
             let response_time = self.compute_response_time(tcp_id);
-            let id = self.table_ids.get_next(DbTable::HttpResponse)?;
+            let id = self.entry_ids.get_next(DbTable::HttpResponse)?;
 
             let details =
                 DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), response_time);
@@ -432,7 +432,7 @@ impl AppGuardImpl {
         log::info!("***{policy:?}*** SMTP request: {}", req.get_ref());
 
         if self.config_log_requests()? {
-            let id = self.table_ids.get_next(DbTable::SmtpRequest)?;
+            let id = self.entry_ids.get_next(DbTable::SmtpRequest)?;
             let details = DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), None);
             self.tx_store
                 .send(DbEntry::SmtpRequest((req.into_inner(), details)))
@@ -463,7 +463,7 @@ impl AppGuardImpl {
                 .unwrap_or(&AppGuardTcpInfo::default())
                 .tcp_id;
             let response_time = self.compute_response_time(tcp_id);
-            let id = self.table_ids.get_next(DbTable::SmtpResponse)?;
+            let id = self.entry_ids.get_next(DbTable::SmtpResponse)?;
 
             let details =
                 DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), response_time);

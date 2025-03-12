@@ -6,7 +6,8 @@ use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, Authentication,
 };
-use nullnet_liberror::Error;
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use std::sync::{Arc, Mutex};
 
 pub enum DbEntry {
     HttpRequest((AppGuardHttpRequest, DbDetails)),
@@ -113,5 +114,51 @@ impl DbDetails {
                 .to_owned(),
             response_time,
         }
+    }
+}
+
+#[derive(Default)]
+pub struct EntryIds {
+    pub tcp_connection: Arc<Mutex<u64>>,
+    pub http_request: Arc<Mutex<u64>>,
+    pub http_response: Arc<Mutex<u64>>,
+    pub smtp_request: Arc<Mutex<u64>>,
+    pub smtp_response: Arc<Mutex<u64>>,
+}
+
+impl EntryIds {
+    pub fn get_next(&self, table: DbTable) -> Result<u64, Error> {
+        let mut id = match table {
+            DbTable::TcpConnection => &self.tcp_connection,
+            DbTable::HttpRequest => &self.http_request,
+            DbTable::HttpResponse => &self.http_response,
+            DbTable::SmtpRequest => &self.smtp_request,
+            DbTable::SmtpResponse => &self.smtp_response,
+            DbTable::IpInfo => return Err("Not applicable").handle_err(location!()),
+        }
+        .lock()
+        .handle_err(location!())?;
+        *id += 1;
+        Ok(*id)
+    }
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_table_ids_get_next() {
+        let table_ids = EntryIds::default();
+        assert_eq!(table_ids.get_next(DbTable::TcpConnection).unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::TcpConnection).unwrap(), 2);
+        assert_eq!(table_ids.get_next(DbTable::HttpRequest).unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::HttpResponse).unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::SmtpRequest).unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::SmtpResponse).unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::TcpConnection).unwrap(), 3);
+        assert_eq!(table_ids.get_next(DbTable::SmtpResponse).unwrap(), 2);
+        assert!(table_ids.get_next(DbTable::IpInfo).is_err());
     }
 }
