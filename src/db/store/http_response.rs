@@ -8,7 +8,7 @@ impl AppGuardHttpResponse {
     pub(crate) fn to_json(&self, details: &DbDetails) -> Result<String, Error> {
         let headers = &self.headers;
 
-        let size = get_header(headers, "Content-Length").and_then(|s| s.parse::<u64>().ok());
+        let size = get_header(headers, "Content-Length").and_then(|s| s.parse::<u32>().ok());
 
         let headers_json = serde_json::to_string(headers).handle_err(location!())?;
 

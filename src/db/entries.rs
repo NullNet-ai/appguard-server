@@ -90,7 +90,7 @@ pub struct DbDetails {
     pub id: u64,
     pub fw_res: FirewallResult,
     pub ip: String,
-    pub response_time: Option<u64>,
+    pub response_time: Option<u32>,
 }
 
 impl DbDetails {
@@ -98,7 +98,7 @@ impl DbDetails {
         id: u64,
         fw_res: FirewallResult,
         tcp_info: Option<&AppGuardTcpInfo>,
-        response_time: Option<u64>,
+        response_time: Option<u32>,
     ) -> Self {
         Self {
             id,

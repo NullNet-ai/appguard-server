@@ -176,7 +176,7 @@ impl AppGuardImpl {
         Ok(())
     }
 
-    fn compute_response_time(&self, tcp_id: u64) -> Option<u64> {
+    fn compute_response_time(&self, tcp_id: u64) -> Option<u32> {
         if let Some(request_instant) = self
             .unanswered_connections
             .lock()
@@ -184,7 +184,7 @@ impl AppGuardImpl {
             .ok()?
             .remove(&tcp_id)
         {
-            u64::try_from(request_instant.elapsed().as_millis())
+            u32::try_from(request_instant.elapsed().as_millis())
                 .handle_err(location!())
                 .ok()
         } else {
