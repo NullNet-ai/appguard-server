@@ -1,1 +1,1 @@
-{"log_requests":true,"log_responses":true,"retention_sec":0,"ip_info_cache_size":1000}
+{"log_requests":true,"log_responses":true,"ip_info_cache_size":1000}

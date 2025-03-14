@@ -19,7 +19,7 @@ impl AppGuardIpInfo {
 
     /// This function is used to convert an `IpInfo` struct into an `AppGuardIpInfo` struct.
     fn from_ip_info(info: IpInfo, ip: &str, _ds: &DatastoreWrapper) -> Result<Self, Error> {
-        // todo: get blacklist count from datastore
+        // todo: get blacklist from datastore
         // let blacklist_count = blacklist_conn
         //     .lock()
         //     .handle_err(location!())?

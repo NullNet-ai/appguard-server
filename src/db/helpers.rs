@@ -22,66 +22,6 @@ use tokio::sync::mpsc::UnboundedReceiver;
 //     Ok(())
 // }
 
-// todo: delete old entries from datastore
-// pub fn delete_old_entries(
-//     config_pair: &Arc<(Mutex<Config>, Condvar)>,
-//     conn: &DatastoreWrapper,
-//     ip_info_cache: &Arc<Mutex<IndexMap<String, AppGuardIpInfo>>>,
-// ) -> Result<(), Error> {
-//     loop {
-//         let retention_sec = config_pair.0.lock().handle_err(location!())?.retention_sec;
-//
-//         if retention_sec == 0 {
-//             drop(
-//                 config_pair
-//                     .1
-//                     .wait_while(config_pair.0.lock().handle_err(location!())?, |config| {
-//                         config.retention_sec == 0
-//                     })
-//                     .handle_err(location!())?,
-//             );
-//             continue;
-//         }
-//
-//         let threshold = Utc::now()
-//             .sub(Duration::from_secs(retention_sec))
-//             .to_rfc3339();
-//         let mut oldest = get_timestamp_string();
-//         let mut num_deleted = 0;
-//
-//         for table_name in DbTable::ALL.into_iter().map(DbTable::to_str) {
-//             num_deleted += conn
-//                 .lock()
-//                 .handle_err(location!())?
-//                 .execute(
-//                     &format!("DELETE FROM {table_name} WHERE timestamp <= ?1"),
-//                     [&threshold],
-//                 )
-//                 .handle_err(location!())?;
-//             if let Ok(Some(table_oldest)) = get_oldest_timestamp(table_name, conn) {
-//                 if table_oldest < oldest {
-//                     oldest = table_oldest;
-//                 }
-//             }
-//         }
-//
-//         if num_deleted > 0 {
-//             log::info!("Deleted {num_deleted} item(s) from database older than {threshold}");
-//             // clear the cache if at least one entry was deleted
-//             ip_info_cache.lock().handle_err(location!())?.clear();
-//         }
-//
-//         let _ = config_pair
-//             .1
-//             .wait_timeout_while(
-//                 config_pair.0.lock().handle_err(location!())?,
-//                 Duration::from_micros(timestamp_str_diff_usec(&oldest, &threshold)?),
-//                 |config| config.retention_sec >= retention_sec,
-//             )
-//             .handle_err(location!())?;
-//     }
-// }
-
 // todo: get ip info from datastore
 // pub fn get_ipinfo_from_db(
 //     ip: &str,
@@ -104,20 +44,6 @@ use tokio::sync::mpsc::UnboundedReceiver;
 //     })
 //     .optional()
 //     .handle_err(location!())
-// }
-
-// todo: get oldest timestamp from datastore
-// fn get_oldest_timestamp(
-//     table: &str,
-//     conn: &Arc<Mutex<Connection>>,
-// ) -> Result<Option<String>, Error> {
-//     let c = conn.lock().handle_err(location!())?;
-//     let mut stmt = c
-//         .prepare(&format!("SELECT MIN(timestamp) FROM {table}"))
-//         .handle_err(location!())?;
-//
-//     // SELECT MIN returns NULL if the table is empty
-//     stmt.query_row([], |row| row.get(0)).handle_err(location!())
 // }
 
 pub async fn store_entries(ds: &DatastoreWrapper, rx: &mut UnboundedReceiver<DbEntry>) {
