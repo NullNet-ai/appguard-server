@@ -29,7 +29,6 @@ pub async fn fetch_ip_data(ds: DatastoreWrapper) {
     }
 }
 
-// todo: fetch custom IP blacklist and store it in datastore
 pub async fn fetch_ip_blacklist(ds: DatastoreWrapper, client: &Client) -> Result<(), Error> {
     log::info!("Fetching IP blacklist from {}...", BLACKLIST_LINK.as_str());
 

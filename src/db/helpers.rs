@@ -2,26 +2,6 @@ use crate::db::entries::DbEntry;
 use crate::db::store::store::DatastoreWrapper;
 use tokio::sync::mpsc::UnboundedReceiver;
 
-// todo: create blacklist table in datastore
-// pub fn create_blacklist_tables(blacklist_conn: &Arc<Mutex<Connection>>) -> Result<(), Error> {
-//     blacklist_conn
-//         .lock()
-//         .handle_err(location!())?
-//         .execute(
-//             "
-//             CREATE TABLE IF NOT EXISTS blacklist (
-//                 id INTEGER PRIMARY KEY,
-//                 ip TEXT NOT NULL,
-//                 count INTEGER NOT NULL
-//             );
-//         ",
-//             [],
-//         )
-//         .handle_err(location!())?;
-//
-//     Ok(())
-// }
-
 // todo: get ip info from datastore
 // pub fn get_ipinfo_from_db(
 //     ip: &str,
