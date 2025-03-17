@@ -104,7 +104,7 @@ impl AppGuardImpl {
         // }
 
         tokio::spawn(async move {
-            fetch_ip_data(&ds_4).await;
+            fetch_ip_data(ds_4).await;
         });
 
         thread::spawn(move || {

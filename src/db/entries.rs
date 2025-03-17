@@ -16,6 +16,7 @@ pub enum DbEntry {
     SmtpResponse((AppGuardSmtpResponse, DbDetails)),
     IpInfo((AppGuardIpInfo, Option<Authentication>)),
     TcpConnection((AppGuardTcpConnection, u64)),
+    Blacklist((Vec<String>, Option<Authentication>)),
 }
 
 impl DbEntry {
@@ -48,6 +49,9 @@ impl DbEntry {
                 let _ = ds.insert(self, token.as_str()).await?;
                 log::info!("TCP connection #{id} inserted in datastore");
             }
+            DbEntry::Blacklist(_) => {
+                let _ = ds.insert_batch(self, token.as_str()).await?;
+            }
         }
         Ok(())
     }
@@ -60,6 +64,15 @@ impl DbEntry {
             DbEntry::SmtpResponse((r, d)) => r.to_json(d),
             DbEntry::IpInfo((i, _)) => Ok(i.to_json()),
             DbEntry::TcpConnection((c, _)) => Ok(c.to_json()),
+            DbEntry::Blacklist((v, _)) => {
+                let mut json = "[".to_string();
+                for ip in v {
+                    json.push_str(&format!("{{\"ip\":\"{ip}\"}},"));
+                }
+                json.pop();
+                json.push(']');
+                Ok(json)
+            }
         }
     }
 
@@ -71,6 +84,7 @@ impl DbEntry {
             DbEntry::SmtpResponse(_) => DbTable::SmtpResponse,
             DbEntry::IpInfo(_) => DbTable::IpInfo,
             DbEntry::TcpConnection(_) => DbTable::TcpConnection,
+            DbEntry::Blacklist(_) => DbTable::Blacklist,
         }
     }
 
@@ -80,8 +94,8 @@ impl DbEntry {
             DbEntry::HttpResponse((r, _)) => r.auth.clone(),
             DbEntry::SmtpRequest((r, _)) => r.auth.clone(),
             DbEntry::SmtpResponse((r, _)) => r.auth.clone(),
-            DbEntry::IpInfo((_, a)) => a.clone(),
             DbEntry::TcpConnection((c, _)) => c.auth.clone(),
+            DbEntry::IpInfo((_, a)) | DbEntry::Blacklist((_, a)) => a.clone(),
         }
     }
 }
@@ -135,6 +149,7 @@ impl EntryIds {
             DbTable::SmtpRequest => &self.smtp_request,
             DbTable::SmtpResponse => &self.smtp_response,
             DbTable::IpInfo => return Err("Not applicable").handle_err(location!()),
+            DbTable::Blacklist => return Err("Not applicable").handle_err(location!()),
         }
         .lock()
         .handle_err(location!())?;

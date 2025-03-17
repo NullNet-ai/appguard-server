@@ -31,9 +31,13 @@ pub const CONFIG_FILE: &str = "./test_material/config/config.json";
 
 // -------------------------------------------------------------------------------------------------
 
-// remote source constants
-// pub const BLACKLIST_LINK: &str =
-//     "https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt";
+// blacklist
+const DEFAULT_BLACKLIST_LINK: &str =
+    "https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt";
+
+pub static BLACKLIST_LINK: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::new(|| {
+    std::env::var("BLACKLIST").unwrap_or_else(|_| DEFAULT_BLACKLIST_LINK.to_string())
+});
 
 // -------------------------------------------------------------------------------------------------
 

@@ -4,8 +4,8 @@ use crate::helpers::map_status_value_to_enum;
 use crate::proto::appguard::DeviceStatus;
 use chrono::Utc;
 use nullnet_libdatastore::{
-    CreateBody, CreateParams, CreateRequest, GetByIdRequest, LoginBody, LoginData, LoginRequest,
-    Params, Query, ResponseData, UpdateRequest,
+    BatchCreateBody, BatchCreateRequest, CreateBody, CreateParams, CreateRequest, GetByIdRequest,
+    LoginBody, LoginData, LoginRequest, Params, Query, ResponseData, UpdateRequest,
 };
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
@@ -48,6 +48,34 @@ impl DatastoreWrapper {
         log::trace!("Before create to {table}");
         let result = self.inner.create(request, token).await;
         log::trace!("After create to {table}");
+        result
+    }
+
+    pub(crate) async fn insert_batch(
+        &mut self,
+        entry: &DbEntry,
+        token: &str,
+    ) -> Result<ResponseData, Error> {
+        let records = entry.to_json()?;
+        let table = entry.table().to_str();
+
+        let request = BatchCreateRequest {
+            params: Some(CreateParams {
+                table: table.into(),
+            }),
+            query: Some(Query {
+                pluck: String::from("id"),
+                durability: String::from("soft"),
+            }),
+            body: Some(BatchCreateBody {
+                records,
+                entity_prefix: String::from("BL"),
+            }),
+        };
+
+        log::trace!("Before create batch to {table}");
+        let result = self.inner.batch_create(request, token).await;
+        log::trace!("After create batch to {table}");
         result
     }
 
