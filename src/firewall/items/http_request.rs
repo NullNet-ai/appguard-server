@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::firewall::rules::{FirewallCompareType, FirewallRule, FirewallRuleField};
 use crate::helpers::get_header;
-use crate::proto::appguard::{AppGuardHttpRequest, AppGuardTcpInfo};
+use crate::proto::appguard::{AppGuardHttpRequest, AppGuardIpInfo, AppGuardTcpInfo};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -82,6 +82,16 @@ impl PredicateEvaluator for AppGuardHttpRequest {
 
     fn get_reason(&self, predicate: &Self::Predicate) -> Self::Reason {
         predicate.field.get_field_name()
+    }
+
+    fn is_blacklisted(&self) -> bool {
+        self.tcp_info
+            .as_ref()
+            .unwrap_or(&AppGuardTcpInfo::default())
+            .ip_info
+            .as_ref()
+            .unwrap_or(&AppGuardIpInfo::default())
+            .blacklist
     }
 }
 

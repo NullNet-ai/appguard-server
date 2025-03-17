@@ -29,11 +29,11 @@ impl DatastoreWrapper {
         token: &str,
     ) -> Result<ResponseData, Error> {
         let record = entry.to_json()?;
-        let table = entry.table();
+        let table = entry.table().to_str();
 
         let request = CreateRequest {
             params: Some(CreateParams {
-                table: table.to_str().into(),
+                table: table.into(),
             }),
             query: Some(Query {
                 pluck: String::from("id"),
@@ -45,7 +45,10 @@ impl DatastoreWrapper {
             }),
         };
 
-        self.inner.create(request, token).await
+        log::trace!("Before create to {table}");
+        let result = self.inner.create(request, token).await;
+        log::trace!("After create to {table}");
+        result
     }
 
     pub async fn login(&self, account_id: String, account_secret: String) -> Result<String, Error> {

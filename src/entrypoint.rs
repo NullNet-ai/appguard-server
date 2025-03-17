@@ -42,7 +42,7 @@ pub async fn start_appguard() -> Result<(), Error> {
 }
 
 fn init_logger() {
-    let logger_config = LoggerConfig::new(true, true, None, vec![]);
+    let logger_config = LoggerConfig::new(true, false, None, vec![]);
     Logger::init(logger_config);
 }
 

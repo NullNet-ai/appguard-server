@@ -43,6 +43,11 @@ impl Firewall {
         &self,
         item: &I,
     ) -> FirewallResult {
+        // first let's check if this is blacklisted
+        if item.is_blacklisted() {
+            return FirewallResult::new(FirewallPolicy::Deny, vec!["blacklist".to_string()]);
+        }
+        // if not blacklisted, check the firewall expressions one by one
         for expr in &self.expressions {
             let (result, reasons) = expr.expression.evaluate(item);
             if result {

@@ -15,7 +15,6 @@ pub enum IpInfoField {
     Region(Vec<String>),
     Postal(Vec<String>),
     Timezone(Vec<String>),
-    // todo: exclude blacklisted IPs
 }
 
 impl IpInfoField {
@@ -210,16 +209,6 @@ mod tests {
                 &"Europe/Rome".to_string(),
                 &vec!["US central".to_string()]
             )))
-        );
-    }
-
-    #[test]
-    fn test_ip_info_get_blacklist() {
-        let ip_info = sample_ip_info();
-        let ip_info_field = IpInfoField::Blacklist(vec![0]);
-        assert_eq!(
-            ip_info_field.get_compare_fields(&ip_info),
-            Some(FirewallCompareType::U32((4, &vec![0])))
         );
     }
 }

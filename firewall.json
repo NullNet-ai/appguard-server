@@ -4,20 +4,6 @@
     "infix_tokens": [
       {
         "type": "predicate",
-        "condition": "greater_equal",
-        "field": {
-          "type": "ip_info",
-          "blacklist": [
-            1
-          ]
-        }
-      },
-      {
-        "type": "operator",
-        "value": "or"
-      },
-      {
-        "type": "predicate",
         "condition": "not_equal",
         "field": {
           "type": "ip_info",
