@@ -297,6 +297,7 @@ impl AppGuardImpl {
             .send(DbEntry::TcpConnection((req.get_ref().clone(), tcp_id)))
             .handle_err(location!())?;
 
+        let auth = req.get_ref().auth.clone();
         let mut ip_info = AppGuardIpInfo::default();
         if let Some(ip) = &req.get_ref().source_ip {
             log::info!("Searching IP information for {ip}");
@@ -309,20 +310,15 @@ impl AppGuardImpl {
             ip_info = if let Some(info) = info_opt {
                 log::info!("IP information for {ip} already in cache");
                 info
-            }
-            // todo: get IP info from datastore
-            // else if let Ok(Some(info)) = get_ipinfo_from_db(ip, &self.ds) {
-            //     log::info!("IP information for {ip} already in database");
-            //     info
-            // }
-            else {
-                ip_info = AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.ds).await?;
+            } else if let Ok(Some(info)) = self.ds.clone().get_ip_info(ip, auth.clone()).await {
+                log::info!("IP information for {ip} already in database");
+                info
+            } else {
+                ip_info = AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.ds, auth.clone())
+                    .await?;
                 log::info!("Looked up new IP information: {ip_info:?}");
                 self.tx_store
-                    .send(DbEntry::IpInfo((
-                        ip_info.clone(),
-                        req.get_ref().auth.clone(),
-                    )))
+                    .send(DbEntry::IpInfo((ip_info.clone(), auth)))
                     .handle_err(location!())?;
                 ip_info
             };
