@@ -236,6 +236,7 @@ async fn test_grpc_server_durable_storage_with_more_data_and_then_expire() {
 
     // set retention to 5 seconds
     write_config_to_file(&Config {
+        retention_sec: 5,
         ..Config::default()
     });
 

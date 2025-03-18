@@ -73,6 +73,7 @@ impl AppGuardImpl {
         );
         let config_pair = Arc::new((Mutex::new(config), Condvar::new()));
         let config_pair_2 = config_pair.clone();
+        // let config_pair_3 = config_pair.clone();
 
         let firewall = Firewall::load_from_infix(FIREWALL_FILE).unwrap_or_default();
         log::info!(
@@ -114,6 +115,12 @@ impl AppGuardImpl {
         thread::spawn(move || {
             watch_firewall(&firewall_shared_2).expect("Watch firewall thread failed");
         });
+
+        // todo: routine to delete old entries from datastore
+        // thread::spawn(move || {
+        //     delete_old_entries(&config_pair_3, &ds_2, &ip_info_cache_2)
+        //         .expect("Delete old entries thread failed");
+        // });
 
         tokio::spawn(async move {
             store_entries(&ds_3, &mut rx_store).await;

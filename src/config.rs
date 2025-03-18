@@ -14,6 +14,7 @@ use nullnet_liberror::{location, Error, ErrorHandler, Location};
 pub struct Config {
     pub log_requests: bool,
     pub log_responses: bool,
+    pub retention_sec: u64,
     pub ip_info_cache_size: usize,
 }
 
@@ -22,6 +23,7 @@ impl Default for Config {
         Config {
             log_requests: true,
             log_responses: true,
+            retention_sec: 0,
             ip_info_cache_size: 1000,
         }
     }
@@ -94,6 +96,7 @@ mod tests {
             Config {
                 log_requests: true,
                 log_responses: false,
+                retention_sec: 60,
                 ip_info_cache_size: 999,
             }
         );
@@ -107,6 +110,7 @@ mod tests {
             Config {
                 log_requests: false,
                 log_responses: true,
+                retention_sec: 10500,
                 ip_info_cache_size: 0,
             }
         );
@@ -132,27 +136,20 @@ mod tests {
         assert_eq!(*config.0.lock().unwrap(), Config::default());
 
         // write a new valid config and verify it's loaded
-        std::fs::write(
-            CONFIG_FILE,
-            r#"{"log_requests":false,"log_responses":false,"ip_info_cache_size":99}"#,
-        )
-        .unwrap();
+        std::fs::write(CONFIG_FILE, r#"{"log_requests":false,"log_responses":false,"retention_sec":12,"ip_info_cache_size":99}"#).unwrap();
         thread::sleep(Duration::from_secs(1));
         assert_eq!(
             *config.0.lock().unwrap(),
             Config {
                 log_requests: false,
                 log_responses: false,
+                retention_sec: 12,
                 ip_info_cache_size: 99,
             }
         );
 
         // write the previous valid config and verify it's loaded
-        std::fs::write(
-            CONFIG_FILE,
-            r#"{"log_requests":true,"log_responses":true,"ip_info_cache_size":1000}"#,
-        )
-        .unwrap();
+        std::fs::write(CONFIG_FILE, r#"{"log_requests":true,"log_responses":true,"retention_sec":0,"ip_info_cache_size":1000}"#).unwrap();
         thread::sleep(Duration::from_secs(1));
         assert_eq!(*config.0.lock().unwrap(), Config::default());
     }
