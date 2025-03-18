@@ -5,8 +5,8 @@ use std::time::Duration;
 use reqwest::{Client, ClientBuilder};
 
 use crate::constants::{APP_GUARD_VERSION, BLACKLIST_LINK};
+use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::entries::DbEntry;
-use crate::db::store::store::DatastoreWrapper;
 use crate::proto::appguard::Authentication;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 

@@ -1,4 +1,4 @@
-use crate::db::store::store::DatastoreWrapper;
+use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::tables::DbTable;
 use crate::firewall::firewall::FirewallResult;
 use crate::helpers::authenticate;

@@ -57,7 +57,7 @@ dependencies = [
  "indexmap 2.8.0",
  "log",
  "notify",
- "nullnet-libdatastore",
+ "nullnet-libdatastore 0.3.0",
  "nullnet-liberror",
  "nullnet-libipinfo",
  "nullnet-liblogging 0.2.0",
@@ -1368,6 +1368,17 @@ dependencies = [
 [[package]]
 name = "nullnet-libdatastore"
 version = "0.3.0"
+dependencies = [
+ "log",
+ "nullnet-liberror",
+ "prost",
+ "tonic",
+ "tonic-build",
+]
+
+[[package]]
+name = "nullnet-libdatastore"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "90c98f12c48f498eb1de4c944b14c367d1be55caa279c67ac4cc88cccee3d693"
 dependencies = [
@@ -1470,7 +1481,7 @@ dependencies = [
  "if-addrs",
  "log",
  "md5",
- "nullnet-libdatastore",
+ "nullnet-libdatastore 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "nullnet-liberror",
  "nullnet-libfireparse",
  "nullnet-liblogging 0.1.2",

@@ -33,7 +33,10 @@ pub async fn start_appguard() -> Result<(), Error> {
     log::info!("Starting AppGuard server on address '{addr}'");
 
     server_builder()?
-        .add_service(AppGuardServer::new(init_app_guard().await?))
+        .add_service(
+            AppGuardServer::new(init_app_guard().await?)
+                .max_decoding_message_size(50 * 1024 * 1024),
+        )
         .serve(addr)
         .await
         .handle_err(location!())?;

@@ -1,5 +1,5 @@
 use crate::constants::API_KEY;
-use crate::db::store::store::DatastoreWrapper;
+use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::helpers::get_env;
 use crate::proto::appguard::AppGuardIpInfo;
 use nullnet_liberror::Error;

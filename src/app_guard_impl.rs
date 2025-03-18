@@ -9,9 +9,9 @@ use tonic::{Request, Response, Status};
 
 use crate::config::{watch_config, Config};
 use crate::constants::{CONFIG_FILE, FIREWALL_FILE};
+use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::entries::{DbDetails, DbEntry, EntryIds};
 use crate::db::helpers::store_entries;
-use crate::db::store::store::DatastoreWrapper;
 use crate::db::tables::DbTable;
 use crate::fetch_data::fetch_ip_data;
 use crate::firewall::firewall::{watch_firewall, Firewall};
