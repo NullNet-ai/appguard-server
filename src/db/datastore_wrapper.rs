@@ -4,13 +4,14 @@ use crate::helpers::{authenticate, map_status_value_to_enum};
 use crate::proto::appguard::{AppGuardIpInfo, Authentication, DeviceStatus};
 use chrono::Utc;
 use nullnet_libdatastore::{
-    BatchCreateBody, BatchCreateRequest, CreateBody, CreateParams, CreateRequest, GetByFilterBody,
-    GetByFilterRequest, GetByIdRequest, LoginBody, LoginData, LoginRequest, Params, Query,
-    ResponseData, UpdateRequest,
+    AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
+    CreateBody, CreateParams, CreateRequest, GetByFilterBody, GetByFilterRequest, GetByIdRequest,
+    LoginBody, LoginData, LoginRequest, MultipleSort, Params, Query, ResponseData, UpdateRequest,
 };
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use serde_json::json;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct DatastoreWrapper {
@@ -80,37 +81,42 @@ impl DatastoreWrapper {
         result
     }
 
-    // todo: fix query
     // SELECT COUNT(*) FROM {table} WHERE ip = {ip}
     pub(crate) async fn is_ip_blacklisted(&mut self, ip: &str, token: &str) -> Result<bool, Error> {
         let table = "ip_blacklist";
 
         let request = GetByFilterRequest {
             params: Some(Params {
-                id: "".to_string(),
+                id: String::new(),
                 table: table.into(),
             }),
             body: Some(GetByFilterBody {
-                pluck: vec![],
-                advance_filters: vec![],
-                order_by: "".to_string(),
-                limit: 0,
+                pluck: vec!["id".to_string()],
+                advance_filters: vec![AdvanceFilter {
+                    r#type: "criteria".to_string(),
+                    field: "ip".to_string(),
+                    operator: "equal".to_string(),
+                    entity: table.to_string(),
+                    values: serde_json::to_string(&vec![ip]).handle_err(location!())?,
+                }],
+                order_by: String::new(),
+                limit: 1,
                 offset: 0,
-                order_direction: "".to_string(),
+                order_direction: String::new(),
                 joins: vec![],
                 multiple_sort: vec![],
-                pluck_object: Default::default(),
-                date_format: "".to_string(),
+                pluck_object: HashMap::default(),
+                date_format: String::new(),
             }),
         };
 
         log::trace!("Before get by filter to {table}");
-        let _result = self.inner.get_by_filter(request, token).await;
-        log::trace!("After get by filter to {table}");
-        Ok(false)
+        // todo: verify query
+        let result = self.inner.get_by_filter(request, token).await?.count > 0;
+        log::trace!("After get by filter to {table}: {result}");
+        Ok(result)
     }
 
-    // todo: fix query
     // SELECT * FROM {table} WHERE ip = {ip} LIMIT 1
     pub(crate) async fn get_ip_info(
         &mut self,
@@ -122,30 +128,42 @@ impl DatastoreWrapper {
 
         let request = GetByFilterRequest {
             params: Some(Params {
-                id: "".to_string(),
+                id: String::new(),
                 table: table.into(),
             }),
             body: Some(GetByFilterBody {
                 pluck: vec![],
-                advance_filters: vec![],
-                order_by: "".to_string(),
-                limit: 0,
+                advance_filters: vec![AdvanceFilter {
+                    r#type: "criteria".to_string(),
+                    field: "ip".to_string(),
+                    operator: "equal".to_string(),
+                    entity: table.to_string(),
+                    values: serde_json::to_string(&vec![ip]).handle_err(location!())?,
+                }],
+                order_by: String::new(),
+                limit: 1,
                 offset: 0,
-                order_direction: "".to_string(),
+                order_direction: String::new(),
                 joins: vec![],
                 multiple_sort: vec![],
-                pluck_object: Default::default(),
-                date_format: "".to_string(),
+                pluck_object: HashMap::default(),
+                date_format: String::new(),
             }),
         };
 
         log::trace!("Before get by filter to {table}");
-        let _result = self.inner.get_by_filter(request, token.as_str()).await;
-        log::trace!("After get by filter to {table}");
-        Ok(None)
+        // todo: verify query
+        let result_json = self
+            .inner
+            .get_by_filter(request, token.as_str())
+            .await?
+            .data;
+        let result_vec: Option<Vec<AppGuardIpInfo>> = serde_json::from_str(&result_json).ok();
+        let result = result_vec.and_then(|v| v.first().cloned());
+        log::trace!("After get by filter to {table}: {result:?}");
+        Ok(result)
     }
 
-    // todo: fix query
     // SELECT MIN(timestamp) FROM {table}
     pub(crate) async fn get_oldest_timestamp(
         &mut self,
@@ -154,60 +172,63 @@ impl DatastoreWrapper {
     ) -> Result<Option<String>, Error> {
         let request = GetByFilterRequest {
             params: Some(Params {
-                id: "".to_string(),
+                id: String::new(),
                 table: table.into(),
             }),
             body: Some(GetByFilterBody {
                 pluck: vec![],
                 advance_filters: vec![],
-                order_by: "".to_string(),
-                limit: 0,
+                order_by: String::new(),
+                limit: 1,
                 offset: 0,
-                order_direction: "".to_string(),
+                order_direction: String::new(),
                 joins: vec![],
-                multiple_sort: vec![],
-                pluck_object: Default::default(),
-                date_format: "".to_string(),
+                multiple_sort: vec![MultipleSort {
+                    by_field: format!("{table}.timestamp"),
+                    by_direction: "asc".to_string(),
+                }],
+                pluck_object: HashMap::default(),
+                date_format: String::new(),
             }),
         };
 
-        log::trace!("Before get by filter to {table}");
-        let _result = self.inner.get_by_filter(request, token).await;
-        log::trace!("After get by filter to {table}");
-        Ok(None)
+        log::trace!("Before get oldest timestamp to {table}");
+        // todo: verify query
+        let result_json = self.inner.get_by_filter(request, token).await?.data;
+        let result_vec: Option<Vec<String>> = serde_json::from_str(&result_json).ok();
+        let result = result_vec.and_then(|v| v.first().cloned());
+        log::trace!("After get oldest timestamp to {table}: {result:?}");
+        Ok(result)
     }
 
-    // todo: fix query
     // DELETE FROM {table} WHERE timestamp <= {timestamp}
     pub(crate) async fn delete_old_entries(
         &mut self,
         table: &str,
         timestamp: &str,
         token: &str,
-    ) -> Result<usize, Error> {
-        let request = GetByFilterRequest {
+    ) -> Result<i32, Error> {
+        let request = BatchDeleteRequest {
             params: Some(Params {
-                id: "".to_string(),
+                id: String::new(),
                 table: table.into(),
             }),
-            body: Some(GetByFilterBody {
-                pluck: vec![],
-                advance_filters: vec![],
-                order_by: "".to_string(),
-                limit: 0,
-                offset: 0,
-                order_direction: "".to_string(),
-                joins: vec![],
-                multiple_sort: vec![],
-                pluck_object: Default::default(),
-                date_format: "".to_string(),
+            body: Some(BatchDeleteBody {
+                advance_filters: vec![AdvanceFilter {
+                    r#type: "criteria".to_string(),
+                    field: "timestamp".to_string(),
+                    operator: "less_than_or_equal".to_string(),
+                    entity: table.to_string(),
+                    values: serde_json::to_string(&vec![timestamp]).handle_err(location!())?,
+                }],
             }),
         };
 
-        log::trace!("Before delete to {table}");
-        let _result = self.inner.get_by_filter(request, token).await;
-        log::trace!("After delete to {table}");
-        Ok(0)
+        log::trace!("Before delete old entries to {table}");
+        // todo: verify query
+        let count = self.inner.batch_delete(request, token).await?.count;
+        log::trace!("After delete old entries to {table}: {count}");
+        Ok(count)
     }
 
     pub async fn login(&self, account_id: String, account_secret: String) -> Result<String, Error> {

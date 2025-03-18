@@ -41,7 +41,6 @@ impl DbEntry {
                 log::info!("SMTP response #{} inserted in datastore", d.id);
             }
             DbEntry::IpInfo((i, _)) => {
-                // todo: assert store unique IP info
                 let _ = ds.insert(self, token.as_str()).await?;
                 log::info!("IP info for {} inserted in datastore", i.ip);
             }

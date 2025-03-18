@@ -64,6 +64,7 @@ pub struct AppGuardTcpConnection {
     #[prost(string, tag = "6")]
     pub protocol: ::prost::alloc::string::String,
 }
+#[derive(serde::Deserialize)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AppGuardIpInfo {
     #[prost(string, tag = "1")]

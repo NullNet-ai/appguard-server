@@ -6,6 +6,7 @@ fn main() {
     for out_dir in ["./src/proto", "./libappguard/src/proto"] {
         tonic_build::configure()
             .out_dir(out_dir)
+            .type_attribute("appguard.AppGuardIpInfo", "#[derive(serde::Deserialize)]")
             .compile_protos(&[APPGUARD_PROTOBUF_PATH], &[PROTOBUF_DIR_PATH])
             .expect("Protobuf files generation failed");
     }
