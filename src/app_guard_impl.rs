@@ -11,7 +11,7 @@ use crate::config::{watch_config, Config};
 use crate::constants::{CONFIG_FILE, FIREWALL_FILE};
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::entries::{DbDetails, DbEntry, EntryIds};
-use crate::db::helpers::store_entries;
+use crate::db::helpers::{delete_old_entries, store_entries};
 use crate::db::tables::DbTable;
 use crate::fetch_data::fetch_ip_data;
 use crate::firewall::firewall::{watch_firewall, Firewall};
@@ -60,7 +60,7 @@ pub fn terminate_app_guard(exit_code: i32) -> Result<(), Error> {
 impl AppGuardImpl {
     pub async fn new() -> Result<AppGuardImpl, Error> {
         let ds = DatastoreWrapper::new().await?;
-        // let ds_2 = ds.clone();
+        let ds_2 = ds.clone();
         let ds_3 = ds.clone();
         let ds_4 = ds.clone();
 
@@ -73,7 +73,7 @@ impl AppGuardImpl {
         );
         let config_pair = Arc::new((Mutex::new(config), Condvar::new()));
         let config_pair_2 = config_pair.clone();
-        // let config_pair_3 = config_pair.clone();
+        let config_pair_3 = config_pair.clone();
 
         let firewall = Firewall::load_from_infix(FIREWALL_FILE).unwrap_or_default();
         log::info!(
@@ -86,7 +86,7 @@ impl AppGuardImpl {
         let ip_info_handler = ip_info_handler();
 
         let ip_info_cache = Arc::new(Mutex::new(IndexMap::new()));
-        // let ip_info_cache_2 = ip_info_cache.clone();
+        let ip_info_cache_2 = ip_info_cache.clone();
 
         let (tx_store, mut rx_store) = mpsc::unbounded_channel();
 
@@ -116,11 +116,11 @@ impl AppGuardImpl {
             watch_firewall(&firewall_shared_2).expect("Watch firewall thread failed");
         });
 
-        // todo: routine to delete old entries from datastore
-        // thread::spawn(move || {
-        //     delete_old_entries(&config_pair_3, &ds_2, &ip_info_cache_2)
-        //         .expect("Delete old entries thread failed");
-        // });
+        tokio::spawn(async move {
+            delete_old_entries(&config_pair_3, &ds_2, &ip_info_cache_2)
+                .await
+                .expect("Delete old entries thread failed");
+        });
 
         tokio::spawn(async move {
             store_entries(&ds_3, &mut rx_store).await;

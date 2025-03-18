@@ -16,6 +16,9 @@ pub const PORT: u16 = 50051;
 
 // pub const AI_PORT: u16 = 50052;
 
+pub const ACCOUNT_ID: &str = env!("ACCOUNT_ID");
+pub const ACCOUNT_SECRET: &str = env!("ACCOUNT_SECRET");
+
 // -------------------------------------------------------------------------------------------------
 
 // config constants

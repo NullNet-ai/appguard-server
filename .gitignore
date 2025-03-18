@@ -12,3 +12,4 @@ target
 *sqlite-journal
 !test_material/ip_country_asn_sample.mmdb
 !test_material/blacklist_sample.sqlite
+.cargo

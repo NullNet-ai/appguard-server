@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use reqwest::{Client, ClientBuilder};
 
-use crate::constants::{APP_GUARD_VERSION, BLACKLIST_LINK};
+use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET, APP_GUARD_VERSION, BLACKLIST_LINK};
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::entries::DbEntry;
 use crate::proto::appguard::Authentication;
@@ -59,7 +59,9 @@ pub async fn fetch_ip_blacklist(ds: DatastoreWrapper, client: &Client) -> Result
             .handle_err(location!())?;
     }
 
-    let token = ds.login("".to_string(), "".to_string()).await?;
+    let token = ds
+        .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string())
+        .await?;
     let auth = Some(Authentication { token });
 
     DbEntry::Blacklist((blacklist, auth)).store(ds).await?;

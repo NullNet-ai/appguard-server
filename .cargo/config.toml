@@ -1,2 +1,0 @@
-[alias]
-coverage = "llvm-cov --open --ignore-filename-regex proto/*"

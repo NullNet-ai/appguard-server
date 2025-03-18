@@ -81,6 +81,7 @@ impl DatastoreWrapper {
     }
 
     // todo: fix query
+    // SELECT COUNT(*) FROM {table} WHERE ip = {ip}
     pub(crate) async fn is_ip_blacklisted(&mut self, ip: &str, token: &str) -> Result<bool, Error> {
         let table = "ip_blacklist";
 
@@ -110,6 +111,7 @@ impl DatastoreWrapper {
     }
 
     // todo: fix query
+    // SELECT * FROM {table} WHERE ip = {ip} LIMIT 1
     pub(crate) async fn get_ip_info(
         &mut self,
         ip: &str,
@@ -141,6 +143,71 @@ impl DatastoreWrapper {
         let _result = self.inner.get_by_filter(request, token.as_str()).await;
         log::trace!("After get by filter to {table}");
         Ok(None)
+    }
+
+    // todo: fix query
+    // SELECT MIN(timestamp) FROM {table}
+    pub(crate) async fn get_oldest_timestamp(
+        &mut self,
+        table: &str,
+        token: &str,
+    ) -> Result<Option<String>, Error> {
+        let request = GetByFilterRequest {
+            params: Some(Params {
+                id: "".to_string(),
+                table: table.into(),
+            }),
+            body: Some(GetByFilterBody {
+                pluck: vec![],
+                advance_filters: vec![],
+                order_by: "".to_string(),
+                limit: 0,
+                offset: 0,
+                order_direction: "".to_string(),
+                joins: vec![],
+                multiple_sort: vec![],
+                pluck_object: Default::default(),
+                date_format: "".to_string(),
+            }),
+        };
+
+        log::trace!("Before get by filter to {table}");
+        let _result = self.inner.get_by_filter(request, token).await;
+        log::trace!("After get by filter to {table}");
+        Ok(None)
+    }
+
+    // todo: fix query
+    // DELETE FROM {table} WHERE timestamp <= {timestamp}
+    pub(crate) async fn delete_old_entries(
+        &mut self,
+        table: &str,
+        timestamp: &str,
+        token: &str,
+    ) -> Result<usize, Error> {
+        let request = GetByFilterRequest {
+            params: Some(Params {
+                id: "".to_string(),
+                table: table.into(),
+            }),
+            body: Some(GetByFilterBody {
+                pluck: vec![],
+                advance_filters: vec![],
+                order_by: "".to_string(),
+                limit: 0,
+                offset: 0,
+                order_direction: "".to_string(),
+                joins: vec![],
+                multiple_sort: vec![],
+                pluck_object: Default::default(),
+                date_format: "".to_string(),
+            }),
+        };
+
+        log::trace!("Before delete to {table}");
+        let _result = self.inner.get_by_filter(request, token).await;
+        log::trace!("After delete to {table}");
+        Ok(0)
     }
 
     pub async fn login(&self, account_id: String, account_secret: String) -> Result<String, Error> {
