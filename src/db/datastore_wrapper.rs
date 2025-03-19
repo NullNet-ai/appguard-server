@@ -97,7 +97,7 @@ impl DatastoreWrapper {
                     field: "ip".to_string(),
                     operator: "equal".to_string(),
                     entity: table.to_string(),
-                    values: serde_json::to_string(&vec![ip]).handle_err(location!())?,
+                    values: format!("[\"{ip}\"]"),
                 }],
                 order_by: String::new(),
                 limit: 1,
@@ -132,13 +132,13 @@ impl DatastoreWrapper {
                 table: table.into(),
             }),
             body: Some(GetByFilterBody {
-                pluck: vec![],
+                pluck: vec!["*".to_string()],
                 advance_filters: vec![AdvanceFilter {
                     r#type: "criteria".to_string(),
                     field: "ip".to_string(),
                     operator: "equal".to_string(),
                     entity: table.to_string(),
-                    values: serde_json::to_string(&vec![ip]).handle_err(location!())?,
+                    values: format!("[\"{ip}\"]"),
                 }],
                 order_by: String::new(),
                 limit: 1,
@@ -176,7 +176,7 @@ impl DatastoreWrapper {
                 table: table.into(),
             }),
             body: Some(GetByFilterBody {
-                pluck: vec![],
+                pluck: vec!["timestamp".to_string()],
                 advance_filters: vec![],
                 order_by: String::new(),
                 limit: 1,
@@ -219,7 +219,7 @@ impl DatastoreWrapper {
                     field: "timestamp".to_string(),
                     operator: "less_than_or_equal".to_string(),
                     entity: table.to_string(),
-                    values: serde_json::to_string(&vec![timestamp]).handle_err(location!())?,
+                    values: format!("[\"{timestamp}\"]"),
                 }],
             }),
         };
