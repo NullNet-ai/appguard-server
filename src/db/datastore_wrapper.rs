@@ -12,6 +12,7 @@ use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use serde_json::json;
 use std::collections::HashMap;
+use crate::db::tables::DbTable;
 
 #[derive(Debug, Clone)]
 pub struct DatastoreWrapper {
@@ -83,7 +84,7 @@ impl DatastoreWrapper {
 
     // SELECT COUNT(*) FROM {table} WHERE ip = {ip}
     pub(crate) async fn is_ip_blacklisted(&mut self, ip: &str, token: &str) -> Result<bool, Error> {
-        let table = "ip_blacklist";
+        let table = DbTable::Blacklist.to_str();
 
         let request = GetByFilterRequest {
             params: Some(Params {
@@ -124,7 +125,7 @@ impl DatastoreWrapper {
         auth: Option<Authentication>,
     ) -> Result<Option<AppGuardIpInfo>, Error> {
         let (token, _) = authenticate(auth)?;
-        let table = "ip_info";
+        let table = DbTable::IpInfo.to_str();
 
         let request = GetByFilterRequest {
             params: Some(Params {

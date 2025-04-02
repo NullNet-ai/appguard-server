@@ -15,7 +15,7 @@ impl DbTable {
             DbTable::TcpConnection => "tcp_connections",
             DbTable::HttpRequest => "http_requests",
             DbTable::HttpResponse => "http_responses",
-            DbTable::IpInfo => "ip_info",
+            DbTable::IpInfo => "ip_infos",
             DbTable::SmtpRequest => "smtp_requests",
             DbTable::SmtpResponse => "smtp_responses",
             DbTable::Blacklist => "ip_blacklist",
