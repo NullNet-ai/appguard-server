@@ -1,18 +1,17 @@
 mod proto;
 
 use crate::proto::appguard::{
-    CommonResponse, HeartbeatRequest, LoginRequest, StatusRequest,
-    StatusResponse,
+    HeartbeatRequest
 };
 use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse,
-    Authentication, DeviceStatus, FirewallPolicy, SetupRequest,HeartbeatResponse
+    DeviceStatus, FirewallPolicy,HeartbeatResponse
 };
 use std::future::Future;
 use tonic::transport::{Channel, ClientTlsConfig};
-use tonic::{Request, Response, Status};
+use tonic::{Request, Response, Status, Streaming};
 
 #[derive(Clone)]
 pub struct AppGuardGrpcInterface {
@@ -42,44 +41,19 @@ impl AppGuardGrpcInterface {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    pub async fn login(&mut self, app_id: String, app_secret: String) -> Result<String, String> {
-        let response = self
-            .client
-            .login(Request::new(LoginRequest { app_id, app_secret }))
-            .await
-            .map_err(|e| e.to_string())?;
-
-        Ok(response.into_inner().token)
-    }
-
-    #[allow(clippy::missing_errors_doc)]
-    pub async fn setup(&mut self, request: SetupRequest) -> Result<CommonResponse, String> {
-        self.client
-            .setup(Request::new(request))
-            .await
-            .map(tonic::Response::into_inner)
-            .map_err(|e| e.to_string())
-    }
-
-    #[allow(clippy::missing_errors_doc)]
-    pub async fn status(&mut self, token: String) -> Result<StatusResponse, String> {
-        let response = self
-            .client
-            .status(Request::new(StatusRequest {
-                auth: Some(Authentication { token }),
-            }))
-            .await
-            .map(tonic::Response::into_inner)
-            .map_err(|e| e.to_string())?;
-
-        Ok(response)
-    }
-
-    #[allow(clippy::missing_errors_doc)]
-    pub async fn heartbeat(&mut self, token: String) -> Result<HeartbeatResponse, String> {
+    pub async fn heartbeat(
+        &mut self,
+        app_id: String,
+        app_secret: String,
+        device_version: String,
+        device_uuid: String,
+    ) -> Result<Streaming<HeartbeatResponse>, String> {
         self.client
             .heartbeat(Request::new(HeartbeatRequest {
-                auth: Some(Authentication { token }),
+                app_id,
+                app_secret,
+                device_version,
+                device_uuid,
             }))
             .await
             .map(tonic::Response::into_inner)

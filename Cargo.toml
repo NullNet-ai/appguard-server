@@ -26,8 +26,7 @@ lto = true
 strip = true
 
 [dependencies]
-#nullnet-libdatastore = "0.3.0"
-nullnet-libdatastore = { path = "../libguard/server_libraries/libdatastore" }
+nullnet-libdatastore = "0.3.0"
 nullnet-liblogging = "0.2.0"
 nullnet-liberror = "0.1.1"
 nullnet-libipinfo = "0.2.0"
