@@ -7,7 +7,6 @@ use reqwest::{Client, ClientBuilder};
 use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET, APP_GUARD_VERSION, BLACKLIST_LINK};
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::entries::DbEntry;
-use crate::proto::appguard::Authentication;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 pub async fn fetch_ip_data(ds: DatastoreWrapper) {
@@ -62,9 +61,8 @@ pub async fn fetch_ip_blacklist(ds: DatastoreWrapper, client: &Client) -> Result
     let token = ds
         .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string())
         .await?;
-    let auth = Some(Authentication { token });
 
-    DbEntry::Blacklist((blacklist, auth)).store(ds).await?;
+    DbEntry::Blacklist((blacklist, token)).store(ds).await?;
 
     log::info!("IP blacklist in datastore updated successfully ({num_entries} entries)");
 

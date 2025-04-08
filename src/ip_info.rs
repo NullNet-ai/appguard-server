@@ -1,7 +1,7 @@
 use crate::constants::API_KEY;
 use crate::db::datastore_wrapper::DatastoreWrapper;
-use crate::helpers::{authenticate, get_env};
-use crate::proto::appguard::{AppGuardIpInfo, Authentication};
+use crate::helpers::get_env;
+use crate::proto::appguard::AppGuardIpInfo;
 use nullnet_liberror::Error;
 use nullnet_libipinfo::{ApiFields, IpInfo, IpInfoHandler, IpInfoProvider};
 
@@ -12,10 +12,10 @@ impl AppGuardIpInfo {
         ip: &str,
         ip_info_handler: &IpInfoHandler,
         ds: &DatastoreWrapper,
-        auth: Option<Authentication>,
+        token: String,
     ) -> Result<AppGuardIpInfo, Error> {
         let ip_info = ip_info_handler.lookup(ip).await?;
-        Self::from_ip_info(ip_info, ip, ds, auth).await
+        Self::from_ip_info(ip_info, ip, ds, token).await
     }
 
     /// This function is used to convert an `IpInfo` struct into an `AppGuardIpInfo` struct.
@@ -23,9 +23,8 @@ impl AppGuardIpInfo {
         info: IpInfo,
         ip: &str,
         ds: &DatastoreWrapper,
-        auth: Option<Authentication>,
+        token: String,
     ) -> Result<Self, Error> {
-        let (token, _) = authenticate(auth)?;
         let blacklist = ds.clone().is_ip_blacklisted(ip, token.as_str()).await?;
 
         Ok(Self {

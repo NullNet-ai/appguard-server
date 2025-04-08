@@ -4,10 +4,7 @@ package appguard;
 
 service AppGuard {
   // Authentication
-  rpc Login (LoginRequest) returns (Authentication);
-  rpc Status (StatusRequest) returns (StatusResponse);
-  rpc Setup (SetupRequest) returns (CommonResponse);
-  rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+  rpc Heartbeat (HeartbeatRequest) returns (stream HeartbeatResponse);
   // TCP
   rpc HandleTcpConnection (AppGuardTcpConnection) returns (AppGuardTcpResponse);
   // HTTP
@@ -20,21 +17,11 @@ service AppGuard {
 
 // Authentication ------------------------------------------------------------------------------------------------------
 
-message LoginRequest {
+message HeartbeatRequest {
   string app_id = 1;
   string app_secret = 2;
-}
-
-message Authentication {
-  string token = 1;
-}
-
-message StatusRequest {
-  Authentication auth = 1;
-}
-
-message StatusResponse {
-  DeviceStatus status = 1;
+  string device_version = 3;
+  string device_uuid = 4;
 }
 
 enum DeviceStatus {
@@ -46,29 +33,17 @@ enum DeviceStatus {
 }
 
 message HeartbeatResponse {
-  DeviceStatus status = 1;
-  bool is_remote_access_enabled = 2;
-  bool is_monitoring_enabled = 3;
-}
-
-message SetupRequest {
-  Authentication auth = 1;
-  string device_version = 2;
-  string device_uuid = 3;
-}
-
-message HeartbeatRequest {
-  Authentication auth = 1;
-}
-
-message CommonResponse {
-  string message = 1;
+  string token = 1;
+  DeviceStatus status = 2;
+  bool remote_shell_enabled = 3;
+  bool remote_ui_enabled = 4;
+  bool is_monitoring_enabled = 5;
 }
 
 // TCP -----------------------------------------------------------------------------------------------------------------
 
 message AppGuardTcpConnection {
-  Authentication auth = 1;
+  string token = 1;
   optional string source_ip = 2;
   optional uint32 source_port = 3;
   optional string destination_ip = 4;
@@ -98,7 +73,7 @@ message AppGuardTcpInfo {
 // HTTP ----------------------------------------------------------------------------------------------------------------
 
 message AppGuardHttpRequest {
-  Authentication auth = 1;
+  string token = 1;
   string original_url = 2;
   map<string, string> headers = 3;
   string method = 4;
@@ -108,7 +83,7 @@ message AppGuardHttpRequest {
 }
 
 message AppGuardHttpResponse {
-  Authentication auth = 1;
+  string token = 1;
   uint32 code = 2;
   map<string, string> headers = 3;
   AppGuardTcpInfo tcp_info = 100;
@@ -117,14 +92,14 @@ message AppGuardHttpResponse {
 // SMTP ----------------------------------------------------------------------------------------------------------------
 
 message AppGuardSmtpRequest {
-  Authentication auth = 1;
+  string token = 1;
   map<string, string> headers = 2;
   optional string body = 3;
   AppGuardTcpInfo tcp_info = 100;
 }
 
 message AppGuardSmtpResponse {
-  Authentication auth = 1;
+  string token = 1;
   optional uint32 code = 2;
   AppGuardTcpInfo tcp_info = 100;
 }

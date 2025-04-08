@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::sync::{Arc, Condvar, Mutex, RwLock};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use std::{process, thread};
 
 use indexmap::IndexMap;
 use tonic::{Request, Response, Status};
 
+use crate::auth_handler::AuthHandler;
 use crate::config::{watch_config, Config};
 use crate::constants::{CONFIG_FILE, FIREWALL_FILE};
 use crate::db::datastore_wrapper::DatastoreWrapper;
@@ -15,19 +16,19 @@ use crate::db::helpers::{delete_old_entries, store_entries};
 use crate::db::tables::DbTable;
 use crate::fetch_data::fetch_ip_data;
 use crate::firewall::firewall::{watch_firewall, Firewall};
+use crate::helpers::authenticate;
 use crate::ip_info::ip_info_handler;
 use crate::proto::appguard::app_guard_server::AppGuard;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    AppGuardTcpResponse, Authentication, CommonResponse, FirewallPolicy, HeartbeatRequest,
-    HeartbeatResponse, LoginRequest, SetupRequest, StatusRequest, StatusResponse,
+    AppGuardTcpResponse, DeviceStatus, FirewallPolicy, HeartbeatRequest, HeartbeatResponse,
 };
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
-use nullnet_libtoken::Token;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::UnboundedSender;
+use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 
 pub struct AppGuardImpl {
     config_pair: Arc<(Mutex<Config>, Condvar)>,
@@ -193,97 +194,78 @@ impl AppGuardImpl {
         }
     }
 
-    fn authenticate(auth: Option<Authentication>) -> Result<(String, Token), Error> {
-        let Some(auth_message) = auth else {
-            return Err("Authentication token is missing").handle_err(location!());
-        };
-
-        let jwt_token = auth_message.token.clone();
-
-        let token_info = Token::from_jwt(&jwt_token).handle_err(location!())?;
-
-        Ok((jwt_token, token_info))
-    }
-
-    async fn login_impl(&self, request: Request<LoginRequest>) -> Result<Authentication, Error> {
-        let login_request = request.into_inner();
-
-        let token = self
-            .ds
-            .login(login_request.app_id.clone(), login_request.app_secret)
-            .await?;
-
-        if token.is_empty() {
-            return Err("Datastore login failed: Wrong credentials").handle_err(location!());
-        }
-
-        log::info!("Authenticated '{}' successfully", login_request.app_id);
-
-        Ok(Authentication { token })
-    }
-
-    async fn status_impl(&self, request: Request<StatusRequest>) -> Result<StatusResponse, Error> {
-        let status_request = request.into_inner();
-        let (jwt_token, token_info) = Self::authenticate(status_request.auth)?;
-
-        let status = self
-            .ds
-            .device_status(token_info.account.device.id, &jwt_token)
-            .await?;
-
-        Ok(StatusResponse {
-            status: status.into(),
-        })
-    }
-
-    async fn setup_impl(&self, request: Request<SetupRequest>) -> Result<CommonResponse, Error> {
+    pub(crate) async fn heartbeat_impl(
+        &self,
+        request: Request<HeartbeatRequest>,
+    ) -> Result<Response<<AppGuardImpl as AppGuard>::HeartbeatStream>, Error> {
+        let datastore = self.ds.clone();
+        // let tunnel = self.context.tunnel.clone();
         let remote_address = request
             .remote_addr()
             .map_or_else(|| "Unknown".to_string(), |addr| addr.ip().to_string());
 
-        let setup_request = request.into_inner();
-
-        let (jwt_token, token_info) = Self::authenticate(setup_request.auth)?;
-
-        let _ = self
-            .ds
-            .device_setup(
-                &jwt_token,
-                token_info.account.device.id.clone(),
-                setup_request.device_version,
-                setup_request.device_uuid,
-                remote_address,
-            )
-            .await?;
-
-        log::info!(
-            "Device setup completed successfully for '{}'",
-            token_info.account.device.id
+        let authenticate_request = request.into_inner();
+        let mut auth_handler = AuthHandler::new(
+            authenticate_request.app_id.clone(),
+            authenticate_request.app_secret.clone(),
+            datastore.clone(),
         );
+        let token = auth_handler.obtain_token_safe().await?;
+        let (_, token_info) = authenticate(token.clone())?;
+        let device_id = token_info.account.device.id;
+        let device_version = authenticate_request.device_version;
+        let device_uuid = authenticate_request.device_uuid;
 
-        Ok(CommonResponse {
-            message: String::from("Device setup completed successfully"),
-        })
-    }
+        let status = datastore.device_status(device_id.clone(), &token).await?;
+        if status == DeviceStatus::DsDraft {
+            datastore
+                .device_setup(
+                    &token,
+                    device_id.clone(),
+                    device_version,
+                    device_uuid,
+                    remote_address,
+                )
+                .await?;
+        }
 
-    async fn heartbeat_impl(
-        &self,
-        request: Request<HeartbeatRequest>,
-    ) -> Result<HeartbeatResponse, Error> {
-        let heartbeat_request = request.into_inner();
+        let (tx, rx) = mpsc::channel(6);
 
-        let (jwt_token, token_info) = Self::authenticate(heartbeat_request.auth)?;
+        tokio::spawn(async move {
+            loop {
+                if let Ok(token) = auth_handler.obtain_token_safe().await {
+                    if let Ok(response) = datastore.heartbeat(&token, device_id.clone()).await {
+                        // let (remote_shell_enabled, remote_ui_enabled) = {
+                        //     let tunnel = tunnel.lock().await;
+                        //
+                        //     let remote_shell_enabled = tunnel
+                        //         .get_profile_by_device_id(&device_id, &RAType::Shell)
+                        //         .await
+                        //         .is_some();
+                        //
+                        //     let remote_ui_enabled = tunnel
+                        //         .get_profile_by_device_id(&device_id, &RAType::UI)
+                        //         .await
+                        //         .is_some();
+                        //
+                        //     (remote_shell_enabled, remote_ui_enabled)
+                        // };
 
-        let device_info = self
-            .ds
-            .heartbeat(&jwt_token, token_info.account.device.id)
-            .await?;
+                        let response = HeartbeatResponse {
+                            token,
+                            status: response.status.into(),
+                            remote_shell_enabled: false,
+                            remote_ui_enabled: false,
+                            is_monitoring_enabled: response.is_monitoring_enabled,
+                        };
+                        tx.send(Ok(response)).await.unwrap();
+                    }
+                }
+                tokio::time::sleep(Duration::from_secs(10)).await;
+            }
+        });
 
-        Ok(HeartbeatResponse {
-            status: device_info.status.into(),
-            is_remote_access_enabled: device_info.is_remote_access_enabled,
-            is_monitoring_enabled: device_info.is_monitoring_enabled,
-        })
+        Ok(Response::new(ReceiverStream::new(rx)))
     }
 
     async fn handle_tcp_connection_impl(
@@ -304,7 +286,7 @@ impl AppGuardImpl {
             .send(DbEntry::TcpConnection((req.get_ref().clone(), tcp_id)))
             .handle_err(location!())?;
 
-        let auth = req.get_ref().auth.clone();
+        let token = req.get_ref().token.clone();
         let mut ip_info = AppGuardIpInfo::default();
         if let Some(ip) = &req.get_ref().source_ip {
             log::info!("Searching IP information for {ip}");
@@ -317,15 +299,16 @@ impl AppGuardImpl {
             ip_info = if let Some(info) = info_opt {
                 log::info!("IP information for {ip} already in cache");
                 info
-            } else if let Ok(Some(info)) = self.ds.clone().get_ip_info(ip, auth.clone()).await {
+            } else if let Ok(Some(info)) = self.ds.clone().get_ip_info(ip, token.clone()).await {
                 log::info!("IP information for {ip} already in database");
                 info
             } else {
-                ip_info = AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.ds, auth.clone())
-                    .await?;
+                ip_info =
+                    AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.ds, token.clone())
+                        .await?;
                 log::info!("Looked up new IP information: {ip_info:?}");
                 self.tx_store
-                    .send(DbEntry::IpInfo((ip_info.clone(), auth)))
+                    .send(DbEntry::IpInfo((ip_info.clone(), token)))
                     .handle_err(location!())?;
                 ip_info
             };
@@ -470,43 +453,14 @@ impl AppGuardImpl {
 
 #[tonic::async_trait]
 impl AppGuard for AppGuardImpl {
-    async fn login(
-        &self,
-        request: Request<LoginRequest>,
-    ) -> Result<Response<Authentication>, Status> {
-        self.login_impl(request)
-            .await
-            .map(Response::new)
-            .map_err(|e| Status::internal(format!("{e:?}")))
-    }
-
-    async fn status(
-        &self,
-        request: Request<StatusRequest>,
-    ) -> Result<Response<StatusResponse>, Status> {
-        self.status_impl(request)
-            .await
-            .map(Response::new)
-            .map_err(|e| Status::internal(format!("{e:?}")))
-    }
-
-    async fn setup(
-        &self,
-        request: Request<SetupRequest>,
-    ) -> Result<Response<CommonResponse>, Status> {
-        self.setup_impl(request)
-            .await
-            .map(Response::new)
-            .map_err(|e| Status::internal(format!("{e:?}")))
-    }
+    type HeartbeatStream = ReceiverStream<Result<HeartbeatResponse, Status>>;
 
     async fn heartbeat(
         &self,
         request: Request<HeartbeatRequest>,
-    ) -> Result<Response<HeartbeatResponse>, Status> {
+    ) -> Result<Response<Self::HeartbeatStream>, Status> {
         self.heartbeat_impl(request)
             .await
-            .map(Response::new)
             .map_err(|e| Status::internal(format!("{e:?}")))
     }
 

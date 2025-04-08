@@ -1,7 +1,8 @@
 use crate::db::entries::DbEntry;
 use crate::db::store::latest_device_info::LatestDeviceInfo;
-use crate::helpers::{authenticate, map_status_value_to_enum};
-use crate::proto::appguard::{AppGuardIpInfo, Authentication, DeviceStatus};
+use crate::db::tables::DbTable;
+use crate::helpers::map_status_value_to_enum;
+use crate::proto::appguard::{AppGuardIpInfo, DeviceStatus};
 use chrono::Utc;
 use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
@@ -12,7 +13,6 @@ use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use serde_json::json;
 use std::collections::HashMap;
-use crate::db::tables::DbTable;
 
 #[derive(Debug, Clone)]
 pub struct DatastoreWrapper {
@@ -122,9 +122,8 @@ impl DatastoreWrapper {
     pub(crate) async fn get_ip_info(
         &mut self,
         ip: &str,
-        auth: Option<Authentication>,
+        token: String,
     ) -> Result<Option<AppGuardIpInfo>, Error> {
-        let (token, _) = authenticate(auth)?;
         let table = DbTable::IpInfo.to_str();
 
         let request = GetByFilterRequest {

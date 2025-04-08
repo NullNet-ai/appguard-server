@@ -5,7 +5,7 @@ use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 pub struct LatestDeviceInfo {
     pub status: DeviceStatus,
-    pub is_remote_access_enabled: bool,
+    // pub is_remote_access_enabled: bool,
     pub is_monitoring_enabled: bool,
 }
 
@@ -30,11 +30,11 @@ impl LatestDeviceInfo {
             .ok_or("Could not parse 'is_monitoring_enabled'")
             .handle_err(location!())?;
 
-        let is_remote_access_enabled = object
-            .get("is_remote_access_enabled")
-            .and_then(serde_json::Value::as_bool)
-            .ok_or("Could not parse 'is_remote_access_enabled'")
-            .handle_err(location!())?;
+        // let is_remote_access_enabled = object
+        //     .get("is_remote_access_enabled")
+        //     .and_then(serde_json::Value::as_bool)
+        //     .ok_or("Could not parse 'is_remote_access_enabled'")
+        //     .handle_err(location!())?;
 
         let status = object
             .get("status")
@@ -46,7 +46,7 @@ impl LatestDeviceInfo {
         Ok(Self {
             status: map_status_value_to_enum(&status),
             is_monitoring_enabled,
-            is_remote_access_enabled,
+            // is_remote_access_enabled,
         })
     }
 }

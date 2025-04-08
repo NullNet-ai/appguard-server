@@ -38,7 +38,7 @@ pub const CONFIG_FILE: &str = "./test_material/config/config.json";
 const DEFAULT_BLACKLIST_LINK: &str =
     "https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt";
 
-pub static BLACKLIST_LINK: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::new(|| {
+pub static BLACKLIST_LINK: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
     std::env::var("BLACKLIST").unwrap_or_else(|_| DEFAULT_BLACKLIST_LINK.to_string())
 });
 
@@ -58,19 +58,19 @@ pub const FIREWALL_DIR: &str = "./test_material/firewall";
 // -------------------------------------------------------------------------------------------------
 
 // tls constants
-pub static SERVER_CERT: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::new(|| {
+pub static SERVER_CERT: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
     std::fs::read_to_string("./tls/appguard.pem")
         .handle_err(location!())
         .unwrap_or_default()
 });
 
-pub static SERVER_KEY: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::new(|| {
+pub static SERVER_KEY: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
     std::fs::read_to_string("./tls/appguard-key.pem")
         .handle_err(location!())
         .unwrap_or_default()
 });
 
-// pub static CA_CERT: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::new(|| {
+// pub static CA_CERT: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
 //     std::fs::read_to_string("test_material/tls/ca.cer")
 //         .handle_err(location!())
 //         .unwrap_or_default()

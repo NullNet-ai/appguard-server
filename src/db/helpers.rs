@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET};
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::entries::DbEntry;
+use crate::db::tables::DbTable;
 use crate::helpers::{get_timestamp_string, timestamp_str_diff_usec};
 use crate::proto::appguard::AppGuardIpInfo;
 use chrono::Utc;
@@ -11,7 +12,6 @@ use std::ops::Sub;
 use std::sync::{Arc, Condvar, Mutex};
 use std::time::Duration;
 use tokio::sync::mpsc::UnboundedReceiver;
-use crate::db::tables::DbTable;
 
 pub async fn delete_old_entries(
     config_pair: &Arc<(Mutex<Config>, Condvar)>,

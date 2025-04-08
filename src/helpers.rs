@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::proto::appguard::{Authentication, DeviceStatus};
+use crate::proto::appguard::DeviceStatus;
 use chrono::{DateTime, FixedOffset, Utc};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libtoken::Token;
@@ -40,21 +40,15 @@ pub fn get_env(key: Option<&'static str>, info: &'static str) -> &'static str {
             log::info!("Loaded {info}");
             return val;
         }
-    };
+    }
     log::warn!("{info} not found");
     ""
 }
 
-pub(crate) fn authenticate(auth: Option<Authentication>) -> Result<(String, Token), Error> {
-    let Some(auth_message) = auth else {
-        return Err("Authentication token is missing").handle_err(location!());
-    };
+pub(crate) fn authenticate(token: String) -> Result<(String, Token), Error> {
+    let token_info = Token::from_jwt(&token).handle_err(location!())?;
 
-    let jwt_token = auth_message.token.clone();
-
-    let token_info = Token::from_jwt(&jwt_token).handle_err(location!())?;
-
-    Ok((jwt_token, token_info))
+    Ok((token, token_info))
 }
 
 pub fn map_status_value_to_enum(status: &str) -> DeviceStatus {

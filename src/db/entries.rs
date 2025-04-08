@@ -4,7 +4,7 @@ use crate::firewall::firewall::FirewallResult;
 use crate::helpers::authenticate;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardSmtpRequest,
-    AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, Authentication,
+    AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
 };
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use std::sync::{Arc, Mutex};
@@ -14,14 +14,14 @@ pub enum DbEntry {
     HttpResponse((AppGuardHttpResponse, DbDetails)),
     SmtpRequest((AppGuardSmtpRequest, DbDetails)),
     SmtpResponse((AppGuardSmtpResponse, DbDetails)),
-    IpInfo((AppGuardIpInfo, Option<Authentication>)),
+    IpInfo((AppGuardIpInfo, String)),
     TcpConnection((AppGuardTcpConnection, u64)),
-    Blacklist((Vec<String>, Option<Authentication>)),
+    Blacklist((Vec<String>, String)),
 }
 
 impl DbEntry {
     pub async fn store(&self, mut ds: DatastoreWrapper) -> Result<(), Error> {
-        let (token, _) = authenticate(self.get_auth())?;
+        let (token, _) = authenticate(self.get_token())?;
 
         match self {
             DbEntry::HttpRequest((_, d)) => {
@@ -87,13 +87,13 @@ impl DbEntry {
         }
     }
 
-    fn get_auth(&self) -> Option<Authentication> {
+    fn get_token(&self) -> String {
         match self {
-            DbEntry::HttpRequest((r, _)) => r.auth.clone(),
-            DbEntry::HttpResponse((r, _)) => r.auth.clone(),
-            DbEntry::SmtpRequest((r, _)) => r.auth.clone(),
-            DbEntry::SmtpResponse((r, _)) => r.auth.clone(),
-            DbEntry::TcpConnection((c, _)) => c.auth.clone(),
+            DbEntry::HttpRequest((r, _)) => r.token.clone(),
+            DbEntry::HttpResponse((r, _)) => r.token.clone(),
+            DbEntry::SmtpRequest((r, _)) => r.token.clone(),
+            DbEntry::SmtpResponse((r, _)) => r.token.clone(),
+            DbEntry::TcpConnection((c, _)) => c.token.clone(),
             DbEntry::IpInfo((_, a)) | DbEntry::Blacklist((_, a)) => a.clone(),
         }
     }
