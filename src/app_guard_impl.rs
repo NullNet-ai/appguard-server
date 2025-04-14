@@ -214,7 +214,7 @@ impl AppGuardImpl {
         let device_id = token_info.account.device.id;
 
         let status = datastore.device_status(device_id.clone(), &token).await?;
-        if status == DeviceStatus::DsDraft {
+        if status == DeviceStatus::Draft {
             datastore
                 .device_setup(&token, device_id.clone(), remote_address)
                 .await?;

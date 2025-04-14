@@ -7,6 +7,7 @@ use crate::proto::appguard::{
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
 };
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use std::fmt::Write;
 use std::sync::{Arc, Mutex};
 
 pub enum DbEntry {
@@ -66,7 +67,7 @@ impl DbEntry {
             DbEntry::Blacklist((v, _)) => {
                 let mut json = "[".to_string();
                 for ip in v {
-                    json.push_str(&format!("{{\"ip\":\"{ip}\"}},"));
+                    let _ = write!(json, "{{\"ip\":\"{ip}\"}},");
                 }
                 json.pop();
                 json.push(']');

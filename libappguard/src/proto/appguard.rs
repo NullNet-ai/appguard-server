@@ -134,10 +134,10 @@ pub struct AppGuardTcpResponse {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum DeviceStatus {
-    DsDraft = 0,
-    DsActive = 1,
-    DsArchived = 2,
-    DsDeleted = 3,
+    Draft = 0,
+    Active = 1,
+    Archived = 2,
+    Deleted = 3,
     DsUnknown = 4,
 }
 impl DeviceStatus {
@@ -147,20 +147,20 @@ impl DeviceStatus {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::DsDraft => "DS_DRAFT",
-            Self::DsActive => "DS_ACTIVE",
-            Self::DsArchived => "DS_ARCHIVED",
-            Self::DsDeleted => "DS_DELETED",
+            Self::Draft => "DRAFT",
+            Self::Active => "ACTIVE",
+            Self::Archived => "ARCHIVED",
+            Self::Deleted => "DELETED",
             Self::DsUnknown => "DS_UNKNOWN",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "DS_DRAFT" => Some(Self::DsDraft),
-            "DS_ACTIVE" => Some(Self::DsActive),
-            "DS_ARCHIVED" => Some(Self::DsArchived),
-            "DS_DELETED" => Some(Self::DsDeleted),
+            "DRAFT" => Some(Self::Draft),
+            "ACTIVE" => Some(Self::Active),
+            "ARCHIVED" => Some(Self::Archived),
+            "DELETED" => Some(Self::Deleted),
             "DS_UNKNOWN" => Some(Self::DsUnknown),
             _ => None,
         }

@@ -55,13 +55,13 @@ pub fn map_status_value_to_enum(status: &str) -> DeviceStatus {
     let lowercase: String = status.to_lowercase();
 
     if lowercase.starts_with("draft") {
-        DeviceStatus::DsDraft
+        DeviceStatus::Draft
     } else if lowercase.starts_with("active") {
-        DeviceStatus::DsActive
+        DeviceStatus::Active
     } else if lowercase.starts_with("archive") {
-        DeviceStatus::DsArchived
+        DeviceStatus::Archived
     } else if lowercase.starts_with("delete") {
-        DeviceStatus::DsDeleted
+        DeviceStatus::Deleted
     } else {
         DeviceStatus::DsUnknown
     }
