@@ -17,13 +17,13 @@ pub const PORT: u16 = 50051;
 // pub const AI_PORT: u16 = 50052;
 
 pub static ACCOUNT_ID: std::sync::LazyLock<&str> = std::sync::LazyLock::new(|| {
-    option_env!("ACCOUNT_ID").unwrap_or({
+    option_env!("ACCOUNT_ID").unwrap_or_else(|| {
         log::warn!("Environment variable ACCOUNT_ID not found");
         ""
     })
 });
 pub static ACCOUNT_SECRET: std::sync::LazyLock<&str> = std::sync::LazyLock::new(|| {
-    option_env!("ACCOUNT_SECRET").unwrap_or({
+    option_env!("ACCOUNT_SECRET").unwrap_or_else(|| {
         log::warn!("Environment variable ACCOUNT_SECRET not found");
         ""
     })
