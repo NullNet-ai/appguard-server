@@ -16,8 +16,18 @@ pub const PORT: u16 = 50051;
 
 // pub const AI_PORT: u16 = 50052;
 
-pub const ACCOUNT_ID: &str = env!("ACCOUNT_ID");
-pub const ACCOUNT_SECRET: &str = env!("ACCOUNT_SECRET");
+pub static ACCOUNT_ID: std::sync::LazyLock<&str> = std::sync::LazyLock::new(|| {
+    option_env!("ACCOUNT_ID").unwrap_or({
+        log::warn!("Environment variable ACCOUNT_ID not found");
+        ""
+    })
+});
+pub static ACCOUNT_SECRET: std::sync::LazyLock<&str> = std::sync::LazyLock::new(|| {
+    option_env!("ACCOUNT_SECRET").unwrap_or({
+        log::warn!("Environment variable ACCOUNT_SECRET not found");
+        ""
+    })
+});
 
 // -------------------------------------------------------------------------------------------------
 
