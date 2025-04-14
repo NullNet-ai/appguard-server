@@ -286,8 +286,6 @@ impl DatastoreWrapper {
         &self,
         token: &str,
         device_id: String,
-        device_version: String,
-        device_uuid: String,
         device_address: String,
     ) -> Result<ResponseData, Error> {
         let request = UpdateRequest {
@@ -300,8 +298,8 @@ impl DatastoreWrapper {
                 durability: String::from("soft"),
             }),
             body: json!({
-                "device_version": device_version,
-                "system_id": device_uuid,
+                "device_version": "",
+                "system_id": "",
                 "ip_address": device_address,
                 "is_connection_established": true,
                 "status": "Active"

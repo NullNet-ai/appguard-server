@@ -5,10 +5,6 @@ pub struct HeartbeatRequest {
     pub app_id: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub app_secret: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub device_version: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub device_uuid: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct HeartbeatResponse {
@@ -16,12 +12,6 @@ pub struct HeartbeatResponse {
     pub token: ::prost::alloc::string::String,
     #[prost(enumeration = "DeviceStatus", tag = "2")]
     pub status: i32,
-    #[prost(bool, tag = "3")]
-    pub remote_shell_enabled: bool,
-    #[prost(bool, tag = "4")]
-    pub remote_ui_enabled: bool,
-    #[prost(bool, tag = "5")]
-    pub is_monitoring_enabled: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AppGuardTcpConnection {

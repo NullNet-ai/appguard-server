@@ -199,7 +199,6 @@ impl AppGuardImpl {
         request: Request<HeartbeatRequest>,
     ) -> Result<Response<<AppGuardImpl as AppGuard>::HeartbeatStream>, Error> {
         let datastore = self.ds.clone();
-        // let tunnel = self.context.tunnel.clone();
         let remote_address = request
             .remote_addr()
             .map_or_else(|| "Unknown".to_string(), |addr| addr.ip().to_string());
@@ -213,19 +212,11 @@ impl AppGuardImpl {
         let token = auth_handler.obtain_token_safe().await?;
         let (_, token_info) = authenticate(token.clone())?;
         let device_id = token_info.account.device.id;
-        let device_version = authenticate_request.device_version;
-        let device_uuid = authenticate_request.device_uuid;
 
         let status = datastore.device_status(device_id.clone(), &token).await?;
         if status == DeviceStatus::DsDraft {
             datastore
-                .device_setup(
-                    &token,
-                    device_id.clone(),
-                    device_version,
-                    device_uuid,
-                    remote_address,
-                )
+                .device_setup(&token, device_id.clone(), remote_address)
                 .await?;
         }
 
@@ -235,28 +226,9 @@ impl AppGuardImpl {
             loop {
                 if let Ok(token) = auth_handler.obtain_token_safe().await {
                     if let Ok(response) = datastore.heartbeat(&token, device_id.clone()).await {
-                        // let (remote_shell_enabled, remote_ui_enabled) = {
-                        //     let tunnel = tunnel.lock().await;
-                        //
-                        //     let remote_shell_enabled = tunnel
-                        //         .get_profile_by_device_id(&device_id, &RAType::Shell)
-                        //         .await
-                        //         .is_some();
-                        //
-                        //     let remote_ui_enabled = tunnel
-                        //         .get_profile_by_device_id(&device_id, &RAType::UI)
-                        //         .await
-                        //         .is_some();
-                        //
-                        //     (remote_shell_enabled, remote_ui_enabled)
-                        // };
-
                         let response = HeartbeatResponse {
                             token,
                             status: response.status.into(),
-                            remote_shell_enabled: false,
-                            remote_ui_enabled: false,
-                            is_monitoring_enabled: response.is_monitoring_enabled,
                         };
                         tx.send(Ok(response)).await.unwrap();
                     }
