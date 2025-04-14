@@ -103,7 +103,7 @@ mod tests {
             region: Some("Lazio".to_string()),
             postal: Some("00100".to_string()),
             timezone: Some("Europe/Rome".to_string()),
-            blacklist: 4,
+            blacklist: true,
             ..Default::default()
         }
     }

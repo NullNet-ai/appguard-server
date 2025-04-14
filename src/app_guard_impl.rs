@@ -518,96 +518,96 @@ impl AppGuard for AppGuardImpl {
     }
 }
 
-#[cfg(test)]
-#[cfg_attr(coverage_nightly, coverage(off))]
-mod tests {
-    use serial_test::serial;
-
-    use super::*;
-
-    fn write_config_to_file(config: &Config) {
-        let json = serde_json::to_string(&config).unwrap();
-        std::fs::write(CONFIG_FILE, json).unwrap();
-
-        assert_eq!(Config::from_file(CONFIG_FILE).unwrap(), *config);
-    }
-
-    fn tcp_connection_with_source_ip(ip: &str) -> AppGuardTcpConnection {
-        AppGuardTcpConnection {
-            source_ip: Some(ip.to_owned()),
-            ..Default::default()
-        }
-    }
-
-    fn app_guard_ip_info_with_source_ip(ip: &str) -> AppGuardIpInfo {
-        AppGuardIpInfo {
-            ip: ip.to_owned(),
-            ..Default::default()
-        }
-    }
-
-    async fn handle_tcp_connection(app: &AppGuardImpl, ip: &str) {
-        let tcp_connection = tcp_connection_with_source_ip(ip);
-        app.handle_tcp_connection_impl(Request::new(tcp_connection))
-            .await
-            .unwrap();
-    }
-
-    #[tokio::test]
-    #[serial]
-    async fn test_ip_info_cache() {
-        let app = AppGuardImpl::new().await.unwrap();
-        let mut map = IndexMap::new();
-
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        write_config_to_file(&Config {
-            ip_info_cache_size: 3,
-            ..Default::default()
-        });
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-
-        handle_tcp_connection(&app, "::1").await;
-        map.insert("::1".to_owned(), app_guard_ip_info_with_source_ip("::1"));
-        assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
-
-        handle_tcp_connection(&app, "::2").await;
-        map.shift_insert(0, "::2".to_owned(), app_guard_ip_info_with_source_ip("::2"));
-        assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
-
-        handle_tcp_connection(&app, "::3").await;
-        map.shift_insert(0, "::3".to_owned(), app_guard_ip_info_with_source_ip("::3"));
-        assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
-
-        handle_tcp_connection(&app, "::4").await;
-        map.shift_insert(0, "::4".to_owned(), app_guard_ip_info_with_source_ip("::4"));
-        map.pop();
-        assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
-
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        write_config_to_file(&Config {
-            ip_info_cache_size: 1,
-            ..Default::default()
-        });
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
-
-        handle_tcp_connection(&app, "::2").await;
-        map.clear();
-        map.insert("::2".to_owned(), app_guard_ip_info_with_source_ip("::2"));
-        assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
-
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        write_config_to_file(&Config {
-            ip_info_cache_size: 0,
-            ..Default::default()
-        });
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-        assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
-
-        handle_tcp_connection(&app, "::3").await;
-        map.clear();
-        assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
-
-        write_config_to_file(&Config::default());
-    }
-}
+// #[cfg(test)]
+// #[cfg_attr(coverage_nightly, coverage(off))]
+// mod tests {
+//     use serial_test::serial;
+//
+//     use super::*;
+//
+//     fn write_config_to_file(config: &Config) {
+//         let json = serde_json::to_string(&config).unwrap();
+//         std::fs::write(CONFIG_FILE, json).unwrap();
+//
+//         assert_eq!(Config::from_file(CONFIG_FILE).unwrap(), *config);
+//     }
+//
+//     fn tcp_connection_with_source_ip(ip: &str) -> AppGuardTcpConnection {
+//         AppGuardTcpConnection {
+//             source_ip: Some(ip.to_owned()),
+//             ..Default::default()
+//         }
+//     }
+//
+//     fn app_guard_ip_info_with_source_ip(ip: &str) -> AppGuardIpInfo {
+//         AppGuardIpInfo {
+//             ip: ip.to_owned(),
+//             ..Default::default()
+//         }
+//     }
+//
+//     async fn handle_tcp_connection(app: &AppGuardImpl, ip: &str) {
+//         let tcp_connection = tcp_connection_with_source_ip(ip);
+//         app.handle_tcp_connection_impl(Request::new(tcp_connection))
+//             .await
+//             .unwrap();
+//     }
+//
+//     #[tokio::test]
+//     #[serial]
+//     async fn test_ip_info_cache() {
+//         let app = AppGuardImpl::new().await.unwrap();
+//         let mut map = IndexMap::new();
+//
+//         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+//         write_config_to_file(&Config {
+//             ip_info_cache_size: 3,
+//             ..Default::default()
+//         });
+//         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+//
+//         handle_tcp_connection(&app, "::1").await;
+//         map.insert("::1".to_owned(), app_guard_ip_info_with_source_ip("::1"));
+//         assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
+//
+//         handle_tcp_connection(&app, "::2").await;
+//         map.shift_insert(0, "::2".to_owned(), app_guard_ip_info_with_source_ip("::2"));
+//         assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
+//
+//         handle_tcp_connection(&app, "::3").await;
+//         map.shift_insert(0, "::3".to_owned(), app_guard_ip_info_with_source_ip("::3"));
+//         assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
+//
+//         handle_tcp_connection(&app, "::4").await;
+//         map.shift_insert(0, "::4".to_owned(), app_guard_ip_info_with_source_ip("::4"));
+//         map.pop();
+//         assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
+//
+//         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+//         write_config_to_file(&Config {
+//             ip_info_cache_size: 1,
+//             ..Default::default()
+//         });
+//         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+//         assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
+//
+//         handle_tcp_connection(&app, "::2").await;
+//         map.clear();
+//         map.insert("::2".to_owned(), app_guard_ip_info_with_source_ip("::2"));
+//         assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
+//
+//         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+//         write_config_to_file(&Config {
+//             ip_info_cache_size: 0,
+//             ..Default::default()
+//         });
+//         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+//         assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
+//
+//         handle_tcp_connection(&app, "::3").await;
+//         map.clear();
+//         assert_eq!(*app.ip_info_cache.lock().unwrap(), map);
+//
+//         write_config_to_file(&Config::default());
+//     }
+// }

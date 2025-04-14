@@ -137,8 +137,8 @@ mod tests {
 
     use super::*;
 
-    const DESERIALIZED_SAMPLE_FIREWALL: once_cell::sync::Lazy<Firewall> =
-        once_cell::sync::Lazy::new(|| Firewall {
+    const DESERIALIZED_SAMPLE_FIREWALL: std::sync::LazyLock<Firewall> =
+        std::sync::LazyLock::new(|| Firewall {
             expressions: Vec::from([
                 FirewallExpression {
                     policy: FirewallPolicy::Deny,
