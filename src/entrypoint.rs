@@ -8,7 +8,7 @@ use crate::constants::PORT;
 use crate::constants::{ADDR, SERVER_CERT, SERVER_KEY};
 use crate::proto::appguard::app_guard_server::AppGuardServer;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
-use nullnet_liblogging::Logger;
+use nullnet_liblogging::{Logger, LoggerConfig};
 
 #[tokio::main]
 pub async fn start_appguard() -> Result<(), Error> {
@@ -33,7 +33,10 @@ pub async fn start_appguard() -> Result<(), Error> {
     log::info!("Starting AppGuard server on address '{addr}'");
 
     server_builder()?
-        .add_service(AppGuardServer::new(init_app_guard().await?))
+        .add_service(
+            AppGuardServer::new(init_app_guard().await?)
+                .max_decoding_message_size(50 * 1024 * 1024),
+        )
         .serve(addr)
         .await
         .handle_err(location!())?;
@@ -42,7 +45,8 @@ pub async fn start_appguard() -> Result<(), Error> {
 }
 
 fn init_logger() {
-    Logger::init(None, "appguard-server", vec![]);
+    let logger_config = LoggerConfig::new(true, false, None, vec![]);
+    Logger::init(logger_config);
 }
 
 async fn init_app_guard() -> Result<AppGuardImpl, Error> {

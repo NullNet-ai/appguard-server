@@ -1,55 +1,17 @@
-#![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
-#![allow(
-    clippy::used_underscore_binding,
-    clippy::module_name_repetitions,
-    clippy::wildcard_imports,
-    clippy::missing_errors_doc,
-    clippy::must_use_candidate,
-    clippy::missing_panics_doc
-)]
-
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod ai;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod app_guard_impl;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod config;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod constants;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod db;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod deserialize;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod entrypoint;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod fetch_data;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod firewall;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod from_sql;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod helpers;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod ip_info;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod proto;
-#[cfg(feature = "grpc-lib-only")]
 mod proto;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod serialize;
-#[cfg(not(feature = "grpc-lib-only"))]
-pub mod to_sql;
 
+use crate::proto::appguard::{
+    HeartbeatRequest
+};
 use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse,
-    FirewallPolicy,
+    DeviceStatus, FirewallPolicy,HeartbeatResponse
 };
 use std::future::Future;
 use tonic::transport::{Channel, ClientTlsConfig};
-use tonic::{Request, Response, Status};
+use tonic::{Request, Response, Status, Streaming};
 
 #[derive(Clone)]
 pub struct AppGuardGrpcInterface {
@@ -76,6 +38,26 @@ impl AppGuardGrpcInterface {
         Ok(Self {
             client: AppGuardClient::new(channel),
         })
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    pub async fn heartbeat(
+        &mut self,
+        app_id: String,
+        app_secret: String,
+        device_version: String,
+        device_uuid: String,
+    ) -> Result<Streaming<HeartbeatResponse>, String> {
+        self.client
+            .heartbeat(Request::new(HeartbeatRequest {
+                app_id,
+                app_secret,
+                device_version,
+                device_uuid,
+            }))
+            .await
+            .map(tonic::Response::into_inner)
+            .map_err(|e| e.to_string())
     }
 
     #[allow(clippy::missing_errors_doc)]

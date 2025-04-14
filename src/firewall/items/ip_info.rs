@@ -15,7 +15,6 @@ pub enum IpInfoField {
     Region(Vec<String>),
     Postal(Vec<String>),
     Timezone(Vec<String>),
-    Blacklist(Vec<u32>),
 }
 
 impl IpInfoField {
@@ -29,7 +28,6 @@ impl IpInfoField {
             IpInfoField::Region(_) => "region",
             IpInfoField::Postal(_) => "postal",
             IpInfoField::Timezone(_) => "timezone",
-            IpInfoField::Blacklist(_) => "blacklist",
         }
     }
 
@@ -70,7 +68,6 @@ impl IpInfoField {
                 .timezone
                 .as_ref()
                 .map(|timezone| FirewallCompareType::String((timezone, v))),
-            IpInfoField::Blacklist(v) => Some(FirewallCompareType::U32((item.blacklist, v))),
         }
     }
 }
@@ -106,7 +103,7 @@ mod tests {
             region: Some("Lazio".to_string()),
             postal: Some("00100".to_string()),
             timezone: Some("Europe/Rome".to_string()),
-            blacklist: 4,
+            blacklist: true,
             ..Default::default()
         }
     }
@@ -212,16 +209,6 @@ mod tests {
                 &"Europe/Rome".to_string(),
                 &vec!["US central".to_string()]
             )))
-        );
-    }
-
-    #[test]
-    fn test_ip_info_get_blacklist() {
-        let ip_info = sample_ip_info();
-        let ip_info_field = IpInfoField::Blacklist(vec![0]);
-        assert_eq!(
-            ip_info_field.get_compare_fields(&ip_info),
-            Some(FirewallCompareType::U32((4, &vec![0])))
         );
     }
 }

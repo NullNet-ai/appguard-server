@@ -1,9 +1,9 @@
 use std::collections::HashMap;
-use std::convert::TryFrom;
 
+use crate::proto::appguard::DeviceStatus;
 use chrono::{DateTime, FixedOffset, Utc};
-
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use nullnet_libtoken::Token;
 
 pub fn get_timestamp_string() -> String {
     Utc::now().to_rfc3339()
@@ -40,9 +40,31 @@ pub fn get_env(key: Option<&'static str>, info: &'static str) -> &'static str {
             log::info!("Loaded {info}");
             return val;
         }
-    };
+    }
     log::warn!("{info} not found");
     ""
+}
+
+pub(crate) fn authenticate(token: String) -> Result<(String, Token), Error> {
+    let token_info = Token::from_jwt(&token).handle_err(location!())?;
+
+    Ok((token, token_info))
+}
+
+pub fn map_status_value_to_enum(status: &str) -> DeviceStatus {
+    let lowercase: String = status.to_lowercase();
+
+    if lowercase.starts_with("draft") {
+        DeviceStatus::Draft
+    } else if lowercase.starts_with("active") {
+        DeviceStatus::Active
+    } else if lowercase.starts_with("archive") {
+        DeviceStatus::Archived
+    } else if lowercase.starts_with("delete") {
+        DeviceStatus::Deleted
+    } else {
+        DeviceStatus::DsUnknown
+    }
 }
 
 #[cfg(test)]

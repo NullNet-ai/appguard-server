@@ -1,22 +1,11 @@
-use std::sync::{Arc, Mutex};
-
-use rusqlite::{params, Connection};
-
 use crate::db::entries::DbDetails;
-use crate::db::store::store::StoreWithDetails;
-use crate::db::tables::DbTable;
 use crate::helpers::{get_header, get_timestamp_string};
 use crate::proto::appguard::AppGuardHttpRequest;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use serde_json::json;
 
-impl StoreWithDetails for AppGuardHttpRequest {
-    const TABLE: DbTable = DbTable::HttpRequest;
-
-    fn store_with_details(
-        &self,
-        conn: &Arc<Mutex<Connection>>,
-        details: &DbDetails,
-    ) -> Result<(), Error> {
+impl AppGuardHttpRequest {
+    pub(crate) fn to_json(&self, details: &DbDetails) -> Result<String, Error> {
         let headers = &self.headers;
         let query = &self.query;
 
@@ -26,25 +15,19 @@ impl StoreWithDetails for AppGuardHttpRequest {
         let headers_json = serde_json::to_string(headers).handle_err(location!())?;
         let query_json = serde_json::to_string(query).handle_err(location!())?;
 
-        let table_name = Self::TABLE.to_str();
-        conn.lock().handle_err(location!())?.execute(
-                &format!("INSERT INTO {table_name} (id, timestamp, fw_res, tcp_id, ip, original_url, user_agent, headers, method, body, query, cookies) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)"),
-                params![
-                    details.id,
-                    get_timestamp_string(),
-                    details.fw_res,
-                    details.tcp_id,
-                    &details.ip,
-                    &self.original_url,
-                    &user_agent,
-                    &headers_json,
-                    &self.method,
-                    &self.body,
-                    &query_json,
-                    &cookies,
-                ],
-            ).handle_err(location!())?;
-
-        Ok(())
+        Ok(json!({
+            "timestamp": get_timestamp_string(),
+            "fw_policy": details.fw_res.policy.as_str_name(),
+            "fw_reasons": serde_json::to_string(&details.fw_res.reasons).handle_err(location!())?,
+            "ip": details.ip,
+            "original_url": self.original_url,
+            "user_agent": user_agent,
+            "headers": headers_json,
+            "method": self.method,
+            "body": self.body,
+            "query": query_json,
+            "cookies": cookies,
+        })
+        .to_string())
     }
 }

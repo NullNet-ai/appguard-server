@@ -1,11 +1,8 @@
-use std::sync::{Arc, Mutex};
-
-use rusqlite::{Connection, OptionalExtension};
-
 use crate::constants::API_KEY;
+use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::helpers::get_env;
 use crate::proto::appguard::AppGuardIpInfo;
-use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::Error;
 use nullnet_libipinfo::{ApiFields, IpInfo, IpInfoHandler, IpInfoProvider};
 
 impl AppGuardIpInfo {
@@ -14,27 +11,21 @@ impl AppGuardIpInfo {
     pub async fn lookup(
         ip: &str,
         ip_info_handler: &IpInfoHandler,
-        blacklist_conn: &Arc<Mutex<Connection>>,
+        ds: &DatastoreWrapper,
+        token: String,
     ) -> Result<AppGuardIpInfo, Error> {
         let ip_info = ip_info_handler.lookup(ip).await?;
-        Self::from_ip_info(ip_info, ip, blacklist_conn)
+        Self::from_ip_info(ip_info, ip, ds, token).await
     }
 
     /// This function is used to convert an `IpInfo` struct into an `AppGuardIpInfo` struct.
-    fn from_ip_info(
+    async fn from_ip_info(
         info: IpInfo,
         ip: &str,
-        blacklist_conn: &Arc<Mutex<Connection>>,
+        ds: &DatastoreWrapper,
+        token: String,
     ) -> Result<Self, Error> {
-        let blacklist_count = blacklist_conn
-            .lock()
-            .handle_err(location!())?
-            .query_row("SELECT count FROM blacklist WHERE ip = ?1;", [ip], |row| {
-                row.get(0)
-            })
-            .optional()
-            .handle_err(location!())?
-            .unwrap_or_default();
+        let blacklist = ds.clone().is_ip_blacklisted(ip, token.as_str()).await?;
 
         Ok(Self {
             ip: ip.to_string(),
@@ -46,7 +37,7 @@ impl AppGuardIpInfo {
             region: info.region,
             postal: info.postal,
             timezone: info.timezone,
-            blacklist: blacklist_count,
+            blacklist,
         })
     }
 }

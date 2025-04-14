@@ -1,15 +1,15 @@
 use std::net::IpAddr;
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use reqwest::{Client, ClientBuilder};
-use rusqlite::{params, Connection};
 
-use crate::constants::{APP_GUARD_VERSION, BLACKLIST_LINK};
+use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET, APP_GUARD_VERSION, BLACKLIST_LINK};
+use crate::db::datastore_wrapper::DatastoreWrapper;
+use crate::db::entries::DbEntry;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
-pub async fn fetch_ip_data(blacklist_conn: &Arc<Mutex<Connection>>) {
+pub async fn fetch_ip_data(ds: DatastoreWrapper) {
     if cfg!(test) {
         return;
     }
@@ -21,55 +21,35 @@ pub async fn fetch_ip_data(blacklist_conn: &Arc<Mutex<Connection>>) {
         .unwrap_or_default();
 
     loop {
-        fetch_ip_blacklist(blacklist_conn, &client)
+        fetch_ip_blacklist(ds.clone(), &client)
             .await
             .unwrap_or_default();
         tokio::time::sleep(Duration::from_secs(60 * 60 * 24)).await; // 24 hours
     }
 }
 
-pub async fn fetch_ip_blacklist(
-    blacklist_conn: &Arc<Mutex<Connection>>,
-    client: &Client,
-) -> Result<(), Error> {
-    log::info!("Fetching IP blacklist from remote...");
+pub async fn fetch_ip_blacklist(ds: DatastoreWrapper, client: &Client) -> Result<(), Error> {
+    log::info!("Fetching IP blacklist from {}...", BLACKLIST_LINK.as_str());
 
-    let blacklist = client
-        .get(BLACKLIST_LINK)
+    let blacklist_string = client
+        .get(BLACKLIST_LINK.as_str())
         .send()
         .await
         .handle_err(location!())?
         .text()
         .await
         .handle_err(location!())?;
+    let mut blacklist = vec![];
 
-    log::info!("Remote IP blacklist fetched; updating local blacklist...");
-
-    let conn = blacklist_conn.lock().handle_err(location!())?;
-    conn.execute("BEGIN TRANSACTION;", [])
-        .handle_err(location!())?;
-    conn.execute("DELETE FROM blacklist;", [])
-        .handle_err(location!())?;
-
-    let mut stmt = conn
-        .prepare("INSERT INTO blacklist (ip, count) VALUES (?1, ?2);")
-        .handle_err(location!())?;
+    log::info!("Remote IP blacklist fetched; updating blacklist in datastore...");
 
     let mut num_entries = 0;
-    for line in blacklist.lines() {
-        if !line.trim().is_empty() && !line.contains('#') {
-            let [ip_str, count_str]: [&str; 2] = line
-                .split_whitespace()
-                .collect::<Vec<&str>>()
-                .try_into()
-                .unwrap_or_default();
-            let (Ok(_ip), Ok(count)) = (IpAddr::from_str(ip_str), count_str.parse::<usize>())
-            else {
-                continue;
-            };
-            stmt.execute(params![ip_str, count])
-                .handle_err(location!())?;
-            num_entries += 1;
+    for line in blacklist_string.lines() {
+        if let Some(ip_str) = line.split_whitespace().next() {
+            if IpAddr::from_str(ip_str).is_ok() {
+                blacklist.push(ip_str.to_string());
+                num_entries += 1;
+            }
         }
     }
 
@@ -78,12 +58,13 @@ pub async fn fetch_ip_blacklist(
             .handle_err(location!())?;
     }
 
-    conn.execute("COMMIT;", []).handle_err(location!())?;
+    let token = ds
+        .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string())
+        .await?;
 
-    drop(stmt);
-    drop(conn);
+    DbEntry::Blacklist((blacklist, token)).store(ds).await?;
 
-    log::info!("Local IP blacklist updated successfully ({num_entries} entries)");
+    log::info!("IP blacklist in datastore updated successfully ({num_entries} entries)");
 
     Ok(())
 }

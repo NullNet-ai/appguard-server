@@ -1,55 +1,102 @@
-use std::sync::{Arc, Mutex};
-
-use rusqlite::Connection;
-
-use crate::constants::SQLITE_PATH;
-use crate::db::store::store::{StoreUnique, StoreWithDetails, StoreWithId};
+use crate::db::datastore_wrapper::DatastoreWrapper;
+use crate::db::tables::DbTable;
 use crate::firewall::firewall::FirewallResult;
+use crate::helpers::authenticate;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
 };
-use nullnet_liberror::Error;
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use std::fmt::Write;
+use std::sync::{Arc, Mutex};
 
 pub enum DbEntry {
     HttpRequest((AppGuardHttpRequest, DbDetails)),
     HttpResponse((AppGuardHttpResponse, DbDetails)),
     SmtpRequest((AppGuardSmtpRequest, DbDetails)),
     SmtpResponse((AppGuardSmtpResponse, DbDetails)),
-    IpInfo(AppGuardIpInfo),
+    IpInfo((AppGuardIpInfo, String)),
     TcpConnection((AppGuardTcpConnection, u64)),
+    Blacklist((Vec<String>, String)),
 }
 
 impl DbEntry {
-    pub fn store(&self, conn: &Arc<Mutex<Connection>>) -> Result<(), Error> {
+    pub async fn store(&self, mut ds: DatastoreWrapper) -> Result<(), Error> {
+        let (token, _) = authenticate(self.get_token())?;
+
         match self {
-            DbEntry::HttpRequest((e, d)) => {
-                e.store_with_details(conn, d)?;
-                log::info!("HTTP request #{} stored at {}", d.id, SQLITE_PATH.as_str());
+            DbEntry::HttpRequest((_, d)) => {
+                let _ = ds.insert(self, token.as_str()).await?;
+                log::info!("HTTP request #{} inserted in datastore", d.id);
             }
-            DbEntry::HttpResponse((e, d)) => {
-                e.store_with_details(conn, d)?;
-                log::info!("HTTP response #{} stored at {}", d.id, SQLITE_PATH.as_str());
+            DbEntry::HttpResponse((_, d)) => {
+                let _ = ds.insert(self, token.as_str()).await?;
+                log::info!("HTTP response #{} inserted in datastore", d.id);
             }
-            DbEntry::SmtpRequest((e, d)) => {
-                e.store_with_details(conn, d)?;
-                log::info!("SMTP request #{} stored at {}", d.id, SQLITE_PATH.as_str());
+            DbEntry::SmtpRequest((_, d)) => {
+                let _ = ds.insert(self, token.as_str()).await?;
+                log::info!("SMTP request #{} inserted in datastore", d.id);
             }
-            DbEntry::SmtpResponse((e, d)) => {
-                e.store_with_details(conn, d)?;
-                log::info!("SMTP response #{} stored at {}", d.id, SQLITE_PATH.as_str());
+            DbEntry::SmtpResponse((_, d)) => {
+                let _ = ds.insert(self, token.as_str()).await?;
+                log::info!("SMTP response #{} inserted in datastore", d.id);
             }
-            DbEntry::IpInfo(e) => {
-                if let Some(id) = e.store_unique(conn)? {
-                    log::info!("IP info #{id} stored at {}", SQLITE_PATH.as_str());
-                }
+            DbEntry::IpInfo((i, _)) => {
+                let _ = ds.insert(self, token.as_str()).await?;
+                log::info!("IP info for {} inserted in datastore", i.ip);
             }
-            DbEntry::TcpConnection((e, id)) => {
-                e.store_with_id(conn, *id)?;
-                log::info!("TCP connection #{id} stored at {}", SQLITE_PATH.as_str());
+            DbEntry::TcpConnection((_, id)) => {
+                let _ = ds.insert(self, token.as_str()).await?;
+                log::info!("TCP connection #{id} inserted in datastore");
+            }
+            DbEntry::Blacklist(_) => {
+                let _ = ds.insert_batch(self, token.as_str()).await?;
             }
         }
         Ok(())
+    }
+
+    pub(crate) fn to_json(&self) -> Result<String, Error> {
+        match self {
+            DbEntry::HttpRequest((r, d)) => r.to_json(d),
+            DbEntry::HttpResponse((r, d)) => r.to_json(d),
+            DbEntry::SmtpRequest((r, d)) => r.to_json(d),
+            DbEntry::SmtpResponse((r, d)) => r.to_json(d),
+            DbEntry::IpInfo((i, _)) => Ok(i.to_json()),
+            DbEntry::TcpConnection((c, _)) => Ok(c.to_json()),
+            DbEntry::Blacklist((v, _)) => {
+                let mut json = "[".to_string();
+                for ip in v {
+                    let _ = write!(json, "{{\"ip\":\"{ip}\"}},");
+                }
+                json.pop();
+                json.push(']');
+                Ok(json)
+            }
+        }
+    }
+
+    pub(crate) fn table(&self) -> DbTable {
+        match self {
+            DbEntry::HttpRequest(_) => DbTable::HttpRequest,
+            DbEntry::HttpResponse(_) => DbTable::HttpResponse,
+            DbEntry::SmtpRequest(_) => DbTable::SmtpRequest,
+            DbEntry::SmtpResponse(_) => DbTable::SmtpResponse,
+            DbEntry::IpInfo(_) => DbTable::IpInfo,
+            DbEntry::TcpConnection(_) => DbTable::TcpConnection,
+            DbEntry::Blacklist(_) => DbTable::Blacklist,
+        }
+    }
+
+    fn get_token(&self) -> String {
+        match self {
+            DbEntry::HttpRequest((r, _)) => r.token.clone(),
+            DbEntry::HttpResponse((r, _)) => r.token.clone(),
+            DbEntry::SmtpRequest((r, _)) => r.token.clone(),
+            DbEntry::SmtpResponse((r, _)) => r.token.clone(),
+            DbEntry::TcpConnection((c, _)) => c.token.clone(),
+            DbEntry::IpInfo((_, a)) | DbEntry::Blacklist((_, a)) => a.clone(),
+        }
     }
 }
 
@@ -57,8 +104,7 @@ pub struct DbDetails {
     pub id: u64,
     pub fw_res: FirewallResult,
     pub ip: String,
-    pub tcp_id: u64,
-    pub response_time: Option<u64>,
+    pub response_time: Option<u32>,
 }
 
 impl DbDetails {
@@ -66,7 +112,7 @@ impl DbDetails {
         id: u64,
         fw_res: FirewallResult,
         tcp_info: Option<&AppGuardTcpInfo>,
-        response_time: Option<u64>,
+        response_time: Option<u32>,
     ) -> Self {
         Self {
             id,
@@ -80,8 +126,54 @@ impl DbDetails {
                 .as_ref()
                 .unwrap_or(&String::default())
                 .to_owned(),
-            tcp_id: tcp_info.unwrap_or(&AppGuardTcpInfo::default()).tcp_id,
             response_time,
         }
+    }
+}
+
+#[derive(Default)]
+pub struct EntryIds {
+    pub tcp_connection: Arc<Mutex<u64>>,
+    pub http_request: Arc<Mutex<u64>>,
+    pub http_response: Arc<Mutex<u64>>,
+    pub smtp_request: Arc<Mutex<u64>>,
+    pub smtp_response: Arc<Mutex<u64>>,
+}
+
+impl EntryIds {
+    pub fn get_next(&self, table: DbTable) -> Result<u64, Error> {
+        let mut id = match table {
+            DbTable::TcpConnection => &self.tcp_connection,
+            DbTable::HttpRequest => &self.http_request,
+            DbTable::HttpResponse => &self.http_response,
+            DbTable::SmtpRequest => &self.smtp_request,
+            DbTable::SmtpResponse => &self.smtp_response,
+            DbTable::IpInfo => return Err("Not applicable").handle_err(location!()),
+            DbTable::Blacklist => return Err("Not applicable").handle_err(location!()),
+        }
+        .lock()
+        .handle_err(location!())?;
+        *id += 1;
+        Ok(*id)
+    }
+}
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_table_ids_get_next() {
+        let table_ids = EntryIds::default();
+        assert_eq!(table_ids.get_next(DbTable::TcpConnection).unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::TcpConnection).unwrap(), 2);
+        assert_eq!(table_ids.get_next(DbTable::HttpRequest).unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::HttpResponse).unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::SmtpRequest).unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::SmtpResponse).unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::TcpConnection).unwrap(), 3);
+        assert_eq!(table_ids.get_next(DbTable::SmtpResponse).unwrap(), 2);
+        assert!(table_ids.get_next(DbTable::IpInfo).is_err());
     }
 }

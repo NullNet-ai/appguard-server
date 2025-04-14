@@ -3,6 +3,8 @@ syntax = "proto3";
 package appguard;
 
 service AppGuard {
+  // Authentication
+  rpc Heartbeat (HeartbeatRequest) returns (stream HeartbeatResponse);
   // TCP
   rpc HandleTcpConnection (AppGuardTcpConnection) returns (AppGuardTcpResponse);
   // HTTP
@@ -13,14 +15,35 @@ service AppGuard {
   rpc HandleSmtpResponse (AppGuardSmtpResponse) returns (AppGuardResponse);
 }
 
+// Authentication ------------------------------------------------------------------------------------------------------
+
+message HeartbeatRequest {
+  string app_id = 1;
+  string app_secret = 2;
+}
+
+enum DeviceStatus {
+  DRAFT = 0;
+  ACTIVE = 1;
+  ARCHIVED = 2;
+  DELETED = 3;
+  DS_UNKNOWN = 4;
+}
+
+message HeartbeatResponse {
+  string token = 1;
+  DeviceStatus status = 2;
+}
+
 // TCP -----------------------------------------------------------------------------------------------------------------
 
 message AppGuardTcpConnection {
-  optional string source_ip = 1;
-  optional uint32 source_port = 2;
-  optional string destination_ip = 3;
-  optional uint32 destination_port = 4;
-  string protocol = 5;
+  string token = 1;
+  optional string source_ip = 2;
+  optional uint32 source_port = 3;
+  optional string destination_ip = 4;
+  optional uint32 destination_port = 5;
+  string protocol = 6;
 }
 
 message AppGuardIpInfo {
@@ -33,7 +56,7 @@ message AppGuardIpInfo {
   optional string region = 7;
   optional string postal = 8;
   optional string timezone = 9;
-  uint32 blacklist = 100;
+  bool blacklist = 100;
 }
 
 message AppGuardTcpInfo {
@@ -45,30 +68,34 @@ message AppGuardTcpInfo {
 // HTTP ----------------------------------------------------------------------------------------------------------------
 
 message AppGuardHttpRequest {
-  string original_url = 1;
-  map<string, string> headers = 2;
-  string method = 3;
-  optional string body = 4;
-  map<string, string> query = 5;
+  string token = 1;
+  string original_url = 2;
+  map<string, string> headers = 3;
+  string method = 4;
+  optional string body = 5;
+  map<string, string> query = 6;
   AppGuardTcpInfo tcp_info = 100;
 }
 
 message AppGuardHttpResponse {
-  uint32 code = 1;
-  map<string, string> headers = 2;
+  string token = 1;
+  uint32 code = 2;
+  map<string, string> headers = 3;
   AppGuardTcpInfo tcp_info = 100;
 }
 
 // SMTP ----------------------------------------------------------------------------------------------------------------
 
 message AppGuardSmtpRequest {
-  map<string, string> headers = 1;
-  optional string body = 2;
+  string token = 1;
+  map<string, string> headers = 2;
+  optional string body = 3;
   AppGuardTcpInfo tcp_info = 100;
 }
 
 message AppGuardSmtpResponse {
-  optional uint32 code = 1;
+  string token = 1;
+  optional uint32 code = 2;
   AppGuardTcpInfo tcp_info = 100;
 }
 
