@@ -1,7 +1,9 @@
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
 
-use crate::firewall::rules::{FirewallCompareType, FirewallRule, FirewallRuleField};
+use crate::firewall::rules::{
+    FirewallCompareType, FirewallRule, FirewallRuleDirection, FirewallRuleField,
+};
 use crate::proto::appguard::{AppGuardIpInfo, AppGuardSmtpResponse, AppGuardTcpInfo};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -35,15 +37,17 @@ impl PredicateEvaluator for AppGuardSmtpResponse {
     type Reason = String;
 
     fn evaluate_predicate(&self, predicate: &Self::Predicate) -> bool {
-        match &predicate.field {
-            FirewallRuleField::SmtpResponse(f) => {
-                predicate.condition.compare(f.get_compare_fields(self))
-            }
-            _ => self
-                .tcp_info
+        if predicate.direction == Some(FirewallRuleDirection::In) {
+            return false;
+        }
+
+        if let FirewallRuleField::SmtpResponse(f) = &predicate.field {
+            predicate.condition.compare(f.get_compare_fields(self))
+        } else {
+            self.tcp_info
                 .as_ref()
                 .unwrap_or(&AppGuardTcpInfo::default())
-                .evaluate_predicate(predicate),
+                .evaluate_predicate(predicate)
         }
     }
 
