@@ -101,8 +101,10 @@ mod tests {
     #[test]
     fn test_smtp_request_get_header_val() {
         let smtp_request = sample_smtp_request();
-        let smtp_request_field =
-            SmtpRequestField::SmtpRequestHeader(("user-agent".to_string(), vec!["Marlon".to_string()]));
+        let smtp_request_field = SmtpRequestField::SmtpRequestHeader((
+            "user-agent".to_string(),
+            vec!["Marlon".to_string()],
+        ));
         assert_eq!(
             smtp_request_field.get_compare_fields(&smtp_request),
             Some(FirewallCompareType::String((
@@ -111,8 +113,10 @@ mod tests {
             )))
         );
 
-        let smtp_request_field =
-            SmtpRequestField::SmtpRequestHeader(("host".to_string(), vec!["sample_host".to_string()]));
+        let smtp_request_field = SmtpRequestField::SmtpRequestHeader((
+            "host".to_string(),
+            vec!["sample_host".to_string()],
+        ));
         assert_eq!(
             smtp_request_field.get_compare_fields(&smtp_request),
             Some(FirewallCompareType::String((
@@ -121,8 +125,10 @@ mod tests {
             )))
         );
 
-        let smtp_request_field =
-            SmtpRequestField::SmtpRequestHeader(("not_exists".to_string(), vec!["404".to_string()]));
+        let smtp_request_field = SmtpRequestField::SmtpRequestHeader((
+            "not_exists".to_string(),
+            vec!["404".to_string()],
+        ));
         assert_eq!(smtp_request_field.get_compare_fields(&smtp_request), None);
     }
 

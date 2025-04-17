@@ -28,7 +28,9 @@ impl HttpResponseField {
         item: &'a AppGuardHttpResponse,
     ) -> Option<FirewallCompareType<'a>> {
         match self {
-            HttpResponseField::HttpResponseCode(v) => Some(FirewallCompareType::U32((item.code, v))),
+            HttpResponseField::HttpResponseCode(v) => {
+                Some(FirewallCompareType::U32((item.code, v)))
+            }
             HttpResponseField::HttpResponseSize(s) => {
                 if let Ok(size) = get_header(&item.headers, "Content-Length")
                     .unwrap_or(&String::new())
@@ -130,8 +132,10 @@ mod tests {
             )))
         );
 
-        let http_response_field =
-            HttpResponseField::HttpResponseHeader(("Content-Length".to_string(), vec!["9999".to_string()]));
+        let http_response_field = HttpResponseField::HttpResponseHeader((
+            "Content-Length".to_string(),
+            vec!["9999".to_string()],
+        ));
         assert_eq!(
             http_response_field.get_compare_fields(&http_response),
             Some(FirewallCompareType::String((
@@ -140,8 +144,10 @@ mod tests {
             )))
         );
 
-        let http_response_field =
-            HttpResponseField::HttpResponseHeader(("not_exists".to_string(), vec!["404".to_string()]));
+        let http_response_field = HttpResponseField::HttpResponseHeader((
+            "not_exists".to_string(),
+            vec!["404".to_string()],
+        ));
         assert_eq!(http_response_field.get_compare_fields(&http_response), None);
     }
 }

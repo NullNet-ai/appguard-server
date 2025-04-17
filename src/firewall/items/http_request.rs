@@ -41,7 +41,9 @@ impl HttpRequestField {
             HttpRequestField::HttpRequestUrl(v) => {
                 Some(FirewallCompareType::String((&item.original_url, v)))
             }
-            HttpRequestField::HttpRequestMethod(v) => Some(FirewallCompareType::String((&item.method, v))),
+            HttpRequestField::HttpRequestMethod(v) => {
+                Some(FirewallCompareType::String((&item.method, v)))
+            }
             HttpRequestField::HttpRequestQuery((k, v)) => {
                 get_header(&item.query, k).map(|query| FirewallCompareType::String((query, v)))
             }
@@ -170,7 +172,8 @@ mod tests {
     #[test]
     fn test_http_request_get_cookie() {
         let http_request = sample_http_request();
-        let http_request_field = HttpRequestField::HttpRequestCookie(vec!["awesome_cookie_99".to_string()]);
+        let http_request_field =
+            HttpRequestField::HttpRequestCookie(vec!["awesome_cookie_99".to_string()]);
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
@@ -193,8 +196,10 @@ mod tests {
             )))
         );
 
-        let http_request_field =
-            HttpRequestField::HttpRequestHeader(("host".to_string(), vec!["sample_host".to_string()]));
+        let http_request_field = HttpRequestField::HttpRequestHeader((
+            "host".to_string(),
+            vec!["sample_host".to_string()],
+        ));
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
@@ -203,8 +208,10 @@ mod tests {
             )))
         );
 
-        let http_request_field =
-            HttpRequestField::HttpRequestHeader(("not_exists".to_string(), vec!["404".to_string()]));
+        let http_request_field = HttpRequestField::HttpRequestHeader((
+            "not_exists".to_string(),
+            vec!["404".to_string()],
+        ));
         assert_eq!(http_request_field.get_compare_fields(&http_request), None);
     }
 

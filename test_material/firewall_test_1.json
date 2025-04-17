@@ -19,7 +19,8 @@
         "protocol": [
           "HTTP",
           "HTTPS"
-        ]
+        ],
+        "direction": "in"
       },
       {
         "type": "operator",
