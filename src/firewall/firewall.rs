@@ -241,6 +241,9 @@ mod tests {
 
     #[test]
     fn test_firewall_load_from_infix_json() {
+        // for the firewall in the root directory, just verify the file is valid
+        let _ = Firewall::load_from_infix("firewall.json").unwrap();
+
         let firewall = Firewall::load_from_infix("test_material/firewall_test_1.json").unwrap();
         assert_eq!(firewall, *DESERIALIZED_SAMPLE_FIREWALL);
         assert_eq!(

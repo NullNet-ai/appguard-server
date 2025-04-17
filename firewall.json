@@ -5,15 +5,12 @@
       {
         "type": "predicate",
         "condition": "not_equal",
-        "field": {
-          "type": "ip_info",
-          "country": [
-            "US",
-            "PH",
-            "IT",
-            "CA"
-          ]
-        }
+        "country": [
+          "US",
+          "PH",
+          "IT",
+          "CA"
+        ]
       },
       {
         "type": "operator",
@@ -22,13 +19,10 @@
       {
         "type": "predicate",
         "condition": "contains",
-        "field": {
-          "type": "http_request",
-          "original_url": [
-            ".php",
-            ".env"
-          ]
-        }
+        "http_request_url": [
+          ".php",
+          ".env"
+        ]
       }
     ]
   },
@@ -38,12 +32,9 @@
       {
         "type": "predicate",
         "condition": "equal",
-        "field": {
-          "type": "ip_info",
-          "org": [
-            "EVOQUE"
-          ]
-        }
+        "org": [
+          "EVOQUE"
+        ]
       },
       {
         "type": "operator",
@@ -52,12 +43,9 @@
       {
         "type": "predicate",
         "condition": "equal",
-        "field": {
-          "type": "ip_info",
-          "country": [
-            "US"
-          ]
-        }
+        "country": [
+          "US"
+        ]
       }
     ]
   }
