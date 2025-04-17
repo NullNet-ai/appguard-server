@@ -145,7 +145,7 @@ mod tests {
                     expression: PostfixExpression::from_tokens(Vec::from([
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::Contains,
-                            field: FirewallRuleField::HttpRequest(HttpRequestField::OriginalUrl(
+                            field: FirewallRuleField::HttpRequest(HttpRequestField::HttpRequestUrl(
                                 Vec::from([String::from(".php")]),
                             )),
                         }),
@@ -171,13 +171,13 @@ mod tests {
                     expression: PostfixExpression::from_tokens(Vec::from([
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::Contains,
-                            field: FirewallRuleField::SmtpRequest(SmtpRequestField::Body(
+                            field: FirewallRuleField::SmtpRequest(SmtpRequestField::SmtpRequestBody(
                                 Vec::from([String::from("Hello")]),
                             )),
                         }),
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::GreaterEqual,
-                            field: FirewallRuleField::SmtpRequest(SmtpRequestField::HeaderVal((
+                            field: FirewallRuleField::SmtpRequest(SmtpRequestField::SmtpRequestHeader((
                                 String::from("From"),
                                 Vec::from(["foo@bar.com".to_string(), "bar@foo.com".to_string()]),
                             ))),
@@ -192,12 +192,12 @@ mod tests {
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::LowerThan,
                             field: FirewallRuleField::SmtpResponse(
-                                SmtpResponseField::ResponseCode(Vec::from([205, 206])),
+                                SmtpResponseField::SmtpResponseCode(Vec::from([205, 206])),
                             ),
                         }),
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::NotStartsWith,
-                            field: FirewallRuleField::HttpRequest(HttpRequestField::QueryVal((
+                            field: FirewallRuleField::HttpRequest(HttpRequestField::HttpRequestQuery((
                                 String::from("Name"),
                                 Vec::from(["giuliano".to_string(), "giacomo".to_string()]),
                             ))),
@@ -206,7 +206,7 @@ mod tests {
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::EndsWith,
                             field: FirewallRuleField::HttpResponse(
-                                HttpResponseField::ResponseSize(Vec::from([100, 200, 300])),
+                                HttpResponseField::HttpResponseSize(Vec::from([100, 200, 300])),
                             ),
                         }),
                         PostfixToken::Operator(Operator::Or),
@@ -302,7 +302,7 @@ mod tests {
         item_2.body = Some("Hey! Hello World!!!".to_string());
         assert_eq!(
             firewall.match_item(&item_2),
-            FirewallResult::new(FirewallPolicy::Allow, vec!["body".to_string()])
+            FirewallResult::new(FirewallPolicy::Allow, vec!["smtp_request_body".to_string()])
         );
 
         item_2.body = Some("Hey! World!!!".to_string());

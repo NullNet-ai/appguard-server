@@ -6,19 +6,20 @@ use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardHttpResponse, AppGuardIpInfo, AppGuardTcpInfo};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 #[serde(rename_all = "snake_case")]
 pub enum HttpResponseField {
-    ResponseSize(Vec<u64>),
-    ResponseCode(Vec<u32>),
-    HeaderVal((String, Vec<String>)),
+    HttpResponseSize(Vec<u64>),
+    HttpResponseCode(Vec<u32>),
+    HttpResponseHeader((String, Vec<String>)),
 }
 
 impl HttpResponseField {
     pub fn get_field_name(&self) -> &str {
         match self {
-            HttpResponseField::ResponseSize(_) => "response_size",
-            HttpResponseField::ResponseCode(_) => "response_code",
-            HttpResponseField::HeaderVal(_) => "header_val",
+            HttpResponseField::HttpResponseSize(_) => "http_response_size",
+            HttpResponseField::HttpResponseCode(_) => "http_response_code",
+            HttpResponseField::HttpResponseHeader(_) => "http_response_header",
         }
     }
 
@@ -27,8 +28,8 @@ impl HttpResponseField {
         item: &'a AppGuardHttpResponse,
     ) -> Option<FirewallCompareType<'a>> {
         match self {
-            HttpResponseField::ResponseCode(v) => Some(FirewallCompareType::U32((item.code, v))),
-            HttpResponseField::ResponseSize(s) => {
+            HttpResponseField::HttpResponseCode(v) => Some(FirewallCompareType::U32((item.code, v))),
+            HttpResponseField::HttpResponseSize(s) => {
                 if let Ok(size) = get_header(&item.headers, "Content-Length")
                     .unwrap_or(&String::new())
                     .parse::<u64>()
@@ -38,7 +39,7 @@ impl HttpResponseField {
                     None
                 }
             }
-            HttpResponseField::HeaderVal((k, v)) => {
+            HttpResponseField::HttpResponseHeader((k, v)) => {
                 get_header(&item.headers, k).map(|header| FirewallCompareType::String((header, v)))
             }
         }
@@ -99,7 +100,7 @@ mod tests {
     #[test]
     fn test_http_response_get_response_size() {
         let http_response = sample_http_response();
-        let http_response_field = HttpResponseField::ResponseSize(vec![931]);
+        let http_response_field = HttpResponseField::HttpResponseSize(vec![931]);
         assert_eq!(
             http_response_field.get_compare_fields(&http_response),
             Some(FirewallCompareType::U64((139, &vec![931])))
@@ -109,7 +110,7 @@ mod tests {
     #[test]
     fn test_http_response_get_response_code() {
         let http_response = sample_http_response();
-        let http_response_field = HttpResponseField::ResponseCode(vec![404]);
+        let http_response_field = HttpResponseField::HttpResponseCode(vec![404]);
         assert_eq!(
             http_response_field.get_compare_fields(&http_response),
             Some(FirewallCompareType::U32((200, &vec![404])))
@@ -120,7 +121,7 @@ mod tests {
     fn test_http_response_get_header_val() {
         let http_response = sample_http_response();
         let http_response_field =
-            HttpResponseField::HeaderVal(("hoST".to_string(), vec!["ciao".to_string()]));
+            HttpResponseField::HttpResponseHeader(("hoST".to_string(), vec!["ciao".to_string()]));
         assert_eq!(
             http_response_field.get_compare_fields(&http_response),
             Some(FirewallCompareType::String((
@@ -130,7 +131,7 @@ mod tests {
         );
 
         let http_response_field =
-            HttpResponseField::HeaderVal(("Content-Length".to_string(), vec!["9999".to_string()]));
+            HttpResponseField::HttpResponseHeader(("Content-Length".to_string(), vec!["9999".to_string()]));
         assert_eq!(
             http_response_field.get_compare_fields(&http_response),
             Some(FirewallCompareType::String((
@@ -140,7 +141,7 @@ mod tests {
         );
 
         let http_response_field =
-            HttpResponseField::HeaderVal(("not_exists".to_string(), vec!["404".to_string()]));
+            HttpResponseField::HttpResponseHeader(("not_exists".to_string(), vec!["404".to_string()]));
         assert_eq!(http_response_field.get_compare_fields(&http_response), None);
     }
 }

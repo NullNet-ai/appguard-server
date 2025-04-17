@@ -7,13 +7,13 @@ use crate::proto::appguard::{AppGuardIpInfo, AppGuardSmtpResponse, AppGuardTcpIn
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum SmtpResponseField {
-    ResponseCode(Vec<u32>),
+    SmtpResponseCode(Vec<u32>),
 }
 
 impl SmtpResponseField {
     pub fn get_field_name(&self) -> &str {
         match self {
-            SmtpResponseField::ResponseCode(_) => "response_code",
+            SmtpResponseField::SmtpResponseCode(_) => "smtp_response_code",
         }
     }
 
@@ -22,7 +22,7 @@ impl SmtpResponseField {
         item: &'a AppGuardSmtpResponse,
     ) -> Option<FirewallCompareType<'a>> {
         match self {
-            SmtpResponseField::ResponseCode(v) => item
+            SmtpResponseField::SmtpResponseCode(v) => item
                 .code
                 .as_ref()
                 .map(|code| FirewallCompareType::U32((*code, v))),
@@ -77,7 +77,7 @@ mod tests {
     #[test]
     fn test_smtp_response_get_response_code() {
         let smtp_response = sample_smtp_response();
-        let smtp_response_field = SmtpResponseField::ResponseCode(vec![505]);
+        let smtp_response_field = SmtpResponseField::SmtpResponseCode(vec![505]);
         assert_eq!(
             smtp_response_field.get_compare_fields(&smtp_response),
             Some(FirewallCompareType::U32((205, &vec![505])))

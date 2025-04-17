@@ -6,29 +6,30 @@ use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardHttpRequest, AppGuardIpInfo, AppGuardTcpInfo};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 #[serde(rename_all = "snake_case")]
 pub enum HttpRequestField {
-    OriginalUrl(Vec<String>),
-    Method(Vec<String>),
-    QueryVal((String, Vec<String>)),
-    Cookie(Vec<String>),
-    HeaderVal((String, Vec<String>)),
-    Body(Vec<String>),
-    BodyLen(Vec<usize>),
-    UserAgent(Vec<String>),
+    HttpRequestUrl(Vec<String>),
+    HttpRequestMethod(Vec<String>),
+    HttpRequestQuery((String, Vec<String>)),
+    HttpRequestCookie(Vec<String>),
+    HttpRequestHeader((String, Vec<String>)),
+    HttpRequestBody(Vec<String>),
+    HttpRequestBodyLen(Vec<usize>),
+    HttpRequestUserAgent(Vec<String>),
 }
 
 impl HttpRequestField {
     pub fn get_field_name(&self) -> &str {
         match self {
-            HttpRequestField::OriginalUrl(_) => "original_url",
-            HttpRequestField::Method(_) => "method",
-            HttpRequestField::QueryVal(_) => "query_val",
-            HttpRequestField::Cookie(_) => "cookie",
-            HttpRequestField::HeaderVal(_) => "header_val",
-            HttpRequestField::Body(_) => "body",
-            HttpRequestField::BodyLen(_) => "body_len",
-            HttpRequestField::UserAgent(_) => "user_agent",
+            HttpRequestField::HttpRequestUrl(_) => "http_request_url",
+            HttpRequestField::HttpRequestMethod(_) => "http_request_method",
+            HttpRequestField::HttpRequestQuery(_) => "http_request_query",
+            HttpRequestField::HttpRequestCookie(_) => "http_request_cookie",
+            HttpRequestField::HttpRequestHeader(_) => "http_request_header",
+            HttpRequestField::HttpRequestBody(_) => "http_request_body",
+            HttpRequestField::HttpRequestBodyLen(_) => "http_request_body_len",
+            HttpRequestField::HttpRequestUserAgent(_) => "http_request_user_agent",
         }
     }
 
@@ -37,27 +38,27 @@ impl HttpRequestField {
         item: &'a AppGuardHttpRequest,
     ) -> Option<FirewallCompareType<'a>> {
         match self {
-            HttpRequestField::OriginalUrl(v) => {
+            HttpRequestField::HttpRequestUrl(v) => {
                 Some(FirewallCompareType::String((&item.original_url, v)))
             }
-            HttpRequestField::Method(v) => Some(FirewallCompareType::String((&item.method, v))),
-            HttpRequestField::QueryVal((k, v)) => {
+            HttpRequestField::HttpRequestMethod(v) => Some(FirewallCompareType::String((&item.method, v))),
+            HttpRequestField::HttpRequestQuery((k, v)) => {
                 get_header(&item.query, k).map(|query| FirewallCompareType::String((query, v)))
             }
-            HttpRequestField::Cookie(v) => get_header(&item.headers, "Cookie")
+            HttpRequestField::HttpRequestCookie(v) => get_header(&item.headers, "Cookie")
                 .map(|cookie| FirewallCompareType::String((cookie, v))),
-            HttpRequestField::HeaderVal((k, v)) => {
+            HttpRequestField::HttpRequestHeader((k, v)) => {
                 get_header(&item.headers, k).map(|header| FirewallCompareType::String((header, v)))
             }
-            HttpRequestField::Body(v) => item
+            HttpRequestField::HttpRequestBody(v) => item
                 .body
                 .as_ref()
                 .map(|body| FirewallCompareType::String((body, v))),
-            HttpRequestField::BodyLen(v) => item
+            HttpRequestField::HttpRequestBodyLen(v) => item
                 .body
                 .as_ref()
                 .map(|body| FirewallCompareType::Usize((body.len(), v))),
-            HttpRequestField::UserAgent(v) => get_header(&item.headers, "User-Agent")
+            HttpRequestField::HttpRequestUserAgent(v) => get_header(&item.headers, "User-Agent")
                 .map(|user_agent| FirewallCompareType::String((user_agent, v))),
         }
     }
@@ -124,7 +125,7 @@ mod tests {
     #[test]
     fn test_http_request_get_original_url() {
         let http_request = sample_http_request();
-        let http_request_field = HttpRequestField::OriginalUrl(vec!["test.com".to_string()]);
+        let http_request_field = HttpRequestField::HttpRequestUrl(vec!["test.com".to_string()]);
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
@@ -138,7 +139,7 @@ mod tests {
     fn test_http_request_get_method() {
         let http_request = sample_http_request();
         let http_request_field =
-            HttpRequestField::Method(vec!["GET".to_string(), "POST".to_string()]);
+            HttpRequestField::HttpRequestMethod(vec!["GET".to_string(), "POST".to_string()]);
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
@@ -152,7 +153,7 @@ mod tests {
     fn test_http_request_get_query_val() {
         let http_request = sample_http_request();
         let http_request_field =
-            HttpRequestField::QueryVal(("name".to_string(), vec!["Bob".to_string()]));
+            HttpRequestField::HttpRequestQuery(("name".to_string(), vec!["Bob".to_string()]));
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
@@ -162,14 +163,14 @@ mod tests {
         );
 
         let http_request_field =
-            HttpRequestField::QueryVal(("surname".to_string(), vec!["Smith".to_string()]));
+            HttpRequestField::HttpRequestQuery(("surname".to_string(), vec!["Smith".to_string()]));
         assert_eq!(http_request_field.get_compare_fields(&http_request), None);
     }
 
     #[test]
     fn test_http_request_get_cookie() {
         let http_request = sample_http_request();
-        let http_request_field = HttpRequestField::Cookie(vec!["awesome_cookie_99".to_string()]);
+        let http_request_field = HttpRequestField::HttpRequestCookie(vec!["awesome_cookie_99".to_string()]);
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
@@ -183,7 +184,7 @@ mod tests {
     fn test_http_request_get_header_val() {
         let http_request = sample_http_request();
         let http_request_field =
-            HttpRequestField::HeaderVal(("cooKiE".to_string(), vec!["Marlon".to_string()]));
+            HttpRequestField::HttpRequestHeader(("cooKiE".to_string(), vec!["Marlon".to_string()]));
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
@@ -193,7 +194,7 @@ mod tests {
         );
 
         let http_request_field =
-            HttpRequestField::HeaderVal(("host".to_string(), vec!["sample_host".to_string()]));
+            HttpRequestField::HttpRequestHeader(("host".to_string(), vec!["sample_host".to_string()]));
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
@@ -203,7 +204,7 @@ mod tests {
         );
 
         let http_request_field =
-            HttpRequestField::HeaderVal(("not_exists".to_string(), vec!["404".to_string()]));
+            HttpRequestField::HttpRequestHeader(("not_exists".to_string(), vec!["404".to_string()]));
         assert_eq!(http_request_field.get_compare_fields(&http_request), None);
     }
 
@@ -211,7 +212,7 @@ mod tests {
     fn test_http_request_get_body() {
         let http_request = sample_http_request();
         let http_request_field =
-            HttpRequestField::Body(vec!["Hello".to_string(), "World!".to_string()]);
+            HttpRequestField::HttpRequestBody(vec!["Hello".to_string(), "World!".to_string()]);
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
@@ -224,7 +225,7 @@ mod tests {
     #[test]
     fn test_http_request_get_body_len() {
         let http_request = sample_http_request();
-        let http_request_field = HttpRequestField::BodyLen(vec![7, 99]);
+        let http_request_field = HttpRequestField::HttpRequestBodyLen(vec![7, 99]);
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::Usize((13, &vec![7, 99])))
@@ -235,7 +236,7 @@ mod tests {
     fn test_http_request_get_user_agent() {
         let http_request = sample_http_request();
         let http_request_field =
-            HttpRequestField::UserAgent(vec!["awesome_user_agent".to_string()]);
+            HttpRequestField::HttpRequestUserAgent(vec!["awesome_user_agent".to_string()]);
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
