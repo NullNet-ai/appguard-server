@@ -2,7 +2,7 @@ use nullnet_liberror::{location, ErrorHandler, Location};
 
 // project-level constants
 pub const APP_GUARD_VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const API_KEY: Option<&str> = option_env!("API_KEY");
+pub const IP_INFO_API_KEY: Option<&str> = option_env!("IP_INFO_API_KEY");
 
 // -------------------------------------------------------------------------------------------------
 
@@ -49,7 +49,7 @@ const DEFAULT_BLACKLIST_LINK: &str =
     "https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt";
 
 pub static BLACKLIST_LINK: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
-    std::env::var("BLACKLIST").unwrap_or_else(|_| DEFAULT_BLACKLIST_LINK.to_string())
+    std::env::var("BLACKLIST_LINK").unwrap_or_else(|_| DEFAULT_BLACKLIST_LINK.to_string())
 });
 
 // -------------------------------------------------------------------------------------------------

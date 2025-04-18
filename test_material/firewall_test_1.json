@@ -5,12 +5,9 @@
       {
         "type": "predicate",
         "condition": "contains",
-        "field": {
-          "type": "http_request",
-          "original_url": [
-            ".php"
-          ]
-        }
+        "http_request_url": [
+          ".php"
+        ]
       },
       {
         "type": "operator",
@@ -19,13 +16,11 @@
       {
         "type": "predicate",
         "condition": "equal",
-        "field": {
-          "type": "tcp_connection",
-          "protocol": [
-            "HTTP",
-            "HTTPS"
-          ]
-        }
+        "protocol": [
+          "HTTP",
+          "HTTPS"
+        ],
+        "direction": "in"
       },
       {
         "type": "operator",
@@ -34,12 +29,9 @@
       {
         "type": "predicate",
         "condition": "equal",
-        "field": {
-          "type": "ip_info",
-          "country": [
-            "US"
-          ]
-        }
+        "country": [
+          "US"
+        ]
       }
     ]
   },
@@ -49,12 +41,9 @@
       {
         "type": "predicate",
         "condition": "contains",
-        "field": {
-          "type": "smtp_request",
-          "body": [
-            "Hello"
-          ]
-        }
+        "smtp_request_body": [
+          "Hello"
+        ]
       },
       {
         "type": "operator",
@@ -63,16 +52,13 @@
       {
         "type": "predicate",
         "condition": "greater_equal",
-        "field": {
-          "type": "smtp_request",
-          "header_val": [
-            "From",
-            [
-              "foo@bar.com",
-              "bar@foo.com"
-            ]
+        "smtp_request_header": [
+          "From",
+          [
+            "foo@bar.com",
+            "bar@foo.com"
           ]
-        }
+        ]
       }
     ]
   },
@@ -82,13 +68,10 @@
       {
         "type": "predicate",
         "condition": "lower_than",
-        "field": {
-          "type": "smtp_response",
-          "response_code": [
-            205,
-            206
-          ]
-        }
+        "smtp_response_code": [
+          205,
+          206
+        ]
       },
       {
         "type": "operator",
@@ -97,16 +80,13 @@
       {
         "type": "predicate",
         "condition": "not_starts_with",
-        "field": {
-          "type": "http_request",
-          "query_val": [
-            "Name",
-            [
-              "giuliano",
-              "giacomo"
-            ]
+        "http_request_query": [
+          "Name",
+          [
+            "giuliano",
+            "giacomo"
           ]
-        }
+        ]
       },
       {
         "type": "operator",
@@ -115,14 +95,11 @@
       {
         "type": "predicate",
         "condition": "ends_with",
-        "field": {
-          "type": "http_response",
-          "response_size": [
-            100,
-            200,
-            300
-          ]
-        }
+        "http_response_size": [
+          100,
+          200,
+          300
+        ]
       }
     ]
   }

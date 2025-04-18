@@ -1,4 +1,4 @@
-use crate::constants::API_KEY;
+use crate::constants::IP_INFO_API_KEY;
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::helpers::get_env;
 use crate::proto::appguard::AppGuardIpInfo;
@@ -50,7 +50,7 @@ pub fn ip_info_handler() -> IpInfoHandler {
 
     IpInfoHandler::new(vec![IpInfoProvider::new_api_provider(
         url,
-        get_env(API_KEY, "IP info API key"),
+        get_env(IP_INFO_API_KEY, "IP info API key"),
         ApiFields {
             country: Some("/country"),
             asn: Some("/asn"),

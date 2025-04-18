@@ -52,6 +52,6 @@ push-image:
   script:
     - echo VERSION_TAG=$CI_COMMIT_REF_NAME-$CI_PIPELINE_ID > .env
     - echo >> .env
-    - echo API_KEY=$API_KEY >> .env
+    - echo IP_INFO_API_KEY=$IP_INFO_API_KEY >> .env
     - docker compose build
     - docker compose push

@@ -21,11 +21,21 @@ pub struct FirewallExpression {
 #[serde(rename_all = "snake_case")]
 pub struct FirewallRule {
     pub(crate) condition: FirewallRuleCondition,
+    #[serde(flatten)]
     pub(crate) field: FirewallRuleField,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(crate) direction: Option<FirewallRuleDirection>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "snake_case", tag = "type")]
+#[serde(rename_all = "snake_case")]
+pub enum FirewallRuleDirection {
+    In,
+    Out,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(untagged)]
 pub enum FirewallRuleField {
     TcpConnection(TcpConnectionField),
     IpInfo(IpInfoField),

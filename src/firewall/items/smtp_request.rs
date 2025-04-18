@@ -1,26 +1,29 @@
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
 
-use crate::firewall::rules::{FirewallCompareType, FirewallRule, FirewallRuleField};
+use crate::firewall::rules::{
+    FirewallCompareType, FirewallRule, FirewallRuleDirection, FirewallRuleField,
+};
 use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardIpInfo, AppGuardSmtpRequest, AppGuardTcpInfo};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 #[serde(rename_all = "snake_case")]
 pub enum SmtpRequestField {
-    HeaderVal((String, Vec<String>)),
-    Body(Vec<String>),
-    BodyLen(Vec<usize>),
-    UserAgent(Vec<String>),
+    SmtpRequestHeader((String, Vec<String>)),
+    SmtpRequestBody(Vec<String>),
+    SmtpRequestBodyLen(Vec<usize>),
+    SmtpRequestUserAgent(Vec<String>),
 }
 
 impl SmtpRequestField {
     pub fn get_field_name(&self) -> &str {
         match self {
-            SmtpRequestField::HeaderVal(_) => "header_val",
-            SmtpRequestField::Body(_) => "body",
-            SmtpRequestField::BodyLen(_) => "body_len",
-            SmtpRequestField::UserAgent(_) => "user_agent",
+            SmtpRequestField::SmtpRequestHeader(_) => "smtp_request_header",
+            SmtpRequestField::SmtpRequestBody(_) => "smtp_request_body",
+            SmtpRequestField::SmtpRequestBodyLen(_) => "smtp_request_body_len",
+            SmtpRequestField::SmtpRequestUserAgent(_) => "smtp_request_user_agent",
         }
     }
 
@@ -29,16 +32,16 @@ impl SmtpRequestField {
         item: &'a AppGuardSmtpRequest,
     ) -> Option<FirewallCompareType<'a>> {
         match self {
-            SmtpRequestField::HeaderVal((k, v)) => {
+            SmtpRequestField::SmtpRequestHeader((k, v)) => {
                 get_header(&item.headers, k).map(|header| FirewallCompareType::String((header, v)))
             }
-            SmtpRequestField::UserAgent(v) => get_header(&item.headers, "User-Agent")
+            SmtpRequestField::SmtpRequestUserAgent(v) => get_header(&item.headers, "User-Agent")
                 .map(|user_agent| FirewallCompareType::String((user_agent, v))),
-            SmtpRequestField::Body(v) => item
+            SmtpRequestField::SmtpRequestBody(v) => item
                 .body
                 .as_ref()
                 .map(|body| FirewallCompareType::String((body, v))),
-            SmtpRequestField::BodyLen(l) => item
+            SmtpRequestField::SmtpRequestBodyLen(l) => item
                 .body
                 .as_ref()
                 .map(|body| FirewallCompareType::Usize((body.len(), l))),
@@ -51,15 +54,17 @@ impl PredicateEvaluator for AppGuardSmtpRequest {
     type Reason = String;
 
     fn evaluate_predicate(&self, predicate: &Self::Predicate) -> bool {
-        match &predicate.field {
-            FirewallRuleField::SmtpRequest(f) => {
-                predicate.condition.compare(f.get_compare_fields(self))
-            }
-            _ => self
-                .tcp_info
+        if predicate.direction == Some(FirewallRuleDirection::Out) {
+            return false;
+        }
+
+        if let FirewallRuleField::SmtpRequest(f) = &predicate.field {
+            predicate.condition.compare(f.get_compare_fields(self))
+        } else {
+            self.tcp_info
                 .as_ref()
                 .unwrap_or(&AppGuardTcpInfo::default())
-                .evaluate_predicate(predicate),
+                .evaluate_predicate(predicate)
         }
     }
 
@@ -100,8 +105,10 @@ mod tests {
     #[test]
     fn test_smtp_request_get_header_val() {
         let smtp_request = sample_smtp_request();
-        let smtp_request_field =
-            SmtpRequestField::HeaderVal(("user-agent".to_string(), vec!["Marlon".to_string()]));
+        let smtp_request_field = SmtpRequestField::SmtpRequestHeader((
+            "user-agent".to_string(),
+            vec!["Marlon".to_string()],
+        ));
         assert_eq!(
             smtp_request_field.get_compare_fields(&smtp_request),
             Some(FirewallCompareType::String((
@@ -110,8 +117,10 @@ mod tests {
             )))
         );
 
-        let smtp_request_field =
-            SmtpRequestField::HeaderVal(("host".to_string(), vec!["sample_host".to_string()]));
+        let smtp_request_field = SmtpRequestField::SmtpRequestHeader((
+            "host".to_string(),
+            vec!["sample_host".to_string()],
+        ));
         assert_eq!(
             smtp_request_field.get_compare_fields(&smtp_request),
             Some(FirewallCompareType::String((
@@ -120,8 +129,10 @@ mod tests {
             )))
         );
 
-        let smtp_request_field =
-            SmtpRequestField::HeaderVal(("not_exists".to_string(), vec!["404".to_string()]));
+        let smtp_request_field = SmtpRequestField::SmtpRequestHeader((
+            "not_exists".to_string(),
+            vec!["404".to_string()],
+        ));
         assert_eq!(smtp_request_field.get_compare_fields(&smtp_request), None);
     }
 
@@ -129,7 +140,7 @@ mod tests {
     fn test_smtp_request_get_body() {
         let smtp_request = sample_smtp_request();
         let smtp_request_field =
-            SmtpRequestField::Body(vec!["Hello".to_string(), "World!".to_string()]);
+            SmtpRequestField::SmtpRequestBody(vec!["Hello".to_string(), "World!".to_string()]);
         assert_eq!(
             smtp_request_field.get_compare_fields(&smtp_request),
             Some(FirewallCompareType::String((
@@ -142,7 +153,7 @@ mod tests {
     #[test]
     fn test_smtp_request_get_body_len() {
         let smtp_request = sample_smtp_request();
-        let smtp_request_field = SmtpRequestField::BodyLen(vec![7, 99]);
+        let smtp_request_field = SmtpRequestField::SmtpRequestBodyLen(vec![7, 99]);
         assert_eq!(
             smtp_request_field.get_compare_fields(&smtp_request),
             Some(FirewallCompareType::Usize((15, &vec![7, 99])))
@@ -153,7 +164,7 @@ mod tests {
     fn test_smtp_request_get_user_agent() {
         let smtp_request = sample_smtp_request();
         let smtp_request_field =
-            SmtpRequestField::UserAgent(vec!["awesome_user_agent".to_string()]);
+            SmtpRequestField::SmtpRequestUserAgent(vec!["awesome_user_agent".to_string()]);
         assert_eq!(
             smtp_request_field.get_compare_fields(&smtp_request),
             Some(FirewallCompareType::String((

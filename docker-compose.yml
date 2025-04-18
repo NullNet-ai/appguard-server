@@ -17,7 +17,7 @@ services:
         - linux/amd64
       args:
         - VERSION_TAG=$VERSION_TAG
-        - API_KEY=$API_KEY
+        - IP_INFO_API_KEY=$IP_INFO_API_KEY
     networks:
       - appguard
     ports:

@@ -130,7 +130,9 @@ mod tests {
     use crate::firewall::items::smtp_request::SmtpRequestField;
     use crate::firewall::items::smtp_response::SmtpResponseField;
     use crate::firewall::items::tcp_connection::TcpConnectionField;
-    use crate::firewall::rules::{FirewallRule, FirewallRuleCondition, FirewallRuleField};
+    use crate::firewall::rules::{
+        FirewallRule, FirewallRuleCondition, FirewallRuleDirection, FirewallRuleField,
+    };
     use crate::proto::appguard::{
         AppGuardIpInfo, AppGuardSmtpRequest, AppGuardTcpConnection, AppGuardTcpInfo,
     };
@@ -145,21 +147,24 @@ mod tests {
                     expression: PostfixExpression::from_tokens(Vec::from([
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::Contains,
-                            field: FirewallRuleField::HttpRequest(HttpRequestField::OriginalUrl(
-                                Vec::from([String::from(".php")]),
-                            )),
+                            field: FirewallRuleField::HttpRequest(
+                                HttpRequestField::HttpRequestUrl(Vec::from([String::from(".php")])),
+                            ),
+                            direction: None,
                         }),
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::Equal,
                             field: FirewallRuleField::TcpConnection(TcpConnectionField::Protocol(
                                 Vec::from([String::from("HTTP"), String::from("HTTPS")]),
                             )),
+                            direction: Some(FirewallRuleDirection::In),
                         }),
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::Equal,
                             field: FirewallRuleField::IpInfo(IpInfoField::Country(Vec::from([
                                 String::from("US"),
                             ]))),
+                            direction: None,
                         }),
                         PostfixToken::Operator(Operator::And),
                         PostfixToken::Operator(Operator::Or),
@@ -171,16 +176,25 @@ mod tests {
                     expression: PostfixExpression::from_tokens(Vec::from([
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::Contains,
-                            field: FirewallRuleField::SmtpRequest(SmtpRequestField::Body(
-                                Vec::from([String::from("Hello")]),
-                            )),
+                            field: FirewallRuleField::SmtpRequest(
+                                SmtpRequestField::SmtpRequestBody(Vec::from([String::from(
+                                    "Hello",
+                                )])),
+                            ),
+                            direction: None,
                         }),
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::GreaterEqual,
-                            field: FirewallRuleField::SmtpRequest(SmtpRequestField::HeaderVal((
-                                String::from("From"),
-                                Vec::from(["foo@bar.com".to_string(), "bar@foo.com".to_string()]),
-                            ))),
+                            field: FirewallRuleField::SmtpRequest(
+                                SmtpRequestField::SmtpRequestHeader((
+                                    String::from("From"),
+                                    Vec::from([
+                                        "foo@bar.com".to_string(),
+                                        "bar@foo.com".to_string(),
+                                    ]),
+                                )),
+                            ),
+                            direction: None,
                         }),
                         PostfixToken::Operator(Operator::Or),
                     ]))
@@ -192,22 +206,27 @@ mod tests {
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::LowerThan,
                             field: FirewallRuleField::SmtpResponse(
-                                SmtpResponseField::ResponseCode(Vec::from([205, 206])),
+                                SmtpResponseField::SmtpResponseCode(Vec::from([205, 206])),
                             ),
+                            direction: None,
                         }),
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::NotStartsWith,
-                            field: FirewallRuleField::HttpRequest(HttpRequestField::QueryVal((
-                                String::from("Name"),
-                                Vec::from(["giuliano".to_string(), "giacomo".to_string()]),
-                            ))),
+                            field: FirewallRuleField::HttpRequest(
+                                HttpRequestField::HttpRequestQuery((
+                                    String::from("Name"),
+                                    Vec::from(["giuliano".to_string(), "giacomo".to_string()]),
+                                )),
+                            ),
+                            direction: None,
                         }),
                         PostfixToken::Operator(Operator::Or),
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::EndsWith,
                             field: FirewallRuleField::HttpResponse(
-                                HttpResponseField::ResponseSize(Vec::from([100, 200, 300])),
+                                HttpResponseField::HttpResponseSize(Vec::from([100, 200, 300])),
                             ),
+                            direction: None,
                         }),
                         PostfixToken::Operator(Operator::Or),
                     ]))
@@ -216,12 +235,15 @@ mod tests {
             ]),
         });
 
-    const SERIALIZED_SAMPLE_FIREWALL: &str = r#"[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"contains","field":{"type":"http_request","original_url":[".php"]}},{"type":"predicate","condition":"equal","field":{"type":"tcp_connection","protocol":["HTTP","HTTPS"]}},{"type":"predicate","condition":"equal","field":{"type":"ip_info","country":["US"]}},{"type":"operator","value":"and"},{"type":"operator","value":"or"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","field":{"type":"smtp_request","body":["Hello"]}},{"type":"predicate","condition":"greater_equal","field":{"type":"smtp_request","header_val":["From",["foo@bar.com","bar@foo.com"]]}},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","field":{"type":"smtp_response","response_code":[205,206]}},{"type":"predicate","condition":"not_starts_with","field":{"type":"http_request","query_val":["Name",["giuliano","giacomo"]]}},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","field":{"type":"http_response","response_size":[100,200,300]}},{"type":"operator","value":"or"}]}]"#;
+    const SERIALIZED_SAMPLE_FIREWALL: &str = r#"[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"contains","http_request_url":[".php"]},{"type":"predicate","condition":"equal","protocol":["HTTP","HTTPS"],"direction":"in"},{"type":"predicate","condition":"equal","country":["US"]},{"type":"operator","value":"and"},{"type":"operator","value":"or"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","smtp_request_body":["Hello"]},{"type":"predicate","condition":"greater_equal","smtp_request_header":["From",["foo@bar.com","bar@foo.com"]]},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","smtp_response_code":[205,206]},{"type":"predicate","condition":"not_starts_with","http_request_query":["Name",["giuliano","giacomo"]]},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","http_response_size":[100,200,300]},{"type":"operator","value":"or"}]}]"#;
 
-    const SERIALIZED_SAMPLE_INFIX_FIREWALL: &str = r#"[{"policy": "deny", "infix_tokens": [{"type": "predicate", "condition": "contains", "field": {"type": "http_request", "original_url": [".php"]}}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "equal", "field": {"type": "tcp_connection", "protocol": ["HTTP", "HTTPS"]}}, {"type": "operator", "value": "and"}, {"type": "predicate", "condition": "equal", "field": {"type": "ip_info", "country": ["US"]}}]}, {"policy": "allow", "infix_tokens": [{"type": "predicate", "condition": "contains", "field": {"type": "smtp_request", "body": ["Hello"]}}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "greater_equal", "field": {"type": "smtp_request", "header_val": ["From", ["foo@bar.com", "bar@foo.com"]]}}]}, {"policy": "deny", "infix_tokens": [{"type": "predicate", "condition": "lower_than", "field": {"type": "smtp_response", "response_code": [205, 206]}}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "not_starts_with", "field": {"type": "http_request", "query_val": ["Name", ["giuliano", "giacomo"]]}}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "ends_with", "field": {"type": "http_response", "response_size": [100, 200, 300]}}]}]"#;
+    const SERIALIZED_SAMPLE_INFIX_FIREWALL: &str = r#"[{"policy": "deny", "infix_tokens": [{"type": "predicate", "condition": "contains", "http_request_url": [".php"]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "equal", "protocol": ["HTTP", "HTTPS"], "direction": "in"}, {"type": "operator", "value": "and"}, {"type": "predicate", "condition": "equal", "country": ["US"]}]}, {"policy": "allow", "infix_tokens": [{"type": "predicate", "condition": "contains", "smtp_request_body": ["Hello"]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "greater_equal", "smtp_request_header": ["From", ["foo@bar.com", "bar@foo.com"]]}]}, {"policy": "deny", "infix_tokens": [{"type": "predicate", "condition": "lower_than", "smtp_response_code": [205, 206]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "not_starts_with", "http_request_query": ["Name", ["giuliano", "giacomo"]]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "ends_with", "http_response_size": [100, 200, 300]}]}]"#;
 
     #[test]
     fn test_firewall_load_from_infix_json() {
+        // for the firewall in the root directory, just verify the file is valid
+        let _ = Firewall::load_from_infix("firewall.json").unwrap();
+
         let firewall = Firewall::load_from_infix("test_material/firewall_test_1.json").unwrap();
         assert_eq!(firewall, *DESERIALIZED_SAMPLE_FIREWALL);
         assert_eq!(
@@ -302,7 +324,7 @@ mod tests {
         item_2.body = Some("Hey! Hello World!!!".to_string());
         assert_eq!(
             firewall.match_item(&item_2),
-            FirewallResult::new(FirewallPolicy::Allow, vec!["body".to_string()])
+            FirewallResult::new(FirewallPolicy::Allow, vec!["smtp_request_body".to_string()])
         );
 
         item_2.body = Some("Hey! World!!!".to_string());
