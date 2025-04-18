@@ -64,7 +64,8 @@
           "From",
           [
             "foo@bar.com",
-            "bar@foo.com"
+            "bar@foo.com",
+            "foo@baz.com"
           ]
         ]
       }
