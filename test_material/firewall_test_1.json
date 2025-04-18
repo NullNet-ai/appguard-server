@@ -3,6 +3,10 @@
     "policy": "deny",
     "infix_tokens": [
       {
+        "type": "parenthesis",
+        "value": "open"
+      },
+      {
         "type": "predicate",
         "condition": "contains",
         "http_request_url": [
@@ -21,6 +25,10 @@
           "HTTPS"
         ],
         "direction": "in"
+      },
+      {
+        "type": "parenthesis",
+        "value": "close"
       },
       {
         "type": "operator",
