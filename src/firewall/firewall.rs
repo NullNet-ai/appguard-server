@@ -146,18 +146,18 @@ mod tests {
                     policy: FirewallPolicy::Deny,
                     expression: PostfixExpression::from_tokens(Vec::from([
                         PostfixToken::Predicate(FirewallRule {
-                            condition: FirewallRuleCondition::Contains,
-                            field: FirewallRuleField::HttpRequest(
-                                HttpRequestField::HttpRequestUrl(Vec::from([String::from(".php")])),
-                            ),
-                            direction: None,
-                        }),
-                        PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::Equal,
                             field: FirewallRuleField::TcpConnection(TcpConnectionField::Protocol(
                                 Vec::from([String::from("HTTP"), String::from("HTTPS")]),
                             )),
                             direction: Some(FirewallRuleDirection::In),
+                        }),
+                        PostfixToken::Predicate(FirewallRule {
+                            condition: FirewallRuleCondition::Contains,
+                            field: FirewallRuleField::HttpRequest(
+                                HttpRequestField::HttpRequestUrl(Vec::from([String::from(".php")])),
+                            ),
+                            direction: None,
                         }),
                         PostfixToken::Operator(Operator::Or),
                         PostfixToken::Predicate(FirewallRule {
@@ -235,9 +235,9 @@ mod tests {
             ]),
         });
 
-    const SERIALIZED_SAMPLE_FIREWALL: &str = r#"[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"contains","http_request_url":[".php"]},{"type":"predicate","condition":"equal","protocol":["HTTP","HTTPS"],"direction":"in"},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","country":["US"]},{"type":"operator","value":"and"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","smtp_request_body":["Hello"]},{"type":"predicate","condition":"greater_equal","smtp_request_header":["From",["foo@bar.com","bar@foo.com"]]},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","smtp_response_code":[205,206]},{"type":"predicate","condition":"not_starts_with","http_request_query":["Name",["giuliano","giacomo"]]},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","http_response_size":[100,200,300]},{"type":"operator","value":"or"}]}]"#;
+    const SERIALIZED_SAMPLE_FIREWALL: &str = r#"[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"equal","protocol":["HTTP","HTTPS"],"direction":"in"},{"type":"predicate","condition":"contains","http_request_url":[".php"]},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","country":["US"]},{"type":"operator","value":"and"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","smtp_request_body":["Hello"]},{"type":"predicate","condition":"greater_equal","smtp_request_header":["From",["foo@bar.com","bar@foo.com"]]},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","smtp_response_code":[205,206]},{"type":"predicate","condition":"not_starts_with","http_request_query":["Name",["giuliano","giacomo"]]},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","http_response_size":[100,200,300]},{"type":"operator","value":"or"}]}]"#;
 
-    const SERIALIZED_SAMPLE_INFIX_FIREWALL: &str = r#"[{"policy": "deny", "infix_tokens": [{"type": "parenthesis", "value": "open"}, {"type": "predicate", "condition": "contains", "http_request_url": [".php"]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "equal", "protocol": ["HTTP", "HTTPS"], "direction": "in"}, {"type": "parenthesis", "value": "close"}, {"type": "operator", "value": "and"}, {"type": "predicate", "condition": "equal", "country": ["US"]}]}, {"policy": "allow", "infix_tokens": [{"type": "predicate", "condition": "contains", "smtp_request_body": ["Hello"]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "greater_equal", "smtp_request_header": ["From", ["foo@bar.com", "bar@foo.com"]]}]}, {"policy": "deny", "infix_tokens": [{"type": "predicate", "condition": "lower_than", "smtp_response_code": [205, 206]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "not_starts_with", "http_request_query": ["Name", ["giuliano", "giacomo"]]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "ends_with", "http_response_size": [100, 200, 300]}]}]"#;
+    const SERIALIZED_SAMPLE_INFIX_FIREWALL: &str = r#"[{"policy": "deny", "infix_tokens": [{"type": "parenthesis", "value": "open"}, {"type": "predicate", "condition": "equal", "protocol": ["HTTP", "HTTPS"], "direction": "in"}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "contains", "http_request_url": [".php"]}, {"type": "parenthesis", "value": "close"}, {"type": "operator", "value": "and"}, {"type": "predicate", "condition": "equal", "country": ["US"]}]}, {"policy": "allow", "infix_tokens": [{"type": "predicate", "condition": "contains", "smtp_request_body": ["Hello"]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "greater_equal", "smtp_request_header": ["From", ["foo@bar.com", "bar@foo.com"]]}]}, {"policy": "deny", "infix_tokens": [{"type": "predicate", "condition": "lower_than", "smtp_response_code": [205, 206]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "not_starts_with", "http_request_query": ["Name", ["giuliano", "giacomo"]]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "ends_with", "http_response_size": [100, 200, 300]}]}]"#;
 
     #[test]
     fn test_firewall_load_from_infix_json() {

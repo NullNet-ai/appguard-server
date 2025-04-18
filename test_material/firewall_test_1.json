@@ -8,10 +8,12 @@
       },
       {
         "type": "predicate",
-        "condition": "contains",
-        "http_request_url": [
-          ".php"
-        ]
+        "condition": "equal",
+        "protocol": [
+          "HTTP",
+          "HTTPS"
+        ],
+        "direction": "in"
       },
       {
         "type": "operator",
@@ -19,12 +21,10 @@
       },
       {
         "type": "predicate",
-        "condition": "equal",
-        "protocol": [
-          "HTTP",
-          "HTTPS"
-        ],
-        "direction": "in"
+        "condition": "contains",
+        "http_request_url": [
+          ".php"
+        ]
       },
       {
         "type": "parenthesis",
