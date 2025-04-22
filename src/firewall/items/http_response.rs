@@ -1,11 +1,11 @@
-use rpn_predicate_interpreter::PredicateEvaluator;
-use serde::{Deserialize, Serialize};
-
+use crate::firewall::header_val::HeaderVal;
 use crate::firewall::rules::{
     FirewallCompareType, FirewallRule, FirewallRuleDirection, FirewallRuleField,
 };
 use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardHttpResponse, AppGuardIpInfo, AppGuardTcpInfo};
+use rpn_predicate_interpreter::PredicateEvaluator;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[allow(clippy::enum_variant_names)]
@@ -13,7 +13,7 @@ use crate::proto::appguard::{AppGuardHttpResponse, AppGuardIpInfo, AppGuardTcpIn
 pub enum HttpResponseField {
     HttpResponseSize(Vec<u64>),
     HttpResponseCode(Vec<u32>),
-    HttpResponseHeader((String, Vec<String>)),
+    HttpResponseHeader(HeaderVal),
 }
 
 impl HttpResponseField {
@@ -43,7 +43,7 @@ impl HttpResponseField {
                     None
                 }
             }
-            HttpResponseField::HttpResponseHeader((k, v)) => {
+            HttpResponseField::HttpResponseHeader(HeaderVal(k, v)) => {
                 get_header(&item.headers, k).map(|header| FirewallCompareType::String((header, v)))
             }
         }
@@ -126,8 +126,10 @@ mod tests {
     #[test]
     fn test_http_response_get_header_val() {
         let http_response = sample_http_response();
-        let http_response_field =
-            HttpResponseField::HttpResponseHeader(("hoST".to_string(), vec!["ciao".to_string()]));
+        let http_response_field = HttpResponseField::HttpResponseHeader(HeaderVal(
+            "hoST".to_string(),
+            vec!["ciao".to_string()],
+        ));
         assert_eq!(
             http_response_field.get_compare_fields(&http_response),
             Some(FirewallCompareType::String((
@@ -136,7 +138,7 @@ mod tests {
             )))
         );
 
-        let http_response_field = HttpResponseField::HttpResponseHeader((
+        let http_response_field = HttpResponseField::HttpResponseHeader(HeaderVal(
             "Content-Length".to_string(),
             vec!["9999".to_string()],
         ));
@@ -148,7 +150,7 @@ mod tests {
             )))
         );
 
-        let http_response_field = HttpResponseField::HttpResponseHeader((
+        let http_response_field = HttpResponseField::HttpResponseHeader(HeaderVal(
             "not_exists".to_string(),
             vec!["404".to_string()],
         ));

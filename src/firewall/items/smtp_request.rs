@@ -1,17 +1,17 @@
-use rpn_predicate_interpreter::PredicateEvaluator;
-use serde::{Deserialize, Serialize};
-
+use crate::firewall::header_val::HeaderVal;
 use crate::firewall::rules::{
     FirewallCompareType, FirewallRule, FirewallRuleDirection, FirewallRuleField,
 };
 use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardIpInfo, AppGuardSmtpRequest, AppGuardTcpInfo};
+use rpn_predicate_interpreter::PredicateEvaluator;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[allow(clippy::enum_variant_names)]
 #[serde(rename_all = "snake_case")]
 pub enum SmtpRequestField {
-    SmtpRequestHeader((String, Vec<String>)),
+    SmtpRequestHeader(HeaderVal),
     SmtpRequestBody(Vec<String>),
     SmtpRequestBodyLen(Vec<usize>),
     SmtpRequestUserAgent(Vec<String>),
@@ -32,7 +32,7 @@ impl SmtpRequestField {
         item: &'a AppGuardSmtpRequest,
     ) -> Option<FirewallCompareType<'a>> {
         match self {
-            SmtpRequestField::SmtpRequestHeader((k, v)) => {
+            SmtpRequestField::SmtpRequestHeader(HeaderVal(k, v)) => {
                 get_header(&item.headers, k).map(|header| FirewallCompareType::String((header, v)))
             }
             SmtpRequestField::SmtpRequestUserAgent(v) => get_header(&item.headers, "User-Agent")
@@ -105,7 +105,7 @@ mod tests {
     #[test]
     fn test_smtp_request_get_header_val() {
         let smtp_request = sample_smtp_request();
-        let smtp_request_field = SmtpRequestField::SmtpRequestHeader((
+        let smtp_request_field = SmtpRequestField::SmtpRequestHeader(HeaderVal(
             "user-agent".to_string(),
             vec!["Marlon".to_string()],
         ));
@@ -117,7 +117,7 @@ mod tests {
             )))
         );
 
-        let smtp_request_field = SmtpRequestField::SmtpRequestHeader((
+        let smtp_request_field = SmtpRequestField::SmtpRequestHeader(HeaderVal(
             "host".to_string(),
             vec!["sample_host".to_string()],
         ));
@@ -129,7 +129,7 @@ mod tests {
             )))
         );
 
-        let smtp_request_field = SmtpRequestField::SmtpRequestHeader((
+        let smtp_request_field = SmtpRequestField::SmtpRequestHeader(HeaderVal(
             "not_exists".to_string(),
             vec!["404".to_string()],
         ));

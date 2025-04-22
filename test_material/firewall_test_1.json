@@ -60,14 +60,13 @@
       {
         "type": "predicate",
         "condition": "greater_equal",
-        "smtp_request_header": [
-          "From",
-          [
+        "smtp_request_header": {
+          "From": [
             "foo@bar.com",
             "bar@foo.com",
             "foo@baz.com"
           ]
-        ]
+        }
       }
     ]
   },
@@ -89,13 +88,12 @@
       {
         "type": "predicate",
         "condition": "not_starts_with",
-        "http_request_query": [
-          "Name",
-          [
+        "http_request_query": {
+          "Name": [
             "giuliano",
             "giacomo"
           ]
-        ]
+        }
       },
       {
         "type": "operator",

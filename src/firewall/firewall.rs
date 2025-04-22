@@ -122,8 +122,7 @@ pub fn watch_firewall(firewall: &Arc<RwLock<Firewall>>) -> Result<(), Error> {
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
-    use rpn_predicate_interpreter::{Operator, PostfixExpression, PostfixToken};
-
+    use crate::firewall::header_val::HeaderVal;
     use crate::firewall::items::http_request::HttpRequestField;
     use crate::firewall::items::http_response::HttpResponseField;
     use crate::firewall::items::ip_info::IpInfoField;
@@ -136,6 +135,7 @@ mod tests {
     use crate::proto::appguard::{
         AppGuardIpInfo, AppGuardSmtpRequest, AppGuardTcpConnection, AppGuardTcpInfo,
     };
+    use rpn_predicate_interpreter::{Operator, PostfixExpression, PostfixToken};
 
     use super::*;
 
@@ -186,7 +186,7 @@ mod tests {
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::GreaterEqual,
                             field: FirewallRuleField::SmtpRequest(
-                                SmtpRequestField::SmtpRequestHeader((
+                                SmtpRequestField::SmtpRequestHeader(HeaderVal(
                                     String::from("From"),
                                     Vec::from([
                                         "foo@bar.com".to_string(),
@@ -214,7 +214,7 @@ mod tests {
                         PostfixToken::Predicate(FirewallRule {
                             condition: FirewallRuleCondition::NotStartsWith,
                             field: FirewallRuleField::HttpRequest(
-                                HttpRequestField::HttpRequestQuery((
+                                HttpRequestField::HttpRequestQuery(HeaderVal(
                                     String::from("Name"),
                                     Vec::from(["giuliano".to_string(), "giacomo".to_string()]),
                                 )),
@@ -236,9 +236,9 @@ mod tests {
             ]),
         });
 
-    const SERIALIZED_SAMPLE_FIREWALL: &str = r#"[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"equal","protocol":["HTTP","HTTPS"],"direction":"in"},{"type":"predicate","condition":"contains","http_request_url":[".php"]},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","country":["US"]},{"type":"operator","value":"and"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","smtp_request_body":["Hello"]},{"type":"predicate","condition":"greater_equal","smtp_request_header":["From",["foo@bar.com","bar@foo.com","foo@baz.com"]]},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","smtp_response_code":[205,206]},{"type":"predicate","condition":"not_starts_with","http_request_query":["Name",["giuliano","giacomo"]]},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","http_response_size":[100,200,300]},{"type":"operator","value":"or"}]}]"#;
+    const SERIALIZED_SAMPLE_FIREWALL: &str = r#"[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"equal","protocol":["HTTP","HTTPS"],"direction":"in"},{"type":"predicate","condition":"contains","http_request_url":[".php"]},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","country":["US"]},{"type":"operator","value":"and"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","smtp_request_body":["Hello"]},{"type":"predicate","condition":"greater_equal","smtp_request_header":{"From":["foo@bar.com","bar@foo.com","foo@baz.com"]}},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","smtp_response_code":[205,206]},{"type":"predicate","condition":"not_starts_with","http_request_query":{"Name":["giuliano","giacomo"]}},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","http_response_size":[100,200,300]},{"type":"operator","value":"or"}]}]"#;
 
-    const SERIALIZED_SAMPLE_INFIX_FIREWALL: &str = r#"[{"policy": "deny", "infix_tokens": [{"type": "parenthesis", "value": "open"}, {"type": "predicate", "condition": "equal", "protocol": ["HTTP", "HTTPS"], "direction": "in"}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "contains", "http_request_url": [".php"]}, {"type": "parenthesis", "value": "close"}, {"type": "operator", "value": "and"}, {"type": "predicate", "condition": "equal", "country": ["US"]}]}, {"policy": "allow", "infix_tokens": [{"type": "predicate", "condition": "contains", "smtp_request_body": ["Hello"]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "greater_equal", "smtp_request_header": ["From", ["foo@bar.com", "bar@foo.com", "foo@baz.com"]]}]}, {"policy": "deny", "infix_tokens": [{"type": "predicate", "condition": "lower_than", "smtp_response_code": [205, 206]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "not_starts_with", "http_request_query": ["Name", ["giuliano", "giacomo"]]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "ends_with", "http_response_size": [100, 200, 300]}]}]"#;
+    const SERIALIZED_SAMPLE_INFIX_FIREWALL: &str = r#"[{"policy": "deny", "infix_tokens": [{"type": "parenthesis", "value": "open"}, {"type": "predicate", "condition": "equal", "protocol": ["HTTP", "HTTPS"], "direction": "in"}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "contains", "http_request_url": [".php"]}, {"type": "parenthesis", "value": "close"}, {"type": "operator", "value": "and"}, {"type": "predicate", "condition": "equal", "country": ["US"]}]}, {"policy": "allow", "infix_tokens": [{"type": "predicate", "condition": "contains", "smtp_request_body": ["Hello"]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "greater_equal", "smtp_request_header": {"From": ["foo@bar.com", "bar@foo.com", "foo@baz.com"]}}]}, {"policy": "deny", "infix_tokens": [{"type": "predicate", "condition": "lower_than", "smtp_response_code": [205, 206]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "not_starts_with", "http_request_query": {"Name": ["giuliano", "giacomo"]}}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "ends_with", "http_response_size": [100, 200, 300]}]}]"#;
 
     #[test]
     fn test_firewall_load_from_infix_json() {

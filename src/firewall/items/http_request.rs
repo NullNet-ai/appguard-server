@@ -1,11 +1,11 @@
-use rpn_predicate_interpreter::PredicateEvaluator;
-use serde::{Deserialize, Serialize};
-
+use crate::firewall::header_val::HeaderVal;
 use crate::firewall::rules::{
     FirewallCompareType, FirewallRule, FirewallRuleDirection, FirewallRuleField,
 };
 use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardHttpRequest, AppGuardIpInfo, AppGuardTcpInfo};
+use rpn_predicate_interpreter::PredicateEvaluator;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[allow(clippy::enum_variant_names)]
@@ -13,9 +13,9 @@ use crate::proto::appguard::{AppGuardHttpRequest, AppGuardIpInfo, AppGuardTcpInf
 pub enum HttpRequestField {
     HttpRequestUrl(Vec<String>),
     HttpRequestMethod(Vec<String>),
-    HttpRequestQuery((String, Vec<String>)),
+    HttpRequestQuery(HeaderVal),
     HttpRequestCookie(Vec<String>),
-    HttpRequestHeader((String, Vec<String>)),
+    HttpRequestHeader(HeaderVal),
     HttpRequestBody(Vec<String>),
     HttpRequestBodyLen(Vec<usize>),
     HttpRequestUserAgent(Vec<String>),
@@ -46,12 +46,12 @@ impl HttpRequestField {
             HttpRequestField::HttpRequestMethod(v) => {
                 Some(FirewallCompareType::String((&item.method, v)))
             }
-            HttpRequestField::HttpRequestQuery((k, v)) => {
+            HttpRequestField::HttpRequestQuery(HeaderVal(k, v)) => {
                 get_header(&item.query, k).map(|query| FirewallCompareType::String((query, v)))
             }
             HttpRequestField::HttpRequestCookie(v) => get_header(&item.headers, "Cookie")
                 .map(|cookie| FirewallCompareType::String((cookie, v))),
-            HttpRequestField::HttpRequestHeader((k, v)) => {
+            HttpRequestField::HttpRequestHeader(HeaderVal(k, v)) => {
                 get_header(&item.headers, k).map(|header| FirewallCompareType::String((header, v)))
             }
             HttpRequestField::HttpRequestBody(v) => item
@@ -158,8 +158,10 @@ mod tests {
     #[test]
     fn test_http_request_get_query_val() {
         let http_request = sample_http_request();
-        let http_request_field =
-            HttpRequestField::HttpRequestQuery(("name".to_string(), vec!["Bob".to_string()]));
+        let http_request_field = HttpRequestField::HttpRequestQuery(HeaderVal(
+            "name".to_string(),
+            vec!["Bob".to_string()],
+        ));
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
@@ -168,8 +170,10 @@ mod tests {
             )))
         );
 
-        let http_request_field =
-            HttpRequestField::HttpRequestQuery(("surname".to_string(), vec!["Smith".to_string()]));
+        let http_request_field = HttpRequestField::HttpRequestQuery(HeaderVal(
+            "surname".to_string(),
+            vec!["Smith".to_string()],
+        ));
         assert_eq!(http_request_field.get_compare_fields(&http_request), None);
     }
 
@@ -190,8 +194,10 @@ mod tests {
     #[test]
     fn test_http_request_get_header_val() {
         let http_request = sample_http_request();
-        let http_request_field =
-            HttpRequestField::HttpRequestHeader(("cooKiE".to_string(), vec!["Marlon".to_string()]));
+        let http_request_field = HttpRequestField::HttpRequestHeader(HeaderVal(
+            "cooKiE".to_string(),
+            vec!["Marlon".to_string()],
+        ));
         assert_eq!(
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
@@ -200,7 +206,7 @@ mod tests {
             )))
         );
 
-        let http_request_field = HttpRequestField::HttpRequestHeader((
+        let http_request_field = HttpRequestField::HttpRequestHeader(HeaderVal(
             "host".to_string(),
             vec!["sample_host".to_string()],
         ));
@@ -212,7 +218,7 @@ mod tests {
             )))
         );
 
-        let http_request_field = HttpRequestField::HttpRequestHeader((
+        let http_request_field = HttpRequestField::HttpRequestHeader(HeaderVal(
             "not_exists".to_string(),
             vec!["404".to_string()],
         ));
