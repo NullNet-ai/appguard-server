@@ -9,7 +9,7 @@ use crate::firewall::items::smtp_response::SmtpResponseField;
 use crate::firewall::items::tcp_connection::TcpConnectionField;
 use crate::proto::appguard::FirewallPolicy;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub struct FirewallExpression {
     pub(super) policy: FirewallPolicy,
@@ -17,7 +17,7 @@ pub struct FirewallExpression {
     pub(super) expression: PostfixExpression<FirewallRule>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub struct FirewallRule {
     pub(crate) condition: FirewallRuleCondition,
@@ -27,14 +27,14 @@ pub struct FirewallRule {
     pub(crate) direction: Option<FirewallRuleDirection>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum FirewallRuleDirection {
     In,
     Out,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(untagged)]
 pub enum FirewallRuleField {
     TcpConnection(TcpConnectionField),
@@ -59,7 +59,7 @@ impl FirewallRuleField {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum FirewallRuleCondition {
     Equal,

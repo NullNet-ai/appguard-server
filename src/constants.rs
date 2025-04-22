@@ -54,16 +54,16 @@ pub static BLACKLIST_LINK: std::sync::LazyLock<String> = std::sync::LazyLock::ne
 
 // -------------------------------------------------------------------------------------------------
 
-// firewall constants
-#[cfg(not(debug_assertions))]
-pub const FIREWALL_FILE: &str = "/opt/firewall/firewall.json";
-#[cfg(debug_assertions)]
-pub const FIREWALL_FILE: &str = "./test_material/firewall/firewall.json";
-
-#[cfg(not(debug_assertions))]
-pub const FIREWALL_DIR: &str = "/opt/firewall";
-#[cfg(debug_assertions)]
-pub const FIREWALL_DIR: &str = "./test_material/firewall";
+// // firewall constants
+// #[cfg(not(debug_assertions))]
+// pub const FIREWALL_FILE: &str = "/opt/firewall/firewall.json";
+// #[cfg(debug_assertions)]
+// pub const FIREWALL_FILE: &str = "./test_material/firewall/firewall.json";
+//
+// #[cfg(not(debug_assertions))]
+// pub const FIREWALL_DIR: &str = "/opt/firewall";
+// #[cfg(debug_assertions)]
+// pub const FIREWALL_DIR: &str = "./test_material/firewall";
 
 // -------------------------------------------------------------------------------------------------
 

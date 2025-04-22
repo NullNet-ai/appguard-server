@@ -1,6 +1,7 @@
 use crate::db::entries::DbEntry;
 use crate::db::store::latest_device_info::LatestDeviceInfo;
 use crate::db::tables::DbTable;
+use crate::firewall::firewall::Firewall;
 use crate::helpers::map_status_value_to_enum;
 use crate::proto::appguard::{AppGuardIpInfo, DeviceStatus};
 use chrono::Utc;
@@ -229,6 +230,42 @@ impl DatastoreWrapper {
         let count = self.inner.batch_delete(request, token).await?.count;
         log::trace!("After delete old entries to {table}: {count}");
         Ok(count)
+    }
+
+    // SELECT firewall FROM {table} WHERE token = {token}
+    pub(crate) async fn get_firewall(&mut self, token: &str) -> Result<Firewall, Error> {
+        let table = DbTable::Firewall.to_str();
+
+        let request = GetByFilterRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: table.into(),
+            }),
+            body: Some(GetByFilterBody {
+                pluck: vec!["firewall".to_string()],
+                advance_filters: vec![AdvanceFilter {
+                    r#type: "criteria".to_string(),
+                    field: "token".to_string(),
+                    operator: "equal".to_string(),
+                    entity: table.to_string(),
+                    values: format!("[\"{token}\"]"),
+                }],
+                order_by: String::new(),
+                limit: 1,
+                offset: 0,
+                order_direction: String::new(),
+                joins: vec![],
+                multiple_sort: vec![],
+                pluck_object: HashMap::default(),
+                date_format: String::new(),
+            }),
+        };
+
+        log::trace!("Before get by filter to {table}");
+        // todo: verify query
+        let result = self.inner.get_by_filter(request, token).await?;
+        log::trace!("After get by filter to {table}: {}", result.data);
+        Firewall::load_from_infix(&result.data)
     }
 
     pub async fn login(&self, account_id: String, account_secret: String) -> Result<String, Error> {

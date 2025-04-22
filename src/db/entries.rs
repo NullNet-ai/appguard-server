@@ -148,8 +148,9 @@ impl EntryIds {
             DbTable::HttpResponse => &self.http_response,
             DbTable::SmtpRequest => &self.smtp_request,
             DbTable::SmtpResponse => &self.smtp_response,
-            DbTable::IpInfo => return Err("Not applicable").handle_err(location!()),
-            DbTable::Blacklist => return Err("Not applicable").handle_err(location!()),
+            DbTable::IpInfo | DbTable::Blacklist | DbTable::Firewall => {
+                return Err("Not applicable").handle_err(location!())
+            }
         }
         .lock()
         .handle_err(location!())?;

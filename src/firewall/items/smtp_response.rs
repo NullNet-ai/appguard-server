@@ -6,7 +6,7 @@ use crate::firewall::rules::{
 };
 use crate::proto::appguard::{AppGuardIpInfo, AppGuardSmtpResponse, AppGuardTcpInfo};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum SmtpResponseField {
     SmtpResponseCode(Vec<u32>),

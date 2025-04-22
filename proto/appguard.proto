@@ -5,6 +5,8 @@ package appguard;
 service AppGuard {
   // Authentication
   rpc Heartbeat (HeartbeatRequest) returns (stream HeartbeatResponse);
+  // Firewall
+  rpc UpdateFirewall (AppGuardFirewall) returns (Empty);
   // TCP
   rpc HandleTcpConnection (AppGuardTcpConnection) returns (AppGuardTcpResponse);
   // HTTP
@@ -33,6 +35,13 @@ enum DeviceStatus {
 message HeartbeatResponse {
   string token = 1;
   DeviceStatus status = 2;
+}
+
+// Firewall ------------------------------------------------------------------------------------------------------------
+
+message AppGuardFirewall {
+  string token = 1;
+  string infix_expressions = 2;
 }
 
 // TCP -----------------------------------------------------------------------------------------------------------------
@@ -100,6 +109,8 @@ message AppGuardSmtpResponse {
 }
 
 // Response ------------------------------------------------------------------------------------------------------------
+
+message Empty {}
 
 message AppGuardResponse {
   FirewallPolicy policy = 2;

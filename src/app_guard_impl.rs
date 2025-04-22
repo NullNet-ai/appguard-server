@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::sync::{Arc, Condvar, Mutex, RwLock};
+use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 use std::{process, thread};
 
@@ -9,20 +9,20 @@ use tonic::{Request, Response, Status};
 
 use crate::auth_handler::AuthHandler;
 use crate::config::{watch_config, Config};
-use crate::constants::{CONFIG_FILE, FIREWALL_FILE};
+use crate::constants::CONFIG_FILE;
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::entries::{DbDetails, DbEntry, EntryIds};
 use crate::db::helpers::{delete_old_entries, store_entries};
 use crate::db::tables::DbTable;
 use crate::fetch_data::fetch_ip_data;
-use crate::firewall::firewall::{watch_firewall, Firewall};
+use crate::firewall::firewall::Firewall;
 use crate::helpers::authenticate;
 use crate::ip_info::ip_info_handler;
 use crate::proto::appguard::app_guard_server::AppGuard;
 use crate::proto::appguard::{
-    AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
+    AppGuardFirewall, AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    AppGuardTcpResponse, DeviceStatus, FirewallPolicy, HeartbeatRequest, HeartbeatResponse,
+    AppGuardTcpResponse, DeviceStatus, Empty, FirewallPolicy, HeartbeatRequest, HeartbeatResponse,
 };
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
@@ -35,7 +35,8 @@ pub struct AppGuardImpl {
     ds: DatastoreWrapper,
     entry_ids: EntryIds,
     unanswered_connections: Arc<Mutex<HashMap<u64, Instant>>>,
-    firewall: Arc<RwLock<Firewall>>,
+    // firewall: Arc<RwLock<Firewall>>,
+    firewalls: HashMap<String, Firewall>,
     ip_info_cache: Arc<Mutex<IndexMap<String, AppGuardIpInfo>>>,
     ip_info_handler: IpInfoHandler,
     tx_store: UnboundedSender<DbEntry>,
@@ -76,13 +77,13 @@ impl AppGuardImpl {
         let config_pair_2 = config_pair.clone();
         let config_pair_3 = config_pair.clone();
 
-        let firewall = Firewall::load_from_infix(FIREWALL_FILE).unwrap_or_default();
-        log::info!(
-            "Loaded firewall: {}",
-            serde_json::to_string(&firewall).unwrap_or_default()
-        );
-        let firewall_shared = Arc::new(RwLock::new(firewall));
-        let firewall_shared_2 = firewall_shared.clone();
+        // let firewall = Firewall::load_from_infix(FIREWALL_FILE).unwrap_or_default();
+        // log::info!(
+        //     "Loaded firewall: {}",
+        //     serde_json::to_string(&firewall).unwrap_or_default()
+        // );
+        // let firewall_shared = Arc::new(RwLock::new(firewall));
+        // let firewall_shared_2 = firewall_shared.clone();
 
         let ip_info_handler = ip_info_handler();
 
@@ -113,9 +114,9 @@ impl AppGuardImpl {
             watch_config(&config_pair_2).expect("Watch configuration thread failed");
         });
 
-        thread::spawn(move || {
-            watch_firewall(&firewall_shared_2).expect("Watch firewall thread failed");
-        });
+        // thread::spawn(move || {
+        //     watch_firewall(&firewall_shared_2).expect("Watch firewall thread failed");
+        // });
 
         tokio::spawn(async move {
             delete_old_entries(&config_pair_3, &ds_2, &ip_info_cache_2)
@@ -132,7 +133,8 @@ impl AppGuardImpl {
             ds,
             entry_ids: EntryIds::default(),
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
-            firewall: firewall_shared,
+            // firewall: firewall_shared,
+            firewalls: HashMap::new(),
             ip_info_cache,
             ip_info_handler,
             tx_store,
@@ -194,6 +196,15 @@ impl AppGuardImpl {
         }
     }
 
+    async fn get_client_firewall(&self, token: String) -> Result<Firewall, Error> {
+        if let Some(fw) = self.firewalls.get(&token).cloned() {
+            Ok(fw)
+        } else {
+            // get the firewall from the datastore
+            self.ds.clone().get_firewall(&token).await
+        }
+    }
+
     pub(crate) async fn heartbeat_impl(
         &self,
         request: Request<HeartbeatRequest>,
@@ -238,6 +249,12 @@ impl AppGuardImpl {
         });
 
         Ok(Response::new(ReceiverStream::new(rx)))
+    }
+
+    async fn update_firewall_impl(&self, req: Request<AppGuardFirewall>) -> Result<(), Error> {
+        let firewall = req.into_inner();
+
+        Ok(())
     }
 
     async fn handle_tcp_connection_impl(
@@ -301,14 +318,14 @@ impl AppGuardImpl {
         Ok(tcp_info)
     }
 
-    fn handle_http_request_impl(
+    async fn handle_http_request_impl(
         &self,
         req: &Request<AppGuardHttpRequest>,
     ) -> Result<FirewallPolicy, Error> {
+        let token = req.get_ref().token.clone();
         let fw_res = self
-            .firewall
-            .read()
-            .handle_err(location!())?
+            .get_client_firewall(token)
+            .await?
             .match_item(req.get_ref());
         let policy = fw_res.policy;
 
@@ -332,14 +349,14 @@ impl AppGuardImpl {
         Ok(policy)
     }
 
-    fn handle_http_response_impl(
+    async fn handle_http_response_impl(
         &self,
         req: Request<AppGuardHttpResponse>,
     ) -> Result<FirewallPolicy, Error> {
+        let token = req.get_ref().token.clone();
         let fw_res = self
-            .firewall
-            .read()
-            .handle_err(location!())?
+            .get_client_firewall(token)
+            .await?
             .match_item(req.get_ref());
         let policy = fw_res.policy;
 
@@ -365,14 +382,14 @@ impl AppGuardImpl {
         Ok(policy)
     }
 
-    fn handle_smtp_request_impl(
+    async fn handle_smtp_request_impl(
         &self,
         req: Request<AppGuardSmtpRequest>,
     ) -> Result<FirewallPolicy, Error> {
+        let token = req.get_ref().token.clone();
         let fw_res = self
-            .firewall
-            .read()
-            .handle_err(location!())?
+            .get_client_firewall(token)
+            .await?
             .match_item(req.get_ref());
         let policy = fw_res.policy;
 
@@ -389,14 +406,14 @@ impl AppGuardImpl {
         Ok(policy)
     }
 
-    fn handle_smtp_response_impl(
+    async fn handle_smtp_response_impl(
         &self,
         req: Request<AppGuardSmtpResponse>,
     ) -> Result<FirewallPolicy, Error> {
+        let token = req.get_ref().token.clone();
         let fw_res = self
-            .firewall
-            .read()
-            .handle_err(location!())?
+            .get_client_firewall(token)
+            .await?
             .match_item(req.get_ref());
         let policy = fw_res.policy;
 
@@ -433,7 +450,20 @@ impl AppGuard for AppGuardImpl {
     ) -> Result<Response<Self::HeartbeatStream>, Status> {
         self.heartbeat_impl(request)
             .await
-            .map_err(|e| Status::internal(format!("{e:?}")))
+            .map_err(|e| Status::internal(e.to_str().to_string()))
+    }
+
+    async fn update_firewall(
+        &self,
+        request: Request<AppGuardFirewall>,
+    ) -> Result<Response<Empty>, Status> {
+        self.update_firewall_impl(request)
+            .await
+            .map(|()| Response::new(Empty {}))
+            .map_err(|err| {
+                log::error!("Error updating firewall");
+                Status::internal(err.to_str())
+            })
     }
 
     async fn handle_tcp_connection(
@@ -458,6 +488,7 @@ impl AppGuard for AppGuardImpl {
         req: Request<AppGuardHttpRequest>,
     ) -> Result<Response<AppGuardResponse>, Status> {
         self.handle_http_request_impl(&req)
+            .await
             .map(|policy| {
                 Response::new(AppGuardResponse {
                     policy: policy.into(),
@@ -474,6 +505,7 @@ impl AppGuard for AppGuardImpl {
         req: Request<AppGuardHttpResponse>,
     ) -> Result<Response<AppGuardResponse>, Status> {
         self.handle_http_response_impl(req)
+            .await
             .map(|policy| {
                 Response::new(AppGuardResponse {
                     policy: policy.into(),
@@ -490,6 +522,7 @@ impl AppGuard for AppGuardImpl {
         req: Request<AppGuardSmtpRequest>,
     ) -> Result<Response<AppGuardResponse>, Status> {
         self.handle_smtp_request_impl(req)
+            .await
             .map(|policy| {
                 Response::new(AppGuardResponse {
                     policy: policy.into(),
@@ -506,6 +539,7 @@ impl AppGuard for AppGuardImpl {
         req: Request<AppGuardSmtpResponse>,
     ) -> Result<Response<AppGuardResponse>, Status> {
         self.handle_smtp_response_impl(req)
+            .await
             .map(|policy| {
                 Response::new(AppGuardResponse {
                     policy: policy.into(),

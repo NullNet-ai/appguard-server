@@ -1,30 +1,21 @@
-use std::fs::create_dir;
-use std::ops::Sub;
-use std::sync::{Arc, RwLock};
-use std::thread;
-use std::time::{Duration, Instant};
-
-use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
 
-use crate::constants::{FIREWALL_DIR, FIREWALL_FILE};
 use crate::firewall::infix_firewall::InfixFirewall;
 use crate::firewall::rules::{FirewallExpression, FirewallRule};
 use crate::proto::appguard::FirewallPolicy;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
-#[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 #[serde(transparent, rename_all = "snake_case")]
 pub struct Firewall {
     pub(super) expressions: Vec<FirewallExpression>,
 }
 
 impl Firewall {
-    pub fn load_from_infix(file: &str) -> Result<Self, Error> {
-        let file_content = std::fs::read_to_string(file).handle_err(location!())?;
-        let infix_firewall: InfixFirewall =
-            serde_json::from_str(file_content.as_str()).handle_err(location!())?;
+    pub fn load_from_infix(infix: &str) -> Result<Self, Error> {
+        // let file_content = std::fs::read_to_string(file).handle_err(location!())?;
+        let infix_firewall: InfixFirewall = serde_json::from_str(infix).handle_err(location!())?;
 
         if infix_firewall.is_valid() {
             Ok(infix_firewall.into_firewall())
@@ -76,48 +67,48 @@ impl Default for FirewallResult {
     }
 }
 
-pub fn watch_firewall(firewall: &Arc<RwLock<Firewall>>) -> Result<(), Error> {
-    create_dir(FIREWALL_DIR).unwrap_or_default();
-
-    let (tx, rx) = std::sync::mpsc::channel();
-    let mut watcher =
-        RecommendedWatcher::new(tx, notify::Config::default()).handle_err(location!())?;
-    watcher
-        .watch(FIREWALL_DIR.as_ref(), RecursiveMode::Recursive)
-        .handle_err(location!())?;
-
-    let mut last_update_time = Instant::now().sub(Duration::from_secs(60));
-
-    loop {
-        // only update firewall if the event is related to a file change
-        if let Ok(Ok(Event {
-            kind: EventKind::Modify(_),
-            ..
-        })) = rx.recv()
-        {
-            // debounce duplicated events
-            if last_update_time.elapsed().as_millis() > 100 {
-                // ensure file changes are propagated
-                thread::sleep(Duration::from_millis(100));
-
-                match Firewall::load_from_infix(FIREWALL_FILE) {
-                    Ok(new_firewall) => {
-                        log::info!(
-                            "Updated firewall: {}",
-                            serde_json::to_string(&new_firewall).unwrap_or_default()
-                        );
-                        *firewall.write().handle_err(location!())? = new_firewall;
-                    }
-                    Err(_) => {
-                        log::warn!("Invalid firewall definition (ignored)");
-                    }
-                }
-
-                last_update_time = Instant::now();
-            }
-        }
-    }
-}
+// pub fn watch_firewall(firewall: &Arc<RwLock<Firewall>>) -> Result<(), Error> {
+//     create_dir(FIREWALL_DIR).unwrap_or_default();
+//
+//     let (tx, rx) = std::sync::mpsc::channel();
+//     let mut watcher =
+//         RecommendedWatcher::new(tx, notify::Config::default()).handle_err(location!())?;
+//     watcher
+//         .watch(FIREWALL_DIR.as_ref(), RecursiveMode::Recursive)
+//         .handle_err(location!())?;
+//
+//     let mut last_update_time = Instant::now().sub(Duration::from_secs(60));
+//
+//     loop {
+//         // only update firewall if the event is related to a file change
+//         if let Ok(Ok(Event {
+//             kind: EventKind::Modify(_),
+//             ..
+//         })) = rx.recv()
+//         {
+//             // debounce duplicated events
+//             if last_update_time.elapsed().as_millis() > 100 {
+//                 // ensure file changes are propagated
+//                 thread::sleep(Duration::from_millis(100));
+//
+//                 match Firewall::load_from_infix(FIREWALL_FILE) {
+//                     Ok(new_firewall) => {
+//                         log::info!(
+//                             "Updated firewall: {}",
+//                             serde_json::to_string(&new_firewall).unwrap_or_default()
+//                         );
+//                         *firewall.write().handle_err(location!())? = new_firewall;
+//                     }
+//                     Err(_) => {
+//                         log::warn!("Invalid firewall definition (ignored)");
+//                     }
+//                 }
+//
+//                 last_update_time = Instant::now();
+//             }
+//         }
+//     }
+// }
 
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
