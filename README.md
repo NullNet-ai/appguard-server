@@ -2,7 +2,7 @@
 
 AppGuard is an **application-level firewall** for general applications.
 
-Currently, AppGuard client libraries for Express and SMTP servers are available,
+Currently, AppGuard client libraries for HTTP and SMTP servers are available,
 and support for more applications is planned for the future.
 
 ## Methodology
@@ -11,21 +11,19 @@ AppGuard consists of a **Rust-based gRPC server**
 that receives and handles layer 7 network traffic from its clients.
 
 The **server** is responsible for:
-- logging layer 7 network traffic 
-  - in console
-  - in an SQLite database
+- logging layer 7 network traffic
 - gathering additional IP information about each TCP connection (e.g., geolocation, ASN, organization, blacklist status), via
   - the [ipapi.co](https://ipapi.co) API
   - MaxMind databases from [ipinfo.io](https://ipinfo.io) updated daily
   - the [ipsum](https://github.com/stamparm/ipsum) daily updated feed of malicious IP addresses
 - matching the traffic against a set of user-defined firewall rules that can be dynamically updated at runtime
-- returning the result of the firewall rule matching to the client library
+- returning the result of the firewall to the client library
 
 The **client libraries** are responsible for:
 - sending the layer 7 network traffic to the gRPC server
-- receiving the result of the firewall rule matching from the gRPC server, and acting accordingly
+- receiving the result of the firewall from the server, and acting accordingly
 
-The contract between the server and the client libraries is defined in the [`appguard-protobuf/appguard.proto`](./appguard-protobuf/appguard.proto) file,
+The contract between the server and the client libraries is defined in the [`proto/appguard.proto`](./proto/appguard.proto) file,
 which adheres to the [Protocol Buffers](https://protobuf.dev/overview/) specification.
 
 ## Firewall specification
