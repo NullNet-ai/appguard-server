@@ -14,14 +14,14 @@ use nullnet_liblogging::{Logger, LoggerConfig};
 pub async fn start_appguard() -> Result<(), Error> {
     init_logger();
 
-    #[cfg(not(debug_assertions))]
-    let stdout = std::fs::File::create("/opt/stdout.txt").handle_err(location!())?;
-    #[cfg(not(debug_assertions))]
-    let stderr = std::fs::File::create("/opt/stderr.txt").handle_err(location!())?;
-    #[cfg(not(debug_assertions))]
-    let _gag1 = gag::Redirect::stdout(stdout).handle_err(location!())?;
-    #[cfg(not(debug_assertions))]
-    let _gag2 = gag::Redirect::stderr(stderr).handle_err(location!())?;
+    // #[cfg(not(debug_assertions))]
+    // let stdout = std::fs::File::create("/opt/stdout.txt").handle_err(location!())?;
+    // #[cfg(not(debug_assertions))]
+    // let stderr = std::fs::File::create("/opt/stderr.txt").handle_err(location!())?;
+    // #[cfg(not(debug_assertions))]
+    // let _gag1 = gag::Redirect::stdout(stdout).handle_err(location!())?;
+    // #[cfg(not(debug_assertions))]
+    // let _gag2 = gag::Redirect::stderr(stderr).handle_err(location!())?;
 
     let addr = format!("{ADDR}:{PORT}")
         .to_socket_addrs()
