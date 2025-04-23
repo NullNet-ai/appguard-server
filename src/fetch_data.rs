@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use reqwest::{Client, ClientBuilder};
 
-use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET, APP_GUARD_VERSION, BLACKLIST_LINK};
+use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET, BLACKLIST_LINK};
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::entries::DbEntry;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
@@ -70,5 +70,5 @@ pub async fn fetch_ip_blacklist(ds: DatastoreWrapper, client: &Client) -> Result
 }
 
 fn client_builder_with_ua() -> ClientBuilder {
-    ClientBuilder::new().user_agent(format!("AppGuard-{APP_GUARD_VERSION}"))
+    ClientBuilder::new().user_agent("AppGuard")
 }

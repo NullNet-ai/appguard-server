@@ -1,8 +1,12 @@
 use nullnet_liberror::{location, ErrorHandler, Location};
 
 // project-level constants
-pub const APP_GUARD_VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const IP_INFO_API_KEY: Option<&str> = option_env!("IP_INFO_API_KEY");
+pub static IP_INFO_API_KEY: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    std::env::var("IP_INFO_API_KEY").unwrap_or_else(|_| {
+        log::warn!("Environment variable IP_INFO_API_KEY not found");
+        String::new()
+    })
+});
 
 // -------------------------------------------------------------------------------------------------
 
@@ -16,16 +20,16 @@ pub const PORT: u16 = 50051;
 
 // pub const AI_PORT: u16 = 50052;
 
-pub static ACCOUNT_ID: std::sync::LazyLock<&str> = std::sync::LazyLock::new(|| {
-    option_env!("ACCOUNT_ID").unwrap_or_else(|| {
+pub static ACCOUNT_ID: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    std::env::var("ACCOUNT_ID").unwrap_or_else(|_| {
         log::warn!("Environment variable ACCOUNT_ID not found");
-        ""
+        String::new()
     })
 });
-pub static ACCOUNT_SECRET: std::sync::LazyLock<&str> = std::sync::LazyLock::new(|| {
-    option_env!("ACCOUNT_SECRET").unwrap_or_else(|| {
+pub static ACCOUNT_SECRET: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    std::env::var("ACCOUNT_SECRET").unwrap_or_else(|_| {
         log::warn!("Environment variable ACCOUNT_SECRET not found");
-        ""
+        String::new()
     })
 });
 
