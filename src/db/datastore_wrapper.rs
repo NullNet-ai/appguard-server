@@ -232,8 +232,11 @@ impl DatastoreWrapper {
         Ok(count)
     }
 
-    // SELECT firewall FROM {table} WHERE token = {token}
-    pub(crate) async fn get_firewall(&mut self, token: &str) -> Result<Firewall, Error> {
+    // SELECT app_id, firewall FROM {table}
+    pub(crate) async fn get_firewalls(
+        &mut self,
+        token: &str,
+    ) -> Result<HashMap<String, Firewall>, Error> {
         let table = DbTable::Firewall.to_str();
 
         let request = GetByFilterRequest {
@@ -242,15 +245,19 @@ impl DatastoreWrapper {
                 table: table.into(),
             }),
             body: Some(GetByFilterBody {
-                pluck: vec!["firewall".to_string()],
-                advance_filters: vec![AdvanceFilter {
-                    r#type: "criteria".to_string(),
-                    field: "token".to_string(),
-                    operator: "equal".to_string(),
-                    entity: table.to_string(),
-                    values: format!("[\"{token}\"]"),
-                }],
+                pluck: vec!["app_id".to_string(), "firewall".to_string()],
+                advance_filters: vec![
+                // todo: is this correct?
+                //     AdvanceFilter {
+                //     r#type: "criteria".to_string(),
+                //     field: "token".to_string(),
+                //     operator: "equal".to_string(),
+                //     entity: table.to_string(),
+                //     values: format!("[\"{token}\"]"),
+                // }
+                ],
                 order_by: String::new(),
+                // todo
                 limit: 1,
                 offset: 0,
                 order_direction: String::new(),
@@ -263,9 +270,44 @@ impl DatastoreWrapper {
 
         log::trace!("Before get by filter to {table}");
         // todo: verify query
-        let result = self.inner.get_by_filter(request, token).await?;
-        log::trace!("After get by filter to {table}: {}", result.data);
-        Firewall::load_from_infix(&result.data)
+        let result = self.inner.get_by_filter(request, token).await?.data;
+        log::trace!("After get by filter to {table}: {}", result);
+
+        Self::internal_firewall_parse_response_data(&result)
+    }
+
+    fn internal_firewall_parse_response_data(
+        data: &str,
+    ) -> Result<HashMap<String, Firewall>, Error> {
+        let mut ret_val = HashMap::new();
+
+        let array_val = serde_json::from_str::<serde_json::Value>(data).handle_err(location!())?;
+        let array = array_val
+            .as_array()
+            .ok_or("Failed to parse response")
+            .handle_err(location!())?;
+
+        for i in array {
+            let Some(map) = i.as_object() else { continue };
+            let Some(app_id_val) = map.get("app_id") else {
+                continue;
+            };
+            let Some(app_id_str) = app_id_val.as_str() else {
+                continue;
+            };
+            let Some(firewall_val) = map.get("firewall") else {
+                continue;
+            };
+            let Some(firewall_str) = firewall_val.as_str() else {
+                continue;
+            };
+            let Some(firewall) = Firewall::load_from_postfix(firewall_str).ok() else {
+                continue;
+            };
+            ret_val.insert(app_id_str.to_string(), firewall);
+        }
+
+        Ok(ret_val)
     }
 
     pub async fn login(&self, account_id: String, account_secret: String) -> Result<String, Error> {
@@ -410,5 +452,20 @@ impl DatastoreWrapper {
 
         let response = client.get_by_id(request, token).await?;
         LatestDeviceInfo::from_response_data(&response)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::db::datastore_wrapper::DatastoreWrapper;
+    use crate::firewall::firewall::Firewall;
+
+    #[test]
+    fn test_internal_firewall_parse_response_data() {
+        let data = r#"[{"app_id": "app1", "firewall": "[]"}, {"app_id": "app2", "firewall": "[{\"policy\": \"deny\", \"postfix_tokens\": [{\"type\": \"predicate\", \"condition\": \"equal\", \"protocol\": [\"HTTPS\"]}]}]"}]"#;
+        let result = DatastoreWrapper::internal_firewall_parse_response_data(data).unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(*result.get("app1").unwrap(), Firewall::default());
+        assert_eq!(*result.get("app2").unwrap(), Firewall::load_from_postfix(r#"[{"policy": "deny", "postfix_tokens": [{"type": "predicate", "condition": "equal", "protocol": ["HTTPS"]}]}]"#).unwrap());
     }
 }
