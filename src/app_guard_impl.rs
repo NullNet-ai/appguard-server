@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Condvar};
 use std::time::{Duration, Instant};
 use std::{process, thread};
 
@@ -27,12 +27,12 @@ use crate::proto::appguard::{
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
 use nullnet_libtoken::Token;
-use tokio::sync::mpsc;
 use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::{mpsc, Mutex};
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 
 pub struct AppGuardImpl {
-    config_pair: Arc<(Mutex<Config>, Condvar)>,
+    config_pair: Arc<(std::sync::Mutex<Config>, Condvar)>,
     ds: DatastoreWrapper,
     entry_ids: EntryIds,
     unanswered_connections: Arc<Mutex<HashMap<u64, Instant>>>,
@@ -74,7 +74,7 @@ impl AppGuardImpl {
             "Loaded AppGuard initial configuration: {}",
             serde_json::to_string(&config).unwrap_or_default()
         );
-        let config_pair = Arc::new((Mutex::new(config), Condvar::new()));
+        let config_pair = Arc::new((std::sync::Mutex::new(config), Condvar::new()));
         let config_pair_2 = config_pair.clone();
         let config_pair_3 = config_pair.clone();
 
@@ -171,9 +171,9 @@ impl AppGuardImpl {
             .ip_info_cache_size)
     }
 
-    fn refresh_ip_info_cache(&self, ip: &str, ip_info: &AppGuardIpInfo) -> Result<(), Error> {
+    async fn refresh_ip_info_cache(&self, ip: &str, ip_info: &AppGuardIpInfo) -> Result<(), Error> {
         let cache_size = self.config_ip_info_cache_size()?;
-        let mut ip_info_cache = self.ip_info_cache.lock().handle_err(location!())?;
+        let mut ip_info_cache = self.ip_info_cache.lock().await;
         ip_info_cache.shift_insert(0, ip.to_string(), ip_info.clone());
         while ip_info_cache.len() > cache_size {
             ip_info_cache.pop();
@@ -181,14 +181,8 @@ impl AppGuardImpl {
         Ok(())
     }
 
-    fn compute_response_time(&self, tcp_id: u64) -> Option<u32> {
-        if let Some(request_instant) = self
-            .unanswered_connections
-            .lock()
-            .handle_err(location!())
-            .ok()?
-            .remove(&tcp_id)
-        {
+    async fn compute_response_time(&self, tcp_id: u64) -> Option<u32> {
+        if let Some(request_instant) = self.unanswered_connections.lock().await.remove(&tcp_id) {
             u32::try_from(request_instant.elapsed().as_millis())
                 .handle_err(location!())
                 .ok()
@@ -198,7 +192,7 @@ impl AppGuardImpl {
         }
     }
 
-    fn get_client_firewall(&self, token: &str) -> Result<Firewall, Error> {
+    async fn get_client_firewall(&self, token: &str) -> Result<Firewall, Error> {
         let Ok(t) = Token::from_jwt(token) else {
             return Err("invalid token").handle_err(location!());
         };
@@ -206,7 +200,7 @@ impl AppGuardImpl {
         Ok(self
             .firewalls
             .lock()
-            .handle_err(location!())?
+            .await
             .get(&app_id)
             .cloned()
             .unwrap_or_default())
@@ -270,10 +264,7 @@ impl AppGuardImpl {
 
         // todo: upsert the firewall in the datastore
 
-        self.firewalls
-            .lock()
-            .handle_err(location!())?
-            .insert(app_id, firewall);
+        self.firewalls.lock().await.insert(app_id, firewall);
 
         Ok(())
     }
@@ -282,12 +273,12 @@ impl AppGuardImpl {
         &self,
         req: Request<AppGuardTcpConnection>,
     ) -> Result<AppGuardTcpInfo, Error> {
-        let tcp_id = self.entry_ids.get_next(DbTable::TcpConnection)?;
+        let tcp_id = self.entry_ids.get_next(DbTable::TcpConnection).await?;
 
         // start measuring the time it takes to respond to this connection
         self.unanswered_connections
             .lock()
-            .handle_err(location!())?
+            .await
             .insert(tcp_id, Instant::now());
 
         log::info!("TCP connection #{tcp_id}: {}", req.get_ref());
@@ -300,12 +291,7 @@ impl AppGuardImpl {
         let mut ip_info = AppGuardIpInfo::default();
         if let Some(ip) = &req.get_ref().source_ip {
             log::info!("Searching IP information for {ip}");
-            let info_opt = self
-                .ip_info_cache
-                .lock()
-                .handle_err(location!())?
-                .get(ip)
-                .cloned();
+            let info_opt = self.ip_info_cache.lock().await.get(ip).cloned();
             ip_info = if let Some(info) = info_opt {
                 log::info!("IP information for {ip} already in cache");
                 info
@@ -323,7 +309,7 @@ impl AppGuardImpl {
                 ip_info
             };
             // refresh the IP info cache
-            self.refresh_ip_info_cache(ip, &ip_info)?;
+            self.refresh_ip_info_cache(ip, &ip_info).await?;
         } else {
             log::warn!(
                 "The TCP connection is missing a source IP address (cannot lookup IP information)"
@@ -339,15 +325,18 @@ impl AppGuardImpl {
         Ok(tcp_info)
     }
 
-    fn handle_http_request_impl(
+    async fn handle_http_request_impl(
         &self,
         req: &Request<AppGuardHttpRequest>,
     ) -> Result<FirewallPolicy, Error> {
         let token = &req.get_ref().token;
-        let fw_res = self.get_client_firewall(token)?.match_item(req.get_ref());
+        let fw_res = self
+            .get_client_firewall(token)
+            .await?
+            .match_item(req.get_ref());
         let policy = fw_res.policy;
 
-        let id = self.entry_ids.get_next(DbTable::HttpRequest)?;
+        let id = self.entry_ids.get_next(DbTable::HttpRequest).await?;
         log::info!("***{policy:?}*** HTTP request #{id}: {}", req.get_ref());
 
         if self.config_log_requests()? {
@@ -367,15 +356,18 @@ impl AppGuardImpl {
         Ok(policy)
     }
 
-    fn handle_http_response_impl(
+    async fn handle_http_response_impl(
         &self,
         req: Request<AppGuardHttpResponse>,
     ) -> Result<FirewallPolicy, Error> {
         let token = &req.get_ref().token;
-        let fw_res = self.get_client_firewall(token)?.match_item(req.get_ref());
+        let fw_res = self
+            .get_client_firewall(token)
+            .await?
+            .match_item(req.get_ref());
         let policy = fw_res.policy;
 
-        let id = self.entry_ids.get_next(DbTable::HttpResponse)?;
+        let id = self.entry_ids.get_next(DbTable::HttpResponse).await?;
         log::info!("***{policy:?}*** HTTP response #{id}: {}", req.get_ref());
 
         if self.config_log_responses()? {
@@ -385,7 +377,7 @@ impl AppGuardImpl {
                 .as_ref()
                 .unwrap_or(&AppGuardTcpInfo::default())
                 .tcp_id;
-            let response_time = self.compute_response_time(tcp_id);
+            let response_time = self.compute_response_time(tcp_id).await;
 
             let details =
                 DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), response_time);
@@ -397,15 +389,18 @@ impl AppGuardImpl {
         Ok(policy)
     }
 
-    fn handle_smtp_request_impl(
+    async fn handle_smtp_request_impl(
         &self,
         req: Request<AppGuardSmtpRequest>,
     ) -> Result<FirewallPolicy, Error> {
         let token = &req.get_ref().token;
-        let fw_res = self.get_client_firewall(token)?.match_item(req.get_ref());
+        let fw_res = self
+            .get_client_firewall(token)
+            .await?
+            .match_item(req.get_ref());
         let policy = fw_res.policy;
 
-        let id = self.entry_ids.get_next(DbTable::SmtpRequest)?;
+        let id = self.entry_ids.get_next(DbTable::SmtpRequest).await?;
         log::info!("***{policy:?}*** SMTP request #{id}: {}", req.get_ref());
 
         if self.config_log_requests()? {
@@ -418,15 +413,18 @@ impl AppGuardImpl {
         Ok(policy)
     }
 
-    fn handle_smtp_response_impl(
+    async fn handle_smtp_response_impl(
         &self,
         req: Request<AppGuardSmtpResponse>,
     ) -> Result<FirewallPolicy, Error> {
         let token = &req.get_ref().token;
-        let fw_res = self.get_client_firewall(token)?.match_item(req.get_ref());
+        let fw_res = self
+            .get_client_firewall(token)
+            .await?
+            .match_item(req.get_ref());
         let policy = fw_res.policy;
 
-        let id = self.entry_ids.get_next(DbTable::SmtpResponse)?;
+        let id = self.entry_ids.get_next(DbTable::SmtpResponse).await?;
         log::info!("***{policy:?}*** SMTP response #{id}: {}", req.get_ref());
 
         if self.config_log_responses()? {
@@ -436,7 +434,7 @@ impl AppGuardImpl {
                 .as_ref()
                 .unwrap_or(&AppGuardTcpInfo::default())
                 .tcp_id;
-            let response_time = self.compute_response_time(tcp_id);
+            let response_time = self.compute_response_time(tcp_id).await;
 
             let details =
                 DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), response_time);
@@ -497,6 +495,7 @@ impl AppGuard for AppGuardImpl {
         req: Request<AppGuardHttpRequest>,
     ) -> Result<Response<AppGuardResponse>, Status> {
         self.handle_http_request_impl(&req)
+            .await
             .map(|policy| {
                 Response::new(AppGuardResponse {
                     policy: policy.into(),
@@ -513,6 +512,7 @@ impl AppGuard for AppGuardImpl {
         req: Request<AppGuardHttpResponse>,
     ) -> Result<Response<AppGuardResponse>, Status> {
         self.handle_http_response_impl(req)
+            .await
             .map(|policy| {
                 Response::new(AppGuardResponse {
                     policy: policy.into(),
@@ -529,6 +529,7 @@ impl AppGuard for AppGuardImpl {
         req: Request<AppGuardSmtpRequest>,
     ) -> Result<Response<AppGuardResponse>, Status> {
         self.handle_smtp_request_impl(req)
+            .await
             .map(|policy| {
                 Response::new(AppGuardResponse {
                     policy: policy.into(),
@@ -545,6 +546,7 @@ impl AppGuard for AppGuardImpl {
         req: Request<AppGuardSmtpResponse>,
     ) -> Result<Response<AppGuardResponse>, Status> {
         self.handle_smtp_response_impl(req)
+            .await
             .map(|policy| {
                 Response::new(AppGuardResponse {
                     policy: policy.into(),
