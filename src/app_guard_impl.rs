@@ -62,7 +62,7 @@ pub fn terminate_app_guard(exit_code: i32) -> Result<(), Error> {
 
 impl AppGuardImpl {
     pub async fn new() -> Result<AppGuardImpl, Error> {
-        let ds = DatastoreWrapper::new().await?;
+        let mut ds = DatastoreWrapper::new().await?;
         let ds_2 = ds.clone();
         let ds_3 = ds.clone();
         let ds_4 = ds.clone();
@@ -85,7 +85,7 @@ impl AppGuardImpl {
         // );
         // let firewall_shared = Arc::new(RwLock::new(firewall));
         // let firewall_shared_2 = firewall_shared.clone();
-        // todo: load firewalls from datastore
+        let firewalls = ds.get_firewalls().await?;
 
         let ip_info_handler = ip_info_handler();
 
@@ -136,7 +136,7 @@ impl AppGuardImpl {
             entry_ids: EntryIds::default(),
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
             // firewall: firewall_shared,
-            firewalls: Arc::new(Mutex::new(HashMap::new())),
+            firewalls: Arc::new(Mutex::new(firewalls)),
             ip_info_cache,
             ip_info_handler,
             tx_store,

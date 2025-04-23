@@ -1,3 +1,4 @@
+use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET};
 use crate::db::entries::DbEntry;
 use crate::db::store::latest_device_info::LatestDeviceInfo;
 use crate::db::tables::DbTable;
@@ -233,11 +234,11 @@ impl DatastoreWrapper {
     }
 
     // SELECT app_id, firewall FROM {table}
-    pub(crate) async fn get_firewalls(
-        &mut self,
-        token: &str,
-    ) -> Result<HashMap<String, Firewall>, Error> {
+    pub(crate) async fn get_firewalls(&mut self) -> Result<HashMap<String, Firewall>, Error> {
         let table = DbTable::Firewall.to_str();
+        let token = self
+            .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string())
+            .await?;
 
         let request = GetByFilterRequest {
             params: Some(Params {
@@ -270,8 +271,8 @@ impl DatastoreWrapper {
 
         log::trace!("Before get by filter to {table}");
         // todo: verify query
-        let result = self.inner.get_by_filter(request, token).await?.data;
-        log::trace!("After get by filter to {table}: {}", result);
+        let result = self.inner.get_by_filter(request, &token).await?.data;
+        log::trace!("After get by filter to {table}: {result}");
 
         Self::internal_firewall_parse_response_data(&result)
     }
