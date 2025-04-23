@@ -203,17 +203,13 @@ impl AppGuardImpl {
             return Err("invalid token").handle_err(location!());
         };
         let app_id = t.account.account_id;
-        if let Some(fw) = self
+        Ok(self
             .firewalls
             .lock()
             .handle_err(location!())?
             .get(&app_id)
             .cloned()
-        {
-            Ok(fw)
-        } else {
-            Ok(Firewall::default())
-        }
+            .unwrap_or_default())
     }
 
     pub(crate) async fn heartbeat_impl(
@@ -270,12 +266,9 @@ impl AppGuardImpl {
             return Err("invalid token").handle_err(location!());
         };
         let app_id = t.account.account_id;
-        log::info!(
-            "Updating firewall for '{app_id}': {}",
-            firewall_req.infix_expressions
-        );
+        log::info!("Updating firewall for '{app_id}': {firewall:?}",);
 
-        // todo: update the firewall in the datastore
+        // todo: upsert the firewall in the datastore
 
         self.firewalls
             .lock()
