@@ -302,7 +302,7 @@ impl DatastoreWrapper {
             let Some(firewall_str) = firewall_val.as_str() else {
                 continue;
             };
-            let Some(firewall) = Firewall::load_from_postfix(firewall_str).ok() else {
+            let Some(firewall) = Firewall::from_postfix(firewall_str).ok() else {
                 continue;
             };
             ret_val.insert(app_id_str.to_string(), firewall);
@@ -467,6 +467,6 @@ mod tests {
         let result = DatastoreWrapper::internal_firewall_parse_response_data(data).unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(*result.get("app1").unwrap(), Firewall::default());
-        assert_eq!(*result.get("app2").unwrap(), Firewall::load_from_postfix(r#"[{"policy": "deny", "postfix_tokens": [{"type": "predicate", "condition": "equal", "protocol": ["HTTPS"]}]}]"#).unwrap());
+        assert_eq!(*result.get("app2").unwrap(), Firewall::from_postfix(r#"[{"policy": "deny", "postfix_tokens": [{"type": "predicate", "condition": "equal", "protocol": ["HTTPS"]}]}]"#).unwrap());
     }
 }

@@ -260,7 +260,7 @@ impl AppGuardImpl {
 
     async fn update_firewall_impl(&self, req: Request<AppGuardFirewall>) -> Result<(), Error> {
         let firewall_req = req.into_inner();
-        let firewall = Firewall::load_from_infix(&firewall_req.infix_expressions)?;
+        let firewall = Firewall::from_infix(&firewall_req.firewall)?;
 
         let Ok(t) = Token::from_jwt(&firewall_req.token) else {
             return Err("invalid token").handle_err(location!());

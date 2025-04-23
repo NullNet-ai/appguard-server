@@ -41,7 +41,7 @@ message HeartbeatResponse {
 
 message AppGuardFirewall {
   string token = 1;
-  string infix_expressions = 2;
+  string firewall = 2;
 }
 
 // TCP -----------------------------------------------------------------------------------------------------------------

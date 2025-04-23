@@ -18,7 +18,7 @@ pub struct AppGuardFirewall {
     #[prost(string, tag = "1")]
     pub token: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub infix_expressions: ::prost::alloc::string::String,
+    pub firewall: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AppGuardTcpConnection {

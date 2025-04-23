@@ -13,7 +13,7 @@ pub struct Firewall {
 }
 
 impl Firewall {
-    pub fn load_from_infix(infix: &str) -> Result<Self, Error> {
+    pub fn from_infix(infix: &str) -> Result<Self, Error> {
         let infix_firewall: InfixFirewall = serde_json::from_str(infix).handle_err(location!())?;
 
         if infix_firewall.is_valid() {
@@ -23,7 +23,7 @@ impl Firewall {
         }
     }
 
-    pub fn load_from_postfix(postfix: &str) -> Result<Self, Error> {
+    pub fn from_postfix(postfix: &str) -> Result<Self, Error> {
         let firewall: Firewall = serde_json::from_str(postfix).handle_err(location!())?;
 
         if firewall.is_valid() {
@@ -238,16 +238,16 @@ mod tests {
 
     const SERIALIZED_SAMPLE_FIREWALL: &str = r#"[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"equal","protocol":["HTTP","HTTPS"],"direction":"in"},{"type":"predicate","condition":"contains","http_request_url":[".php"]},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","country":["US"]},{"type":"operator","value":"and"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","smtp_request_body":["Hello"]},{"type":"predicate","condition":"greater_equal","smtp_request_header":{"From":["foo@bar.com","bar@foo.com","foo@baz.com"]}},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","smtp_response_code":[205,206]},{"type":"predicate","condition":"not_starts_with","http_request_query":{"Name":["giuliano","giacomo"]}},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","http_response_size":[100,200,300]},{"type":"operator","value":"or"}]}]"#;
 
-    const SERIALIZED_SAMPLE_INFIX_FIREWALL: &str = r#"[{"policy": "deny", "infix_tokens": [{"type": "parenthesis", "value": "open"}, {"type": "predicate", "condition": "equal", "protocol": ["HTTP", "HTTPS"], "direction": "in"}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "contains", "http_request_url": [".php"]}, {"type": "parenthesis", "value": "close"}, {"type": "operator", "value": "and"}, {"type": "predicate", "condition": "equal", "country": ["US"]}]}, {"policy": "allow", "infix_tokens": [{"type": "predicate", "condition": "contains", "smtp_request_body": ["Hello"]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "greater_equal", "smtp_request_header": {"From": ["foo@bar.com", "bar@foo.com", "foo@baz.com"]}}]}, {"policy": "deny", "infix_tokens": [{"type": "predicate", "condition": "lower_than", "smtp_response_code": [205, 206]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "not_starts_with", "http_request_query": {"Name": ["giuliano", "giacomo"]}}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "ends_with", "http_response_size": [100, 200, 300]}]}]"#;
+    // const SERIALIZED_SAMPLE_INFIX_FIREWALL: &str = r#"[{"policy": "deny", "infix_tokens": [{"type": "parenthesis", "value": "open"}, {"type": "predicate", "condition": "equal", "protocol": ["HTTP", "HTTPS"], "direction": "in"}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "contains", "http_request_url": [".php"]}, {"type": "parenthesis", "value": "close"}, {"type": "operator", "value": "and"}, {"type": "predicate", "condition": "equal", "country": ["US"]}]}, {"policy": "allow", "infix_tokens": [{"type": "predicate", "condition": "contains", "smtp_request_body": ["Hello"]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "greater_equal", "smtp_request_header": {"From": ["foo@bar.com", "bar@foo.com", "foo@baz.com"]}}]}, {"policy": "deny", "infix_tokens": [{"type": "predicate", "condition": "lower_than", "smtp_response_code": [205, 206]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "not_starts_with", "http_request_query": {"Name": ["giuliano", "giacomo"]}}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "ends_with", "http_response_size": [100, 200, 300]}]}]"#;
 
     #[test]
     fn test_firewall_load_from_infix_json() {
         // for the firewall in the root directory, just verify the file is valid
         let content = std::fs::read_to_string("firewall.json").unwrap();
-        let _ = Firewall::load_from_infix(&content).unwrap();
+        let _ = Firewall::from_infix(&content).unwrap();
 
         let content = std::fs::read_to_string("test_material/firewall_test_1.json").unwrap();
-        let firewall = Firewall::load_from_infix(&content).unwrap();
+        let firewall = Firewall::from_infix(&content).unwrap();
         assert_eq!(firewall, *DESERIALIZED_SAMPLE_FIREWALL);
         assert_eq!(
             serde_json::to_string(&firewall).unwrap(),
@@ -296,14 +296,14 @@ mod tests {
     #[test]
     fn test_firewall_load_from_infix_json_with_error() {
         let content = std::fs::read_to_string("test_material/firewall_test_2.json").unwrap();
-        let firewall = Firewall::load_from_infix(&content);
+        let firewall = Firewall::from_infix(&content);
         assert!(firewall.is_err());
     }
 
     #[test]
     fn test_firewall_match_items() {
         let content = std::fs::read_to_string("test_material/firewall_test_1.json").unwrap();
-        let firewall = Firewall::load_from_infix(&content).unwrap();
+        let firewall = Firewall::from_infix(&content).unwrap();
 
         let mut item_1 = AppGuardTcpInfo::default();
         assert_eq!(firewall.match_item(&item_1), FirewallResult::default());
