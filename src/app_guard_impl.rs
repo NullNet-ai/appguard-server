@@ -202,6 +202,7 @@ impl AppGuardImpl {
         let remote_address = request
             .remote_addr()
             .map_or_else(|| "Unknown".to_string(), |addr| addr.ip().to_string());
+        log::info!("Received heartbeat request from {remote_address}");
 
         let authenticate_request = request.into_inner();
         let mut auth_handler = AuthHandler::new(
