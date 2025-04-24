@@ -1,6 +1,6 @@
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::tables::DbTable;
-use crate::firewall::firewall::FirewallResult;
+use crate::firewall::firewall::{Firewall, FirewallResult};
 use crate::helpers::authenticate;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardSmtpRequest,
@@ -19,6 +19,7 @@ pub enum DbEntry {
     IpInfo((AppGuardIpInfo, String)),
     TcpConnection((AppGuardTcpConnection, u64)),
     Blacklist((Vec<String>, String)),
+    Firewall((String, Firewall, String)),
 }
 
 impl DbEntry {
@@ -43,7 +44,7 @@ impl DbEntry {
                 log::info!("SMTP response #{} inserted in datastore", d.id);
             }
             DbEntry::IpInfo((i, _)) => {
-                let _ = ds.insert(self, token.as_str()).await?;
+                let _ = ds.upsert(self, token.as_str()).await?;
                 log::info!("IP info for {} inserted in datastore", i.ip);
             }
             DbEntry::TcpConnection((_, id)) => {
@@ -52,6 +53,10 @@ impl DbEntry {
             }
             DbEntry::Blacklist(_) => {
                 let _ = ds.insert_batch(self, token.as_str()).await?;
+            }
+            DbEntry::Firewall(_) => {
+                let _ = ds.upsert(self, token.as_str()).await?;
+                log::info!("Firewall inserted in datastore");
             }
         }
         Ok(())
@@ -74,6 +79,7 @@ impl DbEntry {
                 json.push(']');
                 Ok(json)
             }
+            DbEntry::Firewall((app_id, f, _)) => f.to_json(app_id),
         }
     }
 
@@ -86,6 +92,7 @@ impl DbEntry {
             DbEntry::IpInfo(_) => DbTable::IpInfo,
             DbEntry::TcpConnection(_) => DbTable::TcpConnection,
             DbEntry::Blacklist(_) => DbTable::Blacklist,
+            DbEntry::Firewall(_) => DbTable::Firewall,
         }
     }
 
@@ -96,7 +103,9 @@ impl DbEntry {
             DbEntry::SmtpRequest((r, _)) => r.token.clone(),
             DbEntry::SmtpResponse((r, _)) => r.token.clone(),
             DbEntry::TcpConnection((c, _)) => c.token.clone(),
-            DbEntry::IpInfo((_, a)) | DbEntry::Blacklist((_, a)) => a.clone(),
+            DbEntry::IpInfo((_, a)) | DbEntry::Blacklist((_, a)) | DbEntry::Firewall((_, _, a)) => {
+                a.clone()
+            }
         }
     }
 }

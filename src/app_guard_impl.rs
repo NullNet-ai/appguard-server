@@ -263,7 +263,9 @@ impl AppGuardImpl {
         let app_id = t.account.account_id;
         log::info!("Updating firewall for '{app_id}': {firewall:?}",);
 
-        // todo: upsert the firewall in the datastore
+        DbEntry::Firewall((app_id.clone(), firewall.clone(), firewall_req.token))
+            .store(self.ds.clone())
+            .await?;
 
         self.firewalls.lock().await.insert(app_id, firewall);
 

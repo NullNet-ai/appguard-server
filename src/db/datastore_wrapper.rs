@@ -84,6 +84,35 @@ impl DatastoreWrapper {
         result
     }
 
+    // todo: upsert item to datastore
+    pub(crate) async fn upsert(
+        &mut self,
+        entry: &DbEntry,
+        token: &str,
+    ) -> Result<ResponseData, Error> {
+        let record = entry.to_json()?;
+        let table = entry.table().to_str();
+
+        let request = CreateRequest {
+            params: Some(CreateParams {
+                table: table.into(),
+            }),
+            query: Some(Query {
+                pluck: String::from("id"),
+                durability: String::from("soft"),
+            }),
+            body: Some(CreateBody {
+                record,
+                entity_prefix: String::from("AG"),
+            }),
+        };
+
+        log::trace!("Before create to {table}");
+        let result = self.inner.create(request, token).await;
+        log::trace!("After create to {table}");
+        result
+    }
+
     // SELECT COUNT(*) FROM {table} WHERE ip = {ip}
     pub(crate) async fn is_ip_blacklisted(&mut self, ip: &str, token: &str) -> Result<bool, Error> {
         let table = DbTable::Blacklist.to_str();
