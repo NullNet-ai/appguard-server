@@ -11,5 +11,3 @@ impl Firewall {
         .to_string())
     }
 }
-
-// todo: to_json also for blacklist
