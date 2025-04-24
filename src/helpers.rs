@@ -33,18 +33,6 @@ pub fn get_header<'a, S: std::hash::BuildHasher>(
         .map(|(_, v)| v)
 }
 
-pub fn get_env(key: Option<&'static str>, info: &'static str) -> &'static str {
-    if let Some(env) = key {
-        let val = env.trim();
-        if !val.is_empty() {
-            log::info!("Loaded {info}");
-            return val;
-        }
-    }
-    log::warn!("{info} not found");
-    ""
-}
-
 pub(crate) fn authenticate(token: String) -> Result<(String, Token), Error> {
     let token_info = Token::from_jwt(&token).handle_err(location!())?;
 
@@ -84,29 +72,5 @@ mod tests {
         let timestamp2 = "3024-08-01T00:00:00.000175000+00:00";
         let diff = timestamp_str_diff_usec(timestamp2, timestamp1).expect("Test");
         assert_eq!(diff, 31_556_908_800_000_175);
-    }
-
-    #[test]
-    fn test_get_env_some() {
-        let key = Some("this-is-a-sample_value");
-        let info = "print-me";
-        let env = get_env(key, info);
-        assert_eq!(env, "this-is-a-sample_value");
-    }
-
-    #[test]
-    fn test_get_env_empty() {
-        let key = Some(" \n \t ");
-        let info = "print-me";
-        let env = get_env(key, info);
-        assert_eq!(env, "");
-    }
-
-    #[test]
-    fn test_get_env_none() {
-        let key = None;
-        let info = "print-me";
-        let env = get_env(key, info);
-        assert_eq!(env, "");
     }
 }
