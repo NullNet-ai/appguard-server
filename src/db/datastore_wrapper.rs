@@ -276,19 +276,9 @@ impl DatastoreWrapper {
             }),
             body: Some(GetByFilterBody {
                 pluck: vec!["app_id".to_string(), "firewall".to_string()],
-                advance_filters: vec![
-                // todo: fix get_firewalls query!!!
-                //     AdvanceFilter {
-                //     r#type: "criteria".to_string(),
-                //     field: "token".to_string(),
-                //     operator: "equal".to_string(),
-                //     entity: table.to_string(),
-                //     values: format!("[\"{token}\"]"),
-                // }
-                ],
+                advance_filters: vec![],
                 order_by: String::new(),
-                // todo: fix get_firewalls query!!!
-                limit: 1,
+                limit: i32::MAX,
                 offset: 0,
                 order_direction: String::new(),
                 joins: vec![],
