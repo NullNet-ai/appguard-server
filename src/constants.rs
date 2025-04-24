@@ -12,7 +12,7 @@ pub static IP_INFO_API_KEY: std::sync::LazyLock<String> = std::sync::LazyLock::n
 
 // server constants
 #[cfg(debug_assertions)]
-pub const ADDR: &str = "localhost";
+pub const ADDR: &str = "0.0.0.0";
 #[cfg(not(debug_assertions))]
 pub const ADDR: &str = "appguard";
 
