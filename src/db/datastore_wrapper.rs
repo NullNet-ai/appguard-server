@@ -10,6 +10,7 @@ use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
     CreateBody, CreateParams, CreateRequest, GetByFilterBody, GetByFilterRequest, GetByIdRequest,
     LoginBody, LoginData, LoginRequest, MultipleSort, Params, Query, ResponseData, UpdateRequest,
+    UpsertBody, UpsertRequest,
 };
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
@@ -74,7 +75,7 @@ impl DatastoreWrapper {
             }),
             body: Some(BatchCreateBody {
                 records,
-                entity_prefix: String::from("BL"),
+                entity_prefix: String::from("AG"),
             }),
         };
 
@@ -84,32 +85,34 @@ impl DatastoreWrapper {
         result
     }
 
-    // todo: upsert item to datastore
     pub(crate) async fn upsert(
         &mut self,
         entry: &DbEntry,
+        conflict_columns: Vec<String>,
         token: &str,
     ) -> Result<ResponseData, Error> {
         let record = entry.to_json()?;
         let table = entry.table().to_str();
 
-        let request = CreateRequest {
-            params: Some(CreateParams {
+        let request = UpsertRequest {
+            params: Some(Params {
+                id: String::new(),
                 table: table.into(),
             }),
             query: Some(Query {
                 pluck: String::from("id"),
                 durability: String::from("soft"),
             }),
-            body: Some(CreateBody {
-                record,
+            body: Some(UpsertBody {
+                data: record,
+                conflict_columns,
                 entity_prefix: String::from("AG"),
             }),
         };
 
-        log::trace!("Before create to {table}");
-        let result = self.inner.create(request, token).await;
-        log::trace!("After create to {table}");
+        log::trace!("Before upsert to {table}");
+        let result = self.inner.upsert(request, token).await;
+        log::trace!("After upsert to {table}");
         result
     }
 

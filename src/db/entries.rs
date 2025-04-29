@@ -44,7 +44,9 @@ impl DbEntry {
                 log::info!("SMTP response #{} inserted in datastore", d.id);
             }
             DbEntry::IpInfo((i, _)) => {
-                let _ = ds.upsert(self, token.as_str()).await?;
+                let _ = ds
+                    .upsert(self, vec!["ip".to_string()], token.as_str())
+                    .await?;
                 log::info!("IP info for {} inserted in datastore", i.ip);
             }
             DbEntry::TcpConnection((_, id)) => {
@@ -55,7 +57,9 @@ impl DbEntry {
                 let _ = ds.insert_batch(self, token.as_str()).await?;
             }
             DbEntry::Firewall(_) => {
-                let _ = ds.upsert(self, token.as_str()).await?;
+                let _ = ds
+                    .upsert(self, vec!["app_id".to_string()], token.as_str())
+                    .await?;
                 log::info!("Firewall inserted in datastore");
             }
         }
