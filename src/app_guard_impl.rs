@@ -28,7 +28,7 @@ use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
 use nullnet_libtoken::Token;
 use tokio::sync::mpsc::UnboundedSender;
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{mpsc, Mutex, RwLock};
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 
 pub struct AppGuardImpl {
@@ -36,8 +36,7 @@ pub struct AppGuardImpl {
     ds: DatastoreWrapper,
     entry_ids: EntryIds,
     unanswered_connections: Arc<Mutex<HashMap<u64, Instant>>>,
-    // firewall: Arc<RwLock<Firewall>>,
-    firewalls: Arc<Mutex<HashMap<String, Firewall>>>,
+    firewalls: Arc<RwLock<HashMap<String, Firewall>>>,
     ip_info_cache: Arc<Mutex<IndexMap<String, AppGuardIpInfo>>>,
     ip_info_handler: IpInfoHandler,
     tx_store: UnboundedSender<DbEntry>,
@@ -78,13 +77,6 @@ impl AppGuardImpl {
         let config_pair_2 = config_pair.clone();
         let config_pair_3 = config_pair.clone();
 
-        // let firewall = Firewall::load_from_infix(FIREWALL_FILE).unwrap_or_default();
-        // log::info!(
-        //     "Loaded firewall: {}",
-        //     serde_json::to_string(&firewall).unwrap_or_default()
-        // );
-        // let firewall_shared = Arc::new(RwLock::new(firewall));
-        // let firewall_shared_2 = firewall_shared.clone();
         let firewalls = ds.get_firewalls().await?;
 
         let ip_info_handler = ip_info_handler();
@@ -116,10 +108,6 @@ impl AppGuardImpl {
             watch_config(&config_pair_2).expect("Watch configuration thread failed");
         });
 
-        // thread::spawn(move || {
-        //     watch_firewall(&firewall_shared_2).expect("Watch firewall thread failed");
-        // });
-
         tokio::spawn(async move {
             delete_old_entries(&config_pair_3, &ds_2, &ip_info_cache_2)
                 .await
@@ -135,8 +123,7 @@ impl AppGuardImpl {
             ds,
             entry_ids: EntryIds::default(),
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
-            // firewall: firewall_shared,
-            firewalls: Arc::new(Mutex::new(firewalls)),
+            firewalls: Arc::new(RwLock::new(firewalls)),
             ip_info_cache,
             ip_info_handler,
             tx_store,
@@ -199,7 +186,7 @@ impl AppGuardImpl {
         let app_id = t.account.account_id;
         Ok(self
             .firewalls
-            .lock()
+            .read()
             .await
             .get(&app_id)
             .cloned()
@@ -255,11 +242,11 @@ impl AppGuardImpl {
 
     async fn update_firewall_impl(&self, req: Request<AppGuardFirewall>) -> Result<(), Error> {
         let firewall_req = req.into_inner();
-        let firewall = Firewall::from_infix(&firewall_req.firewall)?;
-
         let Ok(t) = Token::from_jwt(&firewall_req.token) else {
             return Err("invalid token").handle_err(location!());
         };
+        let firewall = Firewall::from_infix(&firewall_req.firewall)?;
+
         let app_id = t.account.account_id;
         log::info!("Updating firewall for '{app_id}': {firewall:?}",);
 
@@ -267,7 +254,7 @@ impl AppGuardImpl {
             .store(self.ds.clone())
             .await?;
 
-        self.firewalls.lock().await.insert(app_id, firewall);
+        self.firewalls.write().await.insert(app_id, firewall);
 
         Ok(())
     }
