@@ -13,6 +13,6 @@ RUN apt-get clean
 RUN apt-get update
 RUN apt-get install -y protobuf-compiler
 
-RUN VERSION_TAG=${VERSION_TAG} IP_INFO_API_KEY=${IP_INFO_API_KEY} cargo build --features no-ai,no-tls
+RUN VERSION_TAG=${VERSION_TAG} IP_INFO_API_KEY=${IP_INFO_API_KEY} cargo build --release
 
-CMD ["./target/debug/appguard-server"]
+CMD ["./target/release/appguard-server"]
