@@ -1,6 +1,6 @@
 mod proto;
 
-use crate::proto::appguard::HeartbeatRequest;
+use crate::proto::appguard::{AppGuardFirewall, HeartbeatRequest};
 use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
@@ -48,6 +48,15 @@ impl AppGuardGrpcInterface {
             .heartbeat(Request::new(HeartbeatRequest { app_id, app_secret }))
             .await
             .map(tonic::Response::into_inner)
+            .map_err(|e| e.to_string())
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    pub async fn update_firewall(&mut self, firewall: AppGuardFirewall) -> Result<(), String> {
+        self.client
+            .update_firewall(Request::new(firewall))
+            .await
+            .map(|_| ())
             .map_err(|e| e.to_string())
     }
 
