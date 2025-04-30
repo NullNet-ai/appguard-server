@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::firewall::rules::{FirewallCompareType, FirewallRule, FirewallRuleField};
 use crate::proto::appguard::AppGuardTcpConnection;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum TcpConnectionField {
     Ip(Vec<String>),

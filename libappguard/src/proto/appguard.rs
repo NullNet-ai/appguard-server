@@ -14,6 +14,13 @@ pub struct HeartbeatResponse {
     pub status: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppGuardFirewall {
+    #[prost(string, tag = "1")]
+    pub token: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub firewall: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AppGuardTcpConnection {
     #[prost(string, tag = "1")]
     pub token: ::prost::alloc::string::String,
@@ -122,6 +129,8 @@ pub struct AppGuardSmtpResponse {
     pub tcp_info: ::core::option::Option<AppGuardTcpInfo>,
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct Empty {}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct AppGuardResponse {
     #[prost(enumeration = "FirewallPolicy", tag = "2")]
     pub policy: i32,
@@ -223,7 +232,7 @@ pub mod app_guard_client {
     }
     impl<T> AppGuardClient<T>
     where
-        T: tonic::client::GrpcService<tonic::body::BoxBody>,
+        T: tonic::client::GrpcService<tonic::body::Body>,
         T::Error: Into<StdError>,
         T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
@@ -244,13 +253,13 @@ pub mod app_guard_client {
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
             T: tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
+                http::Request<tonic::body::Body>,
                 Response = http::Response<
-                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
                 >,
             >,
             <T as tonic::codegen::Service<
-                http::Request<tonic::body::BoxBody>,
+                http::Request<tonic::body::Body>,
             >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
         {
             AppGuardClient::new(InterceptedService::new(inner, interceptor))
@@ -310,6 +319,28 @@ pub mod app_guard_client {
             req.extensions_mut()
                 .insert(GrpcMethod::new("appguard.AppGuard", "Heartbeat"));
             self.inner.server_streaming(req, path, codec).await
+        }
+        /// Firewall
+        pub async fn update_firewall(
+            &mut self,
+            request: impl tonic::IntoRequest<super::AppGuardFirewall>,
+        ) -> std::result::Result<tonic::Response<super::Empty>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/appguard.AppGuard/UpdateFirewall",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("appguard.AppGuard", "UpdateFirewall"));
+            self.inner.unary(req, path, codec).await
         }
         /// TCP
         pub async fn handle_tcp_connection(
@@ -460,6 +491,11 @@ pub mod app_guard_server {
             &self,
             request: tonic::Request<super::HeartbeatRequest>,
         ) -> std::result::Result<tonic::Response<Self::HeartbeatStream>, tonic::Status>;
+        /// Firewall
+        async fn update_firewall(
+            &self,
+            request: tonic::Request<super::AppGuardFirewall>,
+        ) -> std::result::Result<tonic::Response<super::Empty>, tonic::Status>;
         /// TCP
         async fn handle_tcp_connection(
             &self,
@@ -564,7 +600,7 @@ pub mod app_guard_server {
         B: Body + std::marker::Send + 'static,
         B::Error: Into<StdError> + std::marker::Send + 'static,
     {
-        type Response = http::Response<tonic::body::BoxBody>;
+        type Response = http::Response<tonic::body::Body>;
         type Error = std::convert::Infallible;
         type Future = BoxFuture<Self::Response, Self::Error>;
         fn poll_ready(
@@ -617,6 +653,51 @@ pub mod app_guard_server {
                                 max_encoding_message_size,
                             );
                         let res = grpc.server_streaming(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/appguard.AppGuard/UpdateFirewall" => {
+                    #[allow(non_camel_case_types)]
+                    struct UpdateFirewallSvc<T: AppGuard>(pub Arc<T>);
+                    impl<
+                        T: AppGuard,
+                    > tonic::server::UnaryService<super::AppGuardFirewall>
+                    for UpdateFirewallSvc<T> {
+                        type Response = super::Empty;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::AppGuardFirewall>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AppGuard>::update_firewall(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = UpdateFirewallSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)
@@ -849,7 +930,9 @@ pub mod app_guard_server {
                 }
                 _ => {
                     Box::pin(async move {
-                        let mut response = http::Response::new(empty_body());
+                        let mut response = http::Response::new(
+                            tonic::body::Body::default(),
+                        );
                         let headers = response.headers_mut();
                         headers
                             .insert(

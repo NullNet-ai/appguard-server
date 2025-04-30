@@ -1,30 +1,20 @@
-use std::fs::create_dir;
-use std::ops::Sub;
-use std::sync::{Arc, RwLock};
-use std::thread;
-use std::time::{Duration, Instant};
-
-use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
 
-use crate::constants::{FIREWALL_DIR, FIREWALL_FILE};
 use crate::firewall::infix_firewall::InfixFirewall;
 use crate::firewall::rules::{FirewallExpression, FirewallRule};
 use crate::proto::appguard::FirewallPolicy;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
-#[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 #[serde(transparent, rename_all = "snake_case")]
 pub struct Firewall {
     pub(super) expressions: Vec<FirewallExpression>,
 }
 
 impl Firewall {
-    pub fn load_from_infix(file: &str) -> Result<Self, Error> {
-        let file_content = std::fs::read_to_string(file).handle_err(location!())?;
-        let infix_firewall: InfixFirewall =
-            serde_json::from_str(file_content.as_str()).handle_err(location!())?;
+    pub fn from_infix(infix: &str) -> Result<Self, Error> {
+        let infix_firewall: InfixFirewall = serde_json::from_str(infix).handle_err(location!())?;
 
         if infix_firewall.is_valid() {
             Ok(infix_firewall.into_firewall())
@@ -33,11 +23,21 @@ impl Firewall {
         }
     }
 
-    // fn is_valid(&self) -> bool {
-    //     self.expressions
-    //         .iter()
-    //         .all(|expr| expr.expression.is_valid())
-    // }
+    pub fn from_postfix(postfix: &str) -> Result<Self, Error> {
+        let firewall: Firewall = serde_json::from_str(postfix).handle_err(location!())?;
+
+        if firewall.is_valid() {
+            Ok(firewall)
+        } else {
+            Err("Found invalid firewall postfix expression").handle_err(location!())?
+        }
+    }
+
+    fn is_valid(&self) -> bool {
+        self.expressions
+            .iter()
+            .all(|expr| expr.expression.is_valid())
+    }
 
     pub fn match_item<I: PredicateEvaluator<Predicate = FirewallRule, Reason = String>>(
         &self,
@@ -73,49 +73,6 @@ impl FirewallResult {
 impl Default for FirewallResult {
     fn default() -> Self {
         Self::new(FirewallPolicy::Allow, Vec::new())
-    }
-}
-
-pub fn watch_firewall(firewall: &Arc<RwLock<Firewall>>) -> Result<(), Error> {
-    create_dir(FIREWALL_DIR).unwrap_or_default();
-
-    let (tx, rx) = std::sync::mpsc::channel();
-    let mut watcher =
-        RecommendedWatcher::new(tx, notify::Config::default()).handle_err(location!())?;
-    watcher
-        .watch(FIREWALL_DIR.as_ref(), RecursiveMode::Recursive)
-        .handle_err(location!())?;
-
-    let mut last_update_time = Instant::now().sub(Duration::from_secs(60));
-
-    loop {
-        // only update firewall if the event is related to a file change
-        if let Ok(Ok(Event {
-            kind: EventKind::Modify(_),
-            ..
-        })) = rx.recv()
-        {
-            // debounce duplicated events
-            if last_update_time.elapsed().as_millis() > 100 {
-                // ensure file changes are propagated
-                thread::sleep(Duration::from_millis(100));
-
-                match Firewall::load_from_infix(FIREWALL_FILE) {
-                    Ok(new_firewall) => {
-                        log::info!(
-                            "Updated firewall: {}",
-                            serde_json::to_string(&new_firewall).unwrap_or_default()
-                        );
-                        *firewall.write().handle_err(location!())? = new_firewall;
-                    }
-                    Err(_) => {
-                        log::warn!("Invalid firewall definition (ignored)");
-                    }
-                }
-
-                last_update_time = Instant::now();
-            }
-        }
     }
 }
 
@@ -238,14 +195,14 @@ mod tests {
 
     const SERIALIZED_SAMPLE_FIREWALL: &str = r#"[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"equal","protocol":["HTTP","HTTPS"],"direction":"in"},{"type":"predicate","condition":"contains","http_request_url":[".php"]},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","country":["US"]},{"type":"operator","value":"and"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","smtp_request_body":["Hello"]},{"type":"predicate","condition":"greater_equal","smtp_request_header":{"From":["foo@bar.com","bar@foo.com","foo@baz.com"]}},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","smtp_response_code":[205,206]},{"type":"predicate","condition":"not_starts_with","http_request_query":{"Name":["giuliano","giacomo"]}},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","http_response_size":[100,200,300]},{"type":"operator","value":"or"}]}]"#;
 
-    const SERIALIZED_SAMPLE_INFIX_FIREWALL: &str = r#"[{"policy": "deny", "infix_tokens": [{"type": "parenthesis", "value": "open"}, {"type": "predicate", "condition": "equal", "protocol": ["HTTP", "HTTPS"], "direction": "in"}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "contains", "http_request_url": [".php"]}, {"type": "parenthesis", "value": "close"}, {"type": "operator", "value": "and"}, {"type": "predicate", "condition": "equal", "country": ["US"]}]}, {"policy": "allow", "infix_tokens": [{"type": "predicate", "condition": "contains", "smtp_request_body": ["Hello"]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "greater_equal", "smtp_request_header": {"From": ["foo@bar.com", "bar@foo.com", "foo@baz.com"]}}]}, {"policy": "deny", "infix_tokens": [{"type": "predicate", "condition": "lower_than", "smtp_response_code": [205, 206]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "not_starts_with", "http_request_query": {"Name": ["giuliano", "giacomo"]}}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "ends_with", "http_response_size": [100, 200, 300]}]}]"#;
-
     #[test]
     fn test_firewall_load_from_infix_json() {
         // for the firewall in the root directory, just verify the file is valid
-        let _ = Firewall::load_from_infix("firewall.json").unwrap();
+        let content = std::fs::read_to_string("firewall.json").unwrap();
+        let _ = Firewall::from_infix(&content).unwrap();
 
-        let firewall = Firewall::load_from_infix("test_material/firewall_test_1.json").unwrap();
+        let content = std::fs::read_to_string("test_material/firewall_test_1.json").unwrap();
+        let firewall = Firewall::from_infix(&content).unwrap();
         assert_eq!(firewall, *DESERIALIZED_SAMPLE_FIREWALL);
         assert_eq!(
             serde_json::to_string(&firewall).unwrap(),
@@ -258,48 +215,16 @@ mod tests {
     }
 
     #[test]
-    fn test_watch_firewall() {
-        // verify initial firewall file
-        let firewall = Firewall::load_from_infix(FIREWALL_FILE).unwrap();
-        assert_eq!(firewall, *DESERIALIZED_SAMPLE_FIREWALL);
-
-        // spawn thread
-        let firewall = Arc::new(RwLock::new(firewall));
-        let firewall_clone = firewall.clone();
-        thread::spawn(move || {
-            watch_firewall(&firewall_clone).unwrap();
-        });
-
-        // write invalid firewall and verify it's not loaded
-        std::fs::write(FIREWALL_FILE, "i'm an invalid firewall").unwrap();
-        thread::sleep(Duration::from_secs(1));
-        assert_eq!(*firewall.read().unwrap(), *DESERIALIZED_SAMPLE_FIREWALL);
-
-        // write a new valid firewall and verify it's loaded
-        std::fs::write(FIREWALL_FILE, "[]").unwrap();
-        thread::sleep(Duration::from_secs(1));
-        assert_eq!(
-            *firewall.read().unwrap(),
-            Firewall {
-                expressions: Vec::new()
-            }
-        );
-
-        // write the previous valid firewall and verify it's loaded
-        std::fs::write(FIREWALL_FILE, SERIALIZED_SAMPLE_INFIX_FIREWALL).unwrap();
-        thread::sleep(Duration::from_secs(1));
-        assert_eq!(*firewall.read().unwrap(), *DESERIALIZED_SAMPLE_FIREWALL);
-    }
-
-    #[test]
     fn test_firewall_load_from_infix_json_with_error() {
-        let firewall = Firewall::load_from_infix("test_material/firewall_test_2.json");
+        let content = std::fs::read_to_string("test_material/firewall_test_2.json").unwrap();
+        let firewall = Firewall::from_infix(&content);
         assert!(firewall.is_err());
     }
 
     #[test]
     fn test_firewall_match_items() {
-        let firewall = Firewall::load_from_infix("test_material/firewall_test_1.json").unwrap();
+        let content = std::fs::read_to_string("test_material/firewall_test_1.json").unwrap();
+        let firewall = Firewall::from_infix(&content).unwrap();
 
         let mut item_1 = AppGuardTcpInfo::default();
         assert_eq!(firewall.match_item(&item_1), FirewallResult::default());

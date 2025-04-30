@@ -2,7 +2,7 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct HeaderVal(pub String, pub Vec<String>);
 
 impl Serialize for HeaderVal {

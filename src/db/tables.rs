@@ -7,6 +7,7 @@ pub enum DbTable {
     SmtpRequest,
     SmtpResponse,
     Blacklist,
+    Firewall,
 }
 
 impl DbTable {
@@ -19,6 +20,7 @@ impl DbTable {
             DbTable::SmtpRequest => "smtp_requests",
             DbTable::SmtpResponse => "smtp_responses",
             DbTable::Blacklist => "ip_blacklist",
+            DbTable::Firewall => "app_firewalls",
         }
     }
 }

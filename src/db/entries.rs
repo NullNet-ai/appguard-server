@@ -1,6 +1,6 @@
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::tables::DbTable;
-use crate::firewall::firewall::FirewallResult;
+use crate::firewall::firewall::{Firewall, FirewallResult};
 use crate::helpers::authenticate;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardSmtpRequest,
@@ -8,7 +8,8 @@ use crate::proto::appguard::{
 };
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use std::fmt::Write;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 pub enum DbEntry {
     HttpRequest((AppGuardHttpRequest, DbDetails)),
@@ -18,6 +19,7 @@ pub enum DbEntry {
     IpInfo((AppGuardIpInfo, String)),
     TcpConnection((AppGuardTcpConnection, u64)),
     Blacklist((Vec<String>, String)),
+    Firewall((String, Firewall, String)),
 }
 
 impl DbEntry {
@@ -42,7 +44,9 @@ impl DbEntry {
                 log::info!("SMTP response #{} inserted in datastore", d.id);
             }
             DbEntry::IpInfo((i, _)) => {
-                let _ = ds.insert(self, token.as_str()).await?;
+                let _ = ds
+                    .upsert(self, vec!["ip".to_string()], token.as_str())
+                    .await?;
                 log::info!("IP info for {} inserted in datastore", i.ip);
             }
             DbEntry::TcpConnection((_, id)) => {
@@ -51,6 +55,12 @@ impl DbEntry {
             }
             DbEntry::Blacklist(_) => {
                 let _ = ds.insert_batch(self, token.as_str()).await?;
+            }
+            DbEntry::Firewall(_) => {
+                let _ = ds
+                    .upsert(self, vec!["app_id".to_string()], token.as_str())
+                    .await?;
+                log::info!("Firewall inserted in datastore");
             }
         }
         Ok(())
@@ -73,6 +83,7 @@ impl DbEntry {
                 json.push(']');
                 Ok(json)
             }
+            DbEntry::Firewall((app_id, f, _)) => f.to_json(app_id),
         }
     }
 
@@ -85,6 +96,7 @@ impl DbEntry {
             DbEntry::IpInfo(_) => DbTable::IpInfo,
             DbEntry::TcpConnection(_) => DbTable::TcpConnection,
             DbEntry::Blacklist(_) => DbTable::Blacklist,
+            DbEntry::Firewall(_) => DbTable::Firewall,
         }
     }
 
@@ -95,7 +107,9 @@ impl DbEntry {
             DbEntry::SmtpRequest((r, _)) => r.token.clone(),
             DbEntry::SmtpResponse((r, _)) => r.token.clone(),
             DbEntry::TcpConnection((c, _)) => c.token.clone(),
-            DbEntry::IpInfo((_, a)) | DbEntry::Blacklist((_, a)) => a.clone(),
+            DbEntry::IpInfo((_, a)) | DbEntry::Blacklist((_, a)) | DbEntry::Firewall((_, _, a)) => {
+                a.clone()
+            }
         }
     }
 }
@@ -141,18 +155,19 @@ pub struct EntryIds {
 }
 
 impl EntryIds {
-    pub fn get_next(&self, table: DbTable) -> Result<u64, Error> {
+    pub async fn get_next(&self, table: DbTable) -> Result<u64, Error> {
         let mut id = match table {
             DbTable::TcpConnection => &self.tcp_connection,
             DbTable::HttpRequest => &self.http_request,
             DbTable::HttpResponse => &self.http_response,
             DbTable::SmtpRequest => &self.smtp_request,
             DbTable::SmtpResponse => &self.smtp_response,
-            DbTable::IpInfo => return Err("Not applicable").handle_err(location!()),
-            DbTable::Blacklist => return Err("Not applicable").handle_err(location!()),
+            DbTable::IpInfo | DbTable::Blacklist | DbTable::Firewall => {
+                return Err("Not applicable").handle_err(location!())
+            }
         }
         .lock()
-        .handle_err(location!())?;
+        .await;
         *id += 1;
         Ok(*id)
     }
@@ -163,17 +178,18 @@ impl EntryIds {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_table_ids_get_next() {
+    #[tokio::test]
+    async fn test_table_ids_get_next() {
         let table_ids = EntryIds::default();
-        assert_eq!(table_ids.get_next(DbTable::TcpConnection).unwrap(), 1);
-        assert_eq!(table_ids.get_next(DbTable::TcpConnection).unwrap(), 2);
-        assert_eq!(table_ids.get_next(DbTable::HttpRequest).unwrap(), 1);
-        assert_eq!(table_ids.get_next(DbTable::HttpResponse).unwrap(), 1);
-        assert_eq!(table_ids.get_next(DbTable::SmtpRequest).unwrap(), 1);
-        assert_eq!(table_ids.get_next(DbTable::SmtpResponse).unwrap(), 1);
-        assert_eq!(table_ids.get_next(DbTable::TcpConnection).unwrap(), 3);
-        assert_eq!(table_ids.get_next(DbTable::SmtpResponse).unwrap(), 2);
-        assert!(table_ids.get_next(DbTable::IpInfo).is_err());
+        assert_eq!(table_ids.get_next(DbTable::TcpConnection).await.unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::TcpConnection).await.unwrap(), 2);
+        assert_eq!(table_ids.get_next(DbTable::HttpRequest).await.unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::HttpResponse).await.unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::SmtpRequest).await.unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::SmtpResponse).await.unwrap(), 1);
+        assert_eq!(table_ids.get_next(DbTable::TcpConnection).await.unwrap(), 3);
+        assert_eq!(table_ids.get_next(DbTable::SmtpResponse).await.unwrap(), 2);
+        assert!(table_ids.get_next(DbTable::IpInfo).await.is_err());
+        assert!(table_ids.get_next(DbTable::Firewall).await.is_err());
     }
 }

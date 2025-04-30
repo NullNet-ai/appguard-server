@@ -1,6 +1,8 @@
+use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET};
 use crate::db::entries::DbEntry;
 use crate::db::store::latest_device_info::LatestDeviceInfo;
 use crate::db::tables::DbTable;
+use crate::firewall::firewall::Firewall;
 use crate::helpers::map_status_value_to_enum;
 use crate::proto::appguard::{AppGuardIpInfo, DeviceStatus};
 use chrono::Utc;
@@ -8,6 +10,7 @@ use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
     CreateBody, CreateParams, CreateRequest, GetByFilterBody, GetByFilterRequest, GetByIdRequest,
     LoginBody, LoginData, LoginRequest, MultipleSort, Params, Query, ResponseData, UpdateRequest,
+    UpsertBody, UpsertRequest,
 };
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
@@ -72,13 +75,44 @@ impl DatastoreWrapper {
             }),
             body: Some(BatchCreateBody {
                 records,
-                entity_prefix: String::from("BL"),
+                entity_prefix: String::from("AG"),
             }),
         };
 
         log::trace!("Before create batch to {table}");
         let result = self.inner.batch_create(request, token).await;
         log::trace!("After create batch to {table}");
+        result
+    }
+
+    pub(crate) async fn upsert(
+        &mut self,
+        entry: &DbEntry,
+        conflict_columns: Vec<String>,
+        token: &str,
+    ) -> Result<ResponseData, Error> {
+        let record = entry.to_json()?;
+        let table = entry.table().to_str();
+
+        let request = UpsertRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: table.into(),
+            }),
+            query: Some(Query {
+                pluck: String::from("id"),
+                durability: String::from("soft"),
+            }),
+            body: Some(UpsertBody {
+                data: record,
+                conflict_columns,
+                entity_prefix: String::from("AG"),
+            }),
+        };
+
+        log::trace!("Before upsert to {table}");
+        let result = self.inner.upsert(request, token).await;
+        log::trace!("After upsert to {table}");
         result
     }
 
@@ -231,6 +265,74 @@ impl DatastoreWrapper {
         Ok(count)
     }
 
+    // SELECT app_id, firewall FROM {table}
+    pub(crate) async fn get_firewalls(&mut self) -> Result<HashMap<String, Firewall>, Error> {
+        let table = DbTable::Firewall.to_str();
+        let token = self
+            .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string())
+            .await?;
+
+        let request = GetByFilterRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: table.into(),
+            }),
+            body: Some(GetByFilterBody {
+                pluck: vec!["app_id".to_string(), "firewall".to_string()],
+                advance_filters: vec![],
+                order_by: String::new(),
+                limit: i32::MAX,
+                offset: 0,
+                order_direction: String::new(),
+                joins: vec![],
+                multiple_sort: vec![],
+                pluck_object: HashMap::default(),
+                date_format: String::new(),
+            }),
+        };
+
+        log::trace!("Before get by filter to {table}");
+        // todo: verify query
+        let result = self.inner.get_by_filter(request, &token).await?.data;
+        log::trace!("After get by filter to {table}: {result}");
+
+        Self::internal_firewall_parse_response_data(&result)
+    }
+
+    fn internal_firewall_parse_response_data(
+        data: &str,
+    ) -> Result<HashMap<String, Firewall>, Error> {
+        let mut ret_val = HashMap::new();
+
+        let array_val = serde_json::from_str::<serde_json::Value>(data).handle_err(location!())?;
+        let array = array_val
+            .as_array()
+            .ok_or("Failed to parse response")
+            .handle_err(location!())?;
+
+        for i in array {
+            let Some(map) = i.as_object() else { continue };
+            let Some(app_id_val) = map.get("app_id") else {
+                continue;
+            };
+            let Some(app_id_str) = app_id_val.as_str() else {
+                continue;
+            };
+            let Some(firewall_val) = map.get("firewall") else {
+                continue;
+            };
+            let Some(firewall_str) = firewall_val.as_str() else {
+                continue;
+            };
+            let Some(firewall) = Firewall::from_postfix(firewall_str).ok() else {
+                continue;
+            };
+            ret_val.insert(app_id_str.to_string(), firewall);
+        }
+
+        Ok(ret_val)
+    }
+
     pub async fn login(&self, account_id: String, account_secret: String) -> Result<String, Error> {
         let request = LoginRequest {
             body: Some(LoginBody {
@@ -373,5 +475,20 @@ impl DatastoreWrapper {
 
         let response = client.get_by_id(request, token).await?;
         LatestDeviceInfo::from_response_data(&response)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::db::datastore_wrapper::DatastoreWrapper;
+    use crate::firewall::firewall::Firewall;
+
+    #[test]
+    fn test_internal_firewall_parse_response_data() {
+        let data = r#"[{"app_id": "app1", "firewall": "[]"}, {"app_id": "app2", "firewall": "[{\"policy\": \"deny\", \"postfix_tokens\": [{\"type\": \"predicate\", \"condition\": \"equal\", \"protocol\": [\"HTTPS\"]}]}]"}]"#;
+        let result = DatastoreWrapper::internal_firewall_parse_response_data(data).unwrap();
+        assert_eq!(result.len(), 2);
+        assert_eq!(*result.get("app1").unwrap(), Firewall::default());
+        assert_eq!(*result.get("app2").unwrap(), Firewall::from_postfix(r#"[{"policy": "deny", "postfix_tokens": [{"type": "predicate", "condition": "equal", "protocol": ["HTTPS"]}]}]"#).unwrap());
     }
 }

@@ -7,7 +7,7 @@ use crate::proto::appguard::{AppGuardIpInfo, AppGuardSmtpRequest, AppGuardTcpInf
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[allow(clippy::enum_variant_names)]
 #[serde(rename_all = "snake_case")]
 pub enum SmtpRequestField {

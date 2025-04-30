@@ -1,5 +1,6 @@
 #![allow(clippy::module_inception)]
 
+mod firewall;
 mod http_request;
 mod http_response;
 mod ip_info;

@@ -9,12 +9,13 @@ use chrono::Utc;
 use indexmap::IndexMap;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use std::ops::Sub;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Condvar};
 use std::time::Duration;
 use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::sync::Mutex;
 
 pub async fn delete_old_entries(
-    config_pair: &Arc<(Mutex<Config>, Condvar)>,
+    config_pair: &Arc<(std::sync::Mutex<Config>, Condvar)>,
     ds: &DatastoreWrapper,
     ip_info_cache: &Arc<Mutex<IndexMap<String, AppGuardIpInfo>>>,
 ) -> Result<(), Error> {
@@ -59,7 +60,7 @@ pub async fn delete_old_entries(
         if num_deleted > 0 {
             log::info!("Deleted {num_deleted} IP info(s) from datastore older than {threshold}");
             // clear the cache if at least one entry was deleted
-            ip_info_cache.lock().handle_err(location!())?.clear();
+            ip_info_cache.lock().await.clear();
         }
 
         let _ = config_pair
