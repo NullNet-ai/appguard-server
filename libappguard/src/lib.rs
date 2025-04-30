@@ -1,11 +1,11 @@
 mod proto;
 
-use crate::proto::appguard::{AppGuardFirewall, HeartbeatRequest};
+use crate::proto::appguard::HeartbeatRequest;
 use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::appguard::{
-    AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
-    AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse,
-    DeviceStatus, FirewallPolicy, HeartbeatResponse,
+    AppGuardFirewall, AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse,
+    AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
+    AppGuardTcpResponse, DeviceStatus, FirewallPolicy, HeartbeatResponse,
 };
 use std::future::Future;
 use tonic::transport::{Channel, ClientTlsConfig};
