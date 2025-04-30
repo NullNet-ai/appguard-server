@@ -44,7 +44,6 @@ ctrlc = { version = "3.4.5", features = ["termination"] }
 log = "0.4.26"
 rpn-predicate-interpreter = { git = "https://github.com/GyulyVGC/postfix-predicate-interpreter.git", branch = "appguard" }
 indexmap = "2.7.1"
-#gag = "1.0.0"
 
 [build-dependencies]
 tonic-build = "0.13.0"

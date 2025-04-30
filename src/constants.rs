@@ -11,7 +11,6 @@ pub static IP_INFO_API_KEY: std::sync::LazyLock<String> = std::sync::LazyLock::n
 // -------------------------------------------------------------------------------------------------
 
 // server constants
-
 pub const ADDR: &str = "0.0.0.0";
 pub const PORT: u16 = 50051;
 
@@ -52,19 +51,6 @@ const DEFAULT_BLACKLIST_LINK: &str =
 pub static BLACKLIST_LINK: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
     std::env::var("BLACKLIST_LINK").unwrap_or_else(|_| DEFAULT_BLACKLIST_LINK.to_string())
 });
-
-// -------------------------------------------------------------------------------------------------
-
-// // firewall constants
-// #[cfg(not(debug_assertions))]
-// pub const FIREWALL_FILE: &str = "/opt/firewall/firewall.json";
-// #[cfg(debug_assertions)]
-// pub const FIREWALL_FILE: &str = "./test_material/firewall/firewall.json";
-//
-// #[cfg(not(debug_assertions))]
-// pub const FIREWALL_DIR: &str = "/opt/firewall";
-// #[cfg(debug_assertions)]
-// pub const FIREWALL_DIR: &str = "./test_material/firewall";
 
 // -------------------------------------------------------------------------------------------------
 

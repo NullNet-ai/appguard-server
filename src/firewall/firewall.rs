@@ -76,49 +76,6 @@ impl Default for FirewallResult {
     }
 }
 
-// pub fn watch_firewall(firewall: &Arc<RwLock<Firewall>>) -> Result<(), Error> {
-//     create_dir(FIREWALL_DIR).unwrap_or_default();
-//
-//     let (tx, rx) = std::sync::mpsc::channel();
-//     let mut watcher =
-//         RecommendedWatcher::new(tx, notify::Config::default()).handle_err(location!())?;
-//     watcher
-//         .watch(FIREWALL_DIR.as_ref(), RecursiveMode::Recursive)
-//         .handle_err(location!())?;
-//
-//     let mut last_update_time = Instant::now().sub(Duration::from_secs(60));
-//
-//     loop {
-//         // only update firewall if the event is related to a file change
-//         if let Ok(Ok(Event {
-//             kind: EventKind::Modify(_),
-//             ..
-//         })) = rx.recv()
-//         {
-//             // debounce duplicated events
-//             if last_update_time.elapsed().as_millis() > 100 {
-//                 // ensure file changes are propagated
-//                 thread::sleep(Duration::from_millis(100));
-//
-//                 match Firewall::load_from_infix(FIREWALL_FILE) {
-//                     Ok(new_firewall) => {
-//                         log::info!(
-//                             "Updated firewall: {}",
-//                             serde_json::to_string(&new_firewall).unwrap_or_default()
-//                         );
-//                         *firewall.write().handle_err(location!())? = new_firewall;
-//                     }
-//                     Err(_) => {
-//                         log::warn!("Invalid firewall definition (ignored)");
-//                     }
-//                 }
-//
-//                 last_update_time = Instant::now();
-//             }
-//         }
-//     }
-// }
-
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
@@ -238,8 +195,6 @@ mod tests {
 
     const SERIALIZED_SAMPLE_FIREWALL: &str = r#"[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"equal","protocol":["HTTP","HTTPS"],"direction":"in"},{"type":"predicate","condition":"contains","http_request_url":[".php"]},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","country":["US"]},{"type":"operator","value":"and"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","smtp_request_body":["Hello"]},{"type":"predicate","condition":"greater_equal","smtp_request_header":{"From":["foo@bar.com","bar@foo.com","foo@baz.com"]}},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","smtp_response_code":[205,206]},{"type":"predicate","condition":"not_starts_with","http_request_query":{"Name":["giuliano","giacomo"]}},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","http_response_size":[100,200,300]},{"type":"operator","value":"or"}]}]"#;
 
-    // const SERIALIZED_SAMPLE_INFIX_FIREWALL: &str = r#"[{"policy": "deny", "infix_tokens": [{"type": "parenthesis", "value": "open"}, {"type": "predicate", "condition": "equal", "protocol": ["HTTP", "HTTPS"], "direction": "in"}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "contains", "http_request_url": [".php"]}, {"type": "parenthesis", "value": "close"}, {"type": "operator", "value": "and"}, {"type": "predicate", "condition": "equal", "country": ["US"]}]}, {"policy": "allow", "infix_tokens": [{"type": "predicate", "condition": "contains", "smtp_request_body": ["Hello"]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "greater_equal", "smtp_request_header": {"From": ["foo@bar.com", "bar@foo.com", "foo@baz.com"]}}]}, {"policy": "deny", "infix_tokens": [{"type": "predicate", "condition": "lower_than", "smtp_response_code": [205, 206]}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "not_starts_with", "http_request_query": {"Name": ["giuliano", "giacomo"]}}, {"type": "operator", "value": "or"}, {"type": "predicate", "condition": "ends_with", "http_response_size": [100, 200, 300]}]}]"#;
-
     #[test]
     fn test_firewall_load_from_infix_json() {
         // for the firewall in the root directory, just verify the file is valid
@@ -258,40 +213,6 @@ mod tests {
             *DESERIALIZED_SAMPLE_FIREWALL
         );
     }
-
-    // #[test]
-    // fn test_watch_firewall() {
-    //     // verify initial firewall file
-    //     let firewall = Firewall::load_from_infix(FIREWALL_FILE).unwrap();
-    //     assert_eq!(firewall, *DESERIALIZED_SAMPLE_FIREWALL);
-    //
-    //     // spawn thread
-    //     let firewall = Arc::new(RwLock::new(firewall));
-    //     let firewall_clone = firewall.clone();
-    //     thread::spawn(move || {
-    //         watch_firewall(&firewall_clone).unwrap();
-    //     });
-    //
-    //     // write invalid firewall and verify it's not loaded
-    //     std::fs::write(FIREWALL_FILE, "i'm an invalid firewall").unwrap();
-    //     thread::sleep(Duration::from_secs(1));
-    //     assert_eq!(*firewall.read().unwrap(), *DESERIALIZED_SAMPLE_FIREWALL);
-    //
-    //     // write a new valid firewall and verify it's loaded
-    //     std::fs::write(FIREWALL_FILE, "[]").unwrap();
-    //     thread::sleep(Duration::from_secs(1));
-    //     assert_eq!(
-    //         *firewall.read().unwrap(),
-    //         Firewall {
-    //             expressions: Vec::new()
-    //         }
-    //     );
-    //
-    //     // write the previous valid firewall and verify it's loaded
-    //     std::fs::write(FIREWALL_FILE, SERIALIZED_SAMPLE_INFIX_FIREWALL).unwrap();
-    //     thread::sleep(Duration::from_secs(1));
-    //     assert_eq!(*firewall.read().unwrap(), *DESERIALIZED_SAMPLE_FIREWALL);
-    // }
 
     #[test]
     fn test_firewall_load_from_infix_json_with_error() {

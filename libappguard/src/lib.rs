@@ -1,13 +1,11 @@
 mod proto;
 
-use crate::proto::appguard::{
-    HeartbeatRequest
-};
+use crate::proto::appguard::HeartbeatRequest;
 use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse,
-    DeviceStatus, FirewallPolicy,HeartbeatResponse
+    DeviceStatus, FirewallPolicy, HeartbeatResponse,
 };
 use std::future::Future;
 use tonic::transport::{Channel, ClientTlsConfig};
@@ -45,16 +43,9 @@ impl AppGuardGrpcInterface {
         &mut self,
         app_id: String,
         app_secret: String,
-        device_version: String,
-        device_uuid: String,
     ) -> Result<Streaming<HeartbeatResponse>, String> {
         self.client
-            .heartbeat(Request::new(HeartbeatRequest {
-                app_id,
-                app_secret,
-                device_version,
-                device_uuid,
-            }))
+            .heartbeat(Request::new(HeartbeatRequest { app_id, app_secret }))
             .await
             .map(tonic::Response::into_inner)
             .map_err(|e| e.to_string())
