@@ -23,11 +23,10 @@ jobs:
           - os: ubuntu
 #          - os: windows
 
+    uses: NullNet-ai/appguard-server/.github/workflows/gitlab_mirror.yml@main
+
     steps:
       - uses: actions/checkout@v4
-
-      - name: Mirror to GitLab
-        uses: NullNet-ai/appguard-server/.github/workflows/gitlab_mirror.yml@main
 
       - uses: dtolnay/rust-toolchain@stable
         with:
