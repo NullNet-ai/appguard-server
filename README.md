@@ -44,4 +44,4 @@ For an example of a firewall specification, see the [`firewall.json`](./firewall
 Internally, each mathematical expression of the firewall is parsed
 and converted to its equivalent [Reverse Polish Notation](https://en.m.wikipedia.org/wiki/Reverse_Polish_notation) (RPN),
 also known as *postfix* form.<br>
-The RPN form is then used to more efficiently evaluate the expression against the incoming traffic.
+The RPN form is then used to more efficiently evaluate the expression against the incoming traffic
