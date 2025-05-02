@@ -11,6 +11,9 @@ env:
 # Linters inspired from here: https://github.com/actions-rs/meta/blob/master/recipes/quickstart.md
 jobs:
 
+  mirror_to_gitlab:
+    uses: NullNet-ai/appguard-server/.github/workflows/gitlab_mirror.yml@main
+
   rust:
     timeout-minutes: 10
     name: ${{ matrix.os }}-latest
@@ -22,8 +25,6 @@ jobs:
           - os: macos
           - os: ubuntu
 #          - os: windows
-
-    uses: NullNet-ai/appguard-server/.github/workflows/gitlab_mirror.yml@main
 
     steps:
       - uses: actions/checkout@v4
