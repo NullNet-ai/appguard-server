@@ -18,7 +18,7 @@ jobs:
 
       - name: Configure Git for GitLab
         run: |
-          git remote add gitlab https://oauth2:${GITLAB_TOKEN}@gitlab.nullnet.ai/nullnet/${{github.repository}}.git
+          git remote add gitlab https://oauth2:${GITLAB_TOKEN}@gitlab.nullnet.ai/nullnet/${{github.event.repository.name}}.git
           git config --global user.name "Giuliano Bellini"
           git config --global user.email "giulianob@dnamicro.com"
           git pull
