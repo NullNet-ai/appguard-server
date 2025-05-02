@@ -16,7 +16,7 @@ The **server** is responsible for:
   - the [ipapi.co](https://ipapi.co) API
   - MaxMind databases from [ipinfo.io](https://ipinfo.io) updated daily
   - the [ipsum](https://github.com/stamparm/ipsum) daily updated feed of malicious IP addresses
-- matching the traffic against a set of user-defined firewall rules that can be dynamically updated at runtime
+- matching the traffic against a set of client-defined firewall rules that can be dynamically updated at runtime
 - returning the result of the firewall to the client library
 
 The **client libraries** are responsible for:
