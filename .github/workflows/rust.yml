@@ -1,11 +1,9 @@
 name: Rust
 
 on:
-  workflow_dispatch:
-  workflow_call:
-    secrets:
-      PAT:
-        required: true
+  push:
+    branches:
+      - 'main'
 
 env:
   CARGO_TERM_COLOR: always
@@ -27,9 +25,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          token: ${{ secrets.PAT }}
+
+      - name: Mirror to GitLab
+        uses: NullNet-ai/appguard-server/.github/workflows/gitlab_mirror.yml@main
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
