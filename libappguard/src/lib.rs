@@ -8,8 +8,9 @@ pub use proto::appguard::{
     AppGuardTcpResponse, DeviceStatus, FirewallPolicy, HeartbeatResponse,
 };
 use std::future::Future;
+pub use tonic::Streaming;
 use tonic::transport::{Channel, ClientTlsConfig};
-use tonic::{Request, Response, Status, Streaming};
+use tonic::{Request, Response, Status};
 
 #[derive(Clone)]
 pub struct AppGuardGrpcInterface {
