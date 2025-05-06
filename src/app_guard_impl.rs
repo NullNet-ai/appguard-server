@@ -23,6 +23,7 @@ use crate::proto::appguard::{
     AppGuardFirewall, AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
     AppGuardTcpResponse, DeviceStatus, Empty, FirewallPolicy, HeartbeatRequest, HeartbeatResponse,
+    Logs,
 };
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
@@ -259,6 +260,15 @@ impl AppGuardImpl {
         Ok(())
     }
 
+    async fn handle_logs_impl(&self, request: Request<Logs>) -> Result<Response<Empty>, Error> {
+        let logs = request.into_inner();
+        let (jwt_token, _) = authenticate(logs.token)?;
+
+        let _ = self.ds.logs_insert(&jwt_token, logs.logs).await?;
+
+        Ok(Response::new(Empty {}))
+    }
+
     async fn handle_tcp_connection_impl(
         &self,
         req: Request<AppGuardTcpConnection>,
@@ -461,6 +471,12 @@ impl AppGuard for AppGuardImpl {
                 log::error!("Error updating firewall");
                 Status::internal(err.to_str())
             })
+    }
+
+    async fn handle_logs(&self, request: Request<Logs>) -> Result<Response<Empty>, Status> {
+        // do not log inside here, otherwise it will loop
+        let result = self.handle_logs_impl(request).await;
+        result.map_err(|e| Status::internal(format!("{e:?}")))
     }
 
     async fn handle_tcp_connection(

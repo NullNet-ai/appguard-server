@@ -4,7 +4,7 @@ use crate::db::store::latest_device_info::LatestDeviceInfo;
 use crate::db::tables::DbTable;
 use crate::firewall::firewall::Firewall;
 use crate::helpers::map_status_value_to_enum;
-use crate::proto::appguard::{AppGuardIpInfo, DeviceStatus};
+use crate::proto::appguard::{AppGuardIpInfo, DeviceStatus, Log};
 use chrono::Utc;
 use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
@@ -427,6 +427,62 @@ impl DatastoreWrapper {
         let _ = create_result?;
 
         fetch_result
+    }
+
+    pub async fn logs_insert(&self, token: &str, logs: Vec<Log>) -> Result<ResponseData, Error> {
+        match logs.as_slice() {
+            [] => Ok(ResponseData {
+                count: 0,
+                data: String::new(),
+                encoding: String::new(),
+            }),
+            [log] => self.clone().logs_insert_single(log.to_owned(), token).await,
+            _ => self.clone().logs_insert_batch(logs, token).await,
+        }
+    }
+
+    async fn logs_insert_single(&mut self, log: Log, token: &str) -> Result<ResponseData, Error> {
+        let record = serde_json::to_string(&log).handle_err(location!())?;
+
+        let request = CreateRequest {
+            params: Some(CreateParams {
+                table: String::from("appguard_logs"),
+            }),
+            query: Some(Query {
+                pluck: String::from("id"),
+                durability: String::from("soft"),
+            }),
+            body: Some(CreateBody {
+                record,
+                entity_prefix: String::from("LO"),
+            }),
+        };
+
+        self.inner.create(request, token).await
+    }
+
+    async fn logs_insert_batch(
+        &mut self,
+        logs: Vec<Log>,
+        token: &str,
+    ) -> Result<ResponseData, Error> {
+        let records = serde_json::to_string(&logs).handle_err(location!())?;
+
+        let request = BatchCreateRequest {
+            params: Some(CreateParams {
+                table: String::from("appguard_logs"),
+            }),
+            query: Some(Query {
+                pluck: String::new(),
+                durability: String::from("soft"),
+            }),
+            body: Some(BatchCreateBody {
+                records,
+                entity_prefix: String::from("LO"),
+            }),
+        };
+
+        self.inner.batch_create(request, token).await
     }
 
     async fn internal_hb_create_hb_record(

@@ -7,6 +7,8 @@ service AppGuard {
   rpc Heartbeat (HeartbeatRequest) returns (stream HeartbeatResponse);
   // Firewall
   rpc UpdateFirewall (AppGuardFirewall) returns (Empty);
+  // Logs
+  rpc HandleLogs (Logs) returns (Empty);
   // TCP
   rpc HandleTcpConnection (AppGuardTcpConnection) returns (AppGuardTcpResponse);
   // HTTP
@@ -42,6 +44,18 @@ message HeartbeatResponse {
 message AppGuardFirewall {
   string token = 1;
   string firewall = 2;
+}
+
+// Logs ----------------------------------------------------------------------------------------------------------------
+message Logs {
+  string token = 1;
+  repeated Log logs = 3;
+}
+
+message Log {
+  string timestamp = 1;
+  string level = 2;
+  string message = 3;
 }
 
 // TCP -----------------------------------------------------------------------------------------------------------------
