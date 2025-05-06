@@ -5,7 +5,7 @@ use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::appguard::{
     AppGuardFirewall, AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse,
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    AppGuardTcpResponse, DeviceStatus, FirewallPolicy, HeartbeatResponse,
+    AppGuardTcpResponse, DeviceStatus, FirewallPolicy, HeartbeatResponse, Log, Logs,
 };
 use std::future::Future;
 pub use tonic::Streaming;
@@ -56,6 +56,15 @@ impl AppGuardGrpcInterface {
     pub async fn update_firewall(&mut self, firewall: AppGuardFirewall) -> Result<(), String> {
         self.client
             .update_firewall(Request::new(firewall))
+            .await
+            .map(|_| ())
+            .map_err(|e| e.to_string())
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    pub async fn handle_logs(&mut self, message: Logs) -> Result<(), String> {
+        self.client
+            .handle_logs(Request::new(message))
             .await
             .map(|_| ())
             .map_err(|e| e.to_string())

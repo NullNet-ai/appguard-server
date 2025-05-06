@@ -20,6 +20,24 @@ pub struct AppGuardFirewall {
     #[prost(string, tag = "2")]
     pub firewall: ::prost::alloc::string::String,
 }
+/// Logs ----------------------------------------------------------------------------------------------------------------
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Logs {
+    #[prost(string, tag = "1")]
+    pub token: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "3")]
+    pub logs: ::prost::alloc::vec::Vec<Log>,
+}
+#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Log {
+    #[prost(string, tag = "1")]
+    pub timestamp: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub level: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub message: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AppGuardTcpConnection {
     #[prost(string, tag = "1")]
@@ -342,6 +360,28 @@ pub mod app_guard_client {
                 .insert(GrpcMethod::new("appguard.AppGuard", "UpdateFirewall"));
             self.inner.unary(req, path, codec).await
         }
+        /// Logs
+        pub async fn handle_logs(
+            &mut self,
+            request: impl tonic::IntoRequest<super::Logs>,
+        ) -> std::result::Result<tonic::Response<super::Empty>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/appguard.AppGuard/HandleLogs",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(GrpcMethod::new("appguard.AppGuard", "HandleLogs"));
+            self.inner.unary(req, path, codec).await
+        }
         /// TCP
         pub async fn handle_tcp_connection(
             &mut self,
@@ -495,6 +535,11 @@ pub mod app_guard_server {
         async fn update_firewall(
             &self,
             request: tonic::Request<super::AppGuardFirewall>,
+        ) -> std::result::Result<tonic::Response<super::Empty>, tonic::Status>;
+        /// Logs
+        async fn handle_logs(
+            &self,
+            request: tonic::Request<super::Logs>,
         ) -> std::result::Result<tonic::Response<super::Empty>, tonic::Status>;
         /// TCP
         async fn handle_tcp_connection(
@@ -687,6 +732,49 @@ pub mod app_guard_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = UpdateFirewallSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/appguard.AppGuard/HandleLogs" => {
+                    #[allow(non_camel_case_types)]
+                    struct HandleLogsSvc<T: AppGuard>(pub Arc<T>);
+                    impl<T: AppGuard> tonic::server::UnaryService<super::Logs>
+                    for HandleLogsSvc<T> {
+                        type Response = super::Empty;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::Logs>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as AppGuard>::handle_logs(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = HandleLogsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
