@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::firewall::rules::{
     FirewallCompareType, FirewallRule, FirewallRuleDirection, FirewallRuleField,
+    FirewallRuleWithDirection,
 };
 use crate::proto::appguard::{AppGuardIpInfo, AppGuardSmtpResponse, AppGuardTcpInfo};
 
@@ -47,7 +48,10 @@ impl PredicateEvaluator for AppGuardSmtpResponse {
             self.tcp_info
                 .as_ref()
                 .unwrap_or(&AppGuardTcpInfo::default())
-                .evaluate_predicate(predicate)
+                .evaluate_predicate(&FirewallRuleWithDirection {
+                    rule: predicate,
+                    direction: FirewallRuleDirection::Out,
+                })
         }
     }
 

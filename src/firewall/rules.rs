@@ -34,6 +34,11 @@ pub enum FirewallRuleDirection {
     Out,
 }
 
+pub struct FirewallRuleWithDirection<'a> {
+    pub(crate) rule: &'a FirewallRule,
+    pub(crate) direction: FirewallRuleDirection,
+}
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(untagged)]
 pub enum FirewallRuleField {

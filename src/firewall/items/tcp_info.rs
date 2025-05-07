@@ -1,14 +1,14 @@
 use rpn_predicate_interpreter::PredicateEvaluator;
 
-use crate::firewall::rules::{FirewallRule, FirewallRuleField};
+use crate::firewall::rules::{FirewallRuleField, FirewallRuleWithDirection};
 use crate::proto::appguard::{AppGuardIpInfo, AppGuardTcpConnection, AppGuardTcpInfo};
 
-impl PredicateEvaluator for AppGuardTcpInfo {
-    type Predicate = FirewallRule;
+impl<'a> PredicateEvaluator for &'a AppGuardTcpInfo {
+    type Predicate = FirewallRuleWithDirection<'a>;
     type Reason = String;
 
     fn evaluate_predicate(&self, predicate: &Self::Predicate) -> bool {
-        match &predicate.field {
+        match &predicate.rule.field {
             FirewallRuleField::TcpConnection(_) => self
                 .connection
                 .as_ref()
@@ -24,6 +24,6 @@ impl PredicateEvaluator for AppGuardTcpInfo {
     }
 
     fn get_reason(&self, predicate: &Self::Predicate) -> Self::Reason {
-        predicate.field.get_field_name()
+        predicate.rule.field.get_field_name()
     }
 }

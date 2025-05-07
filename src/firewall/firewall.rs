@@ -90,7 +90,8 @@ mod tests {
         FirewallRule, FirewallRuleCondition, FirewallRuleDirection, FirewallRuleField,
     };
     use crate::proto::appguard::{
-        AppGuardIpInfo, AppGuardSmtpRequest, AppGuardTcpConnection, AppGuardTcpInfo,
+        AppGuardHttpRequest, AppGuardIpInfo, AppGuardSmtpRequest, AppGuardTcpConnection,
+        AppGuardTcpInfo,
     };
     use rpn_predicate_interpreter::{Operator, PostfixExpression, PostfixToken};
 
@@ -226,15 +227,17 @@ mod tests {
         let content = std::fs::read_to_string("test_material/firewall_test_1.json").unwrap();
         let firewall = Firewall::from_infix(&content).unwrap();
 
-        let mut item_1 = AppGuardTcpInfo::default();
+        let mut item_1 = AppGuardHttpRequest::default();
         assert_eq!(firewall.match_item(&item_1), FirewallResult::default());
 
+        let mut tcp_info = AppGuardTcpInfo::default();
         let mut ip_info = AppGuardIpInfo::default();
         ip_info.country = Some("US".to_string());
+        tcp_info.ip_info = Some(ip_info);
         let mut tcp_connection = AppGuardTcpConnection::default();
         tcp_connection.protocol = "HTTP".to_string();
-        item_1.ip_info = Some(ip_info);
-        item_1.connection = Some(tcp_connection);
+        tcp_info.connection = Some(tcp_connection);
+        item_1.tcp_info = Some(tcp_info);
 
         assert_eq!(
             firewall.match_item(&item_1),

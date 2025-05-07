@@ -1,6 +1,7 @@
 use crate::firewall::header_val::HeaderVal;
 use crate::firewall::rules::{
     FirewallCompareType, FirewallRule, FirewallRuleDirection, FirewallRuleField,
+    FirewallRuleWithDirection,
 };
 use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardHttpRequest, AppGuardIpInfo, AppGuardTcpInfo};
@@ -83,7 +84,10 @@ impl PredicateEvaluator for AppGuardHttpRequest {
             self.tcp_info
                 .as_ref()
                 .unwrap_or(&AppGuardTcpInfo::default())
-                .evaluate_predicate(predicate)
+                .evaluate_predicate(&FirewallRuleWithDirection {
+                    rule: predicate,
+                    direction: FirewallRuleDirection::In,
+                })
         }
     }
 

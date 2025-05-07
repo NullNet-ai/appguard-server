@@ -1,7 +1,7 @@
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
 
-use crate::firewall::rules::{FirewallCompareType, FirewallRule, FirewallRuleField};
+use crate::firewall::rules::{FirewallCompareType, FirewallRuleField, FirewallRuleWithDirection};
 use crate::proto::appguard::AppGuardIpInfo;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
@@ -72,19 +72,19 @@ impl IpInfoField {
     }
 }
 
-impl PredicateEvaluator for AppGuardIpInfo {
-    type Predicate = FirewallRule;
+impl<'a> PredicateEvaluator for &'a AppGuardIpInfo {
+    type Predicate = FirewallRuleWithDirection<'a>;
     type Reason = String;
 
     fn evaluate_predicate(&self, predicate: &Self::Predicate) -> bool {
-        if let FirewallRuleField::IpInfo(f) = &predicate.field {
-            return predicate.condition.compare(f.get_compare_fields(self));
+        if let FirewallRuleField::IpInfo(f) = &predicate.rule.field {
+            return predicate.rule.condition.compare(f.get_compare_fields(self));
         }
         false
     }
 
     fn get_reason(&self, predicate: &Self::Predicate) -> Self::Reason {
-        predicate.field.get_field_name()
+        predicate.rule.field.get_field_name()
     }
 }
 
