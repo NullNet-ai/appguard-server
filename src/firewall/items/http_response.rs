@@ -86,6 +86,13 @@ impl PredicateEvaluator for AppGuardHttpResponse {
             .unwrap_or(&AppGuardIpInfo::default())
             .blacklist
     }
+
+    fn get_remote_ip(&self) -> String {
+        self.tcp_info
+            .as_ref()
+            .unwrap_or(&AppGuardTcpInfo::default())
+            .get_remote_ip()
+    }
 }
 
 #[cfg(test)]
