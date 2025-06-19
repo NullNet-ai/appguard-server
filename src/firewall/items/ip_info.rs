@@ -86,6 +86,10 @@ impl<'a> PredicateEvaluator for &'a AppGuardIpInfo {
     fn get_reason(&self, predicate: &Self::Predicate) -> Self::Reason {
         predicate.rule.field.get_field_name()
     }
+
+    fn is_blacklisted(&self) -> bool {
+        self.blacklist
+    }
 }
 
 #[cfg(test)]

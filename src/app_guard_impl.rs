@@ -15,7 +15,9 @@ use crate::db::entries::{DbDetails, DbEntry, EntryIds};
 use crate::db::helpers::{delete_old_entries, store_entries};
 use crate::db::tables::DbTable;
 use crate::fetch_data::fetch_ip_data;
-use crate::firewall::firewall::Firewall;
+use crate::firewall::denied_ip::DeniedIp;
+use crate::firewall::firewall::{Firewall, FirewallResult};
+use crate::firewall::rules::FirewallRule;
 use crate::helpers::authenticate;
 use crate::ip_info::ip_info_handler;
 use crate::proto::appguard::app_guard_server::AppGuard;
@@ -28,6 +30,7 @@ use crate::proto::appguard::{
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
 use nullnet_libtoken::Token;
+use rpn_predicate_interpreter::PredicateEvaluator;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::{mpsc, Mutex, RwLock};
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
@@ -180,18 +183,38 @@ impl AppGuardImpl {
         }
     }
 
-    async fn get_client_firewall(&self, token: &str) -> Result<Firewall, Error> {
+    async fn firewall_match_item<
+        I: PredicateEvaluator<Predicate = FirewallRule, Reason = String>,
+    >(
+        &self,
+        token: &str,
+        item: &I,
+    ) -> Result<FirewallResult, Error> {
         let Ok(t) = Token::from_jwt(token) else {
             return Err("invalid token").handle_err(location!());
         };
         let app_id = t.account.account_id;
-        Ok(self
-            .firewalls
-            .read()
-            .await
-            .get(&app_id)
-            .cloned()
-            .unwrap_or_default())
+
+        let fws = self.firewalls.read().await;
+        let default = Firewall::default();
+        let fw = fws.get(&app_id).unwrap_or(&default);
+
+        let res = fw.match_item(item);
+        if res.policy == FirewallPolicy::Deny {
+            let denied_ip = DeniedIp {
+                ip: item.get_remote_ip(),
+                deny_reasons: res.reasons.clone(),
+            };
+            self.tx_store
+                .send(DbEntry::DeniedIp((
+                    app_id.clone(),
+                    denied_ip,
+                    token.to_string(),
+                )))
+                .handle_err(location!())?;
+        }
+
+        Ok(res)
     }
 
     pub(crate) async fn heartbeat_impl(
@@ -330,10 +353,7 @@ impl AppGuardImpl {
         req: &Request<AppGuardHttpRequest>,
     ) -> Result<FirewallPolicy, Error> {
         let token = &req.get_ref().token;
-        let fw_res = self
-            .get_client_firewall(token)
-            .await?
-            .match_item(req.get_ref());
+        let fw_res = self.firewall_match_item(token, req.get_ref()).await?;
         let policy = fw_res.policy;
 
         let id = self.entry_ids.get_next(DbTable::HttpRequest).await?;
@@ -361,10 +381,7 @@ impl AppGuardImpl {
         req: Request<AppGuardHttpResponse>,
     ) -> Result<FirewallPolicy, Error> {
         let token = &req.get_ref().token;
-        let fw_res = self
-            .get_client_firewall(token)
-            .await?
-            .match_item(req.get_ref());
+        let fw_res = self.firewall_match_item(token, req.get_ref()).await?;
         let policy = fw_res.policy;
 
         let id = self.entry_ids.get_next(DbTable::HttpResponse).await?;
@@ -394,10 +411,7 @@ impl AppGuardImpl {
         req: Request<AppGuardSmtpRequest>,
     ) -> Result<FirewallPolicy, Error> {
         let token = &req.get_ref().token;
-        let fw_res = self
-            .get_client_firewall(token)
-            .await?
-            .match_item(req.get_ref());
+        let fw_res = self.firewall_match_item(token, req.get_ref()).await?;
         let policy = fw_res.policy;
 
         let id = self.entry_ids.get_next(DbTable::SmtpRequest).await?;
@@ -418,10 +432,7 @@ impl AppGuardImpl {
         req: Request<AppGuardSmtpResponse>,
     ) -> Result<FirewallPolicy, Error> {
         let token = &req.get_ref().token;
-        let fw_res = self
-            .get_client_firewall(token)
-            .await?
-            .match_item(req.get_ref());
+        let fw_res = self.firewall_match_item(token, req.get_ref()).await?;
         let policy = fw_res.policy;
 
         let id = self.entry_ids.get_next(DbTable::SmtpResponse).await?;

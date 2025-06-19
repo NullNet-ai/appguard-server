@@ -1,5 +1,6 @@
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::tables::DbTable;
+use crate::firewall::denied_ip::DeniedIp;
 use crate::firewall::firewall::{Firewall, FirewallResult};
 use crate::helpers::authenticate;
 use crate::proto::appguard::{
@@ -20,6 +21,7 @@ pub enum DbEntry {
     TcpConnection((AppGuardTcpConnection, u64)),
     Blacklist((Vec<String>, String)),
     Firewall((String, Firewall, String)),
+    DeniedIp((String, DeniedIp, String)),
 }
 
 impl DbEntry {
@@ -62,6 +64,14 @@ impl DbEntry {
                     .await?;
                 log::info!("Firewall inserted in datastore");
             }
+            DbEntry::DeniedIp((_, denied_ip, _)) => {
+                let _ = ds.insert(self, token.as_str()).await?;
+                log::info!(
+                    "Denied IP inserted in datastore: {} {:?}",
+                    denied_ip.ip,
+                    denied_ip.deny_reasons
+                );
+            }
         }
         Ok(())
     }
@@ -84,6 +94,7 @@ impl DbEntry {
                 Ok(json)
             }
             DbEntry::Firewall((app_id, f, _)) => f.to_json(app_id),
+            DbEntry::DeniedIp((app_id, denied_ip, _)) => denied_ip.to_json(app_id),
         }
     }
 
@@ -97,6 +108,7 @@ impl DbEntry {
             DbEntry::TcpConnection(_) => DbTable::TcpConnection,
             DbEntry::Blacklist(_) => DbTable::Blacklist,
             DbEntry::Firewall(_) => DbTable::Firewall,
+            DbEntry::DeniedIp(_) => DbTable::DeniedIp,
         }
     }
 
@@ -107,9 +119,10 @@ impl DbEntry {
             DbEntry::SmtpRequest((r, _)) => r.token.clone(),
             DbEntry::SmtpResponse((r, _)) => r.token.clone(),
             DbEntry::TcpConnection((c, _)) => c.token.clone(),
-            DbEntry::IpInfo((_, a)) | DbEntry::Blacklist((_, a)) | DbEntry::Firewall((_, _, a)) => {
-                a.clone()
-            }
+            DbEntry::IpInfo((_, a))
+            | DbEntry::Blacklist((_, a))
+            | DbEntry::Firewall((_, _, a))
+            | DbEntry::DeniedIp((_, _, a)) => a.clone(),
         }
     }
 }
@@ -162,7 +175,7 @@ impl EntryIds {
             DbTable::HttpResponse => &self.http_response,
             DbTable::SmtpRequest => &self.smtp_request,
             DbTable::SmtpResponse => &self.smtp_response,
-            DbTable::IpInfo | DbTable::Blacklist | DbTable::Firewall => {
+            DbTable::IpInfo | DbTable::Blacklist | DbTable::Firewall | DbTable::DeniedIp => {
                 return Err("Not applicable").handle_err(location!())
             }
         }

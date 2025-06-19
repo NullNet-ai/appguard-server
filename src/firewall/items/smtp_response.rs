@@ -5,7 +5,7 @@ use crate::firewall::rules::{
     FirewallCompareType, FirewallRule, FirewallRuleDirection, FirewallRuleField,
     FirewallRuleWithDirection,
 };
-use crate::proto::appguard::{AppGuardIpInfo, AppGuardSmtpResponse, AppGuardTcpInfo};
+use crate::proto::appguard::{AppGuardSmtpResponse, AppGuardTcpInfo};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -63,10 +63,14 @@ impl PredicateEvaluator for AppGuardSmtpResponse {
         self.tcp_info
             .as_ref()
             .unwrap_or(&AppGuardTcpInfo::default())
-            .ip_info
+            .is_blacklisted()
+    }
+
+    fn get_remote_ip(&self) -> String {
+        self.tcp_info
             .as_ref()
-            .unwrap_or(&AppGuardIpInfo::default())
-            .blacklist
+            .unwrap_or(&AppGuardTcpInfo::default())
+            .get_remote_ip()
     }
 }
 
