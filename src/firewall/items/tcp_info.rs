@@ -27,6 +27,13 @@ impl<'a> PredicateEvaluator for &'a AppGuardTcpInfo {
         predicate.rule.field.get_field_name()
     }
 
+    fn is_blacklisted(&self) -> bool {
+        self.ip_info
+            .as_ref()
+            .unwrap_or(&AppGuardIpInfo::default())
+            .is_blacklisted()
+    }
+
     fn get_remote_ip(&self) -> String {
         self.connection
             .as_ref()

@@ -4,7 +4,7 @@ use crate::firewall::rules::{
     FirewallRuleWithDirection,
 };
 use crate::helpers::get_header;
-use crate::proto::appguard::{AppGuardHttpRequest, AppGuardIpInfo, AppGuardTcpInfo};
+use crate::proto::appguard::{AppGuardHttpRequest, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
 
@@ -99,10 +99,7 @@ impl PredicateEvaluator for AppGuardHttpRequest {
         self.tcp_info
             .as_ref()
             .unwrap_or(&AppGuardTcpInfo::default())
-            .ip_info
-            .as_ref()
-            .unwrap_or(&AppGuardIpInfo::default())
-            .blacklist
+            .is_blacklisted()
     }
 
     fn get_remote_ip(&self) -> String {
