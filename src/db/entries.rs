@@ -66,7 +66,11 @@ impl DbEntry {
             }
             DbEntry::DeniedIp((_, denied_ip, _)) => {
                 let _ = ds.insert(self, token.as_str()).await?;
-                log::info!("Denied IP inserted in datastore: {}", denied_ip.ip);
+                log::info!(
+                    "Denied IP inserted in datastore: {} {:?}",
+                    denied_ip.ip,
+                    denied_ip.deny_reasons
+                );
             }
         }
         Ok(())
