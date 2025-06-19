@@ -22,7 +22,7 @@ impl DbTable {
             DbTable::SmtpResponse => "smtp_responses",
             DbTable::Blacklist => "ip_blacklist",
             DbTable::Firewall => "app_firewalls",
-            DbTable::DeniedIp => "denied_ips",
+            DbTable::DeniedIp => "app_denied_ips",
         }
     }
 }
