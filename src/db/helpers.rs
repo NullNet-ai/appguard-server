@@ -44,12 +44,12 @@ pub async fn delete_old_entries(
 
         let num_deleted = ds
             .clone()
-            .delete_old_entries(DbTable::IpInfo.to_str(), threshold.as_str(), token.as_str())
+            .delete_old_entries(DbTable::IpInfo, threshold.as_str(), token.as_str())
             .await?;
 
         if let Ok(Some(table_oldest)) = ds
             .clone()
-            .get_oldest_timestamp(DbTable::IpInfo.to_str(), token.as_str())
+            .get_oldest_timestamp(DbTable::IpInfo, token.as_str())
             .await
         {
             if table_oldest < oldest {

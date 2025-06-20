@@ -201,9 +201,10 @@ impl DatastoreWrapper {
     // SELECT MIN(timestamp) FROM {table}
     pub(crate) async fn get_oldest_timestamp(
         &mut self,
-        table: &str,
+        table: DbTable,
         token: &str,
     ) -> Result<Option<String>, Error> {
+        let table = table.to_str();
         let request = GetByFilterRequest {
             params: Some(Params {
                 id: String::new(),
@@ -238,10 +239,11 @@ impl DatastoreWrapper {
     // DELETE FROM {table} WHERE timestamp <= {timestamp}
     pub(crate) async fn delete_old_entries(
         &mut self,
-        table: &str,
+        table: DbTable,
         timestamp: &str,
         token: &str,
     ) -> Result<i32, Error> {
+        let table = table.to_str();
         let request = BatchDeleteRequest {
             params: Some(Params {
                 id: String::new(),

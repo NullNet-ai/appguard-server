@@ -2,7 +2,7 @@ use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::tables::DbTable;
 use crate::firewall::denied_ip::DeniedIp;
 use crate::firewall::firewall::{Firewall, FirewallResult};
-use crate::helpers::authenticate;
+use crate::helpers::{authenticate, get_timestamp_string};
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
@@ -56,6 +56,12 @@ impl DbEntry {
                 log::info!("TCP connection #{id} inserted in datastore");
             }
             DbEntry::Blacklist(_) => {
+                ds.delete_old_entries(
+                    DbTable::Blacklist,
+                    get_timestamp_string().as_str(),
+                    token.as_str(),
+                )
+                .await?;
                 let _ = ds.insert_batch(self, token.as_str()).await?;
             }
             DbEntry::Firewall(_) => {
