@@ -9,8 +9,8 @@ use chrono::Utc;
 use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
     CreateBody, CreateParams, CreateRequest, GetByFilterBody, GetByFilterRequest, GetByIdRequest,
-    LoginBody, LoginData, LoginRequest, MultipleSort, Params, Query, ResponseData, UpdateRequest,
-    UpsertBody, UpsertRequest,
+    LoginBody, LoginData, LoginParams, LoginRequest, MultipleSort, Params, Query, ResponseData,
+    UpdateRequest, UpsertBody, UpsertRequest,
 };
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
@@ -45,16 +45,13 @@ impl DatastoreWrapper {
                 pluck: String::from("id"),
                 durability: String::from("soft"),
             }),
-            body: Some(CreateBody {
-                record,
-                entity_prefix: String::from("AG"),
-            }),
+            body: Some(CreateBody { record }),
         };
 
         log::trace!("Before create to {table}");
-        let result = self.inner.create(request, token).await;
+        let result = self.inner.create(request, token).await?;
         log::trace!("After create to {table}");
-        result
+        Ok(result)
     }
 
     pub(crate) async fn insert_batch(
@@ -73,16 +70,13 @@ impl DatastoreWrapper {
                 pluck: String::from("id"),
                 durability: String::from("soft"),
             }),
-            body: Some(BatchCreateBody {
-                records,
-                entity_prefix: String::from("AG"),
-            }),
+            body: Some(BatchCreateBody { records }),
         };
 
         log::trace!("Before create batch to {table}");
-        let result = self.inner.batch_create(request, token).await;
+        let result = self.inner.batch_create(request, token).await?;
         log::trace!("After create batch to {table}");
-        result
+        Ok(result)
     }
 
     pub(crate) async fn upsert(
@@ -98,6 +92,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
+                r#type: String::new(),
             }),
             query: Some(Query {
                 pluck: String::from("id"),
@@ -111,9 +106,9 @@ impl DatastoreWrapper {
         };
 
         log::trace!("Before upsert to {table}");
-        let result = self.inner.upsert(request, token).await;
+        let result = self.inner.upsert(request, token).await?;
         log::trace!("After upsert to {table}");
-        result
+        Ok(result)
     }
 
     // SELECT COUNT(*) FROM {table} WHERE ip = {ip}
@@ -124,6 +119,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
+                r#type: String::new(),
             }),
             body: Some(GetByFilterBody {
                 pluck: vec!["id".to_string()],
@@ -146,7 +142,6 @@ impl DatastoreWrapper {
         };
 
         log::trace!("Before get by filter to {table}");
-        // todo: verify query
         let result = self.inner.get_by_filter(request, token).await?.count > 0;
         log::trace!("After get by filter to {table}: {result}");
         Ok(result)
@@ -164,6 +159,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
+                r#type: String::new(),
             }),
             body: Some(GetByFilterBody {
                 pluck: vec!["*".to_string()],
@@ -186,7 +182,6 @@ impl DatastoreWrapper {
         };
 
         log::trace!("Before get by filter to {table}");
-        // todo: verify query
         let result_json = self
             .inner
             .get_by_filter(request, token.as_str())
@@ -199,6 +194,7 @@ impl DatastoreWrapper {
     }
 
     // SELECT MIN(timestamp) FROM {table}
+    // TODO: An error occurred while processing your request
     pub(crate) async fn get_oldest_timestamp(
         &mut self,
         table: DbTable,
@@ -209,6 +205,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
+                r#type: String::new(),
             }),
             body: Some(GetByFilterBody {
                 pluck: vec!["timestamp".to_string()],
@@ -228,7 +225,6 @@ impl DatastoreWrapper {
         };
 
         log::trace!("Before get oldest timestamp to {table}");
-        // todo: verify query
         let result_json = self.inner.get_by_filter(request, token).await?.data;
         let result_vec: Option<Vec<String>> = serde_json::from_str(&result_json).ok();
         let result = result_vec.and_then(|v| v.first().cloned());
@@ -237,6 +233,7 @@ impl DatastoreWrapper {
     }
 
     // DELETE FROM {table} WHERE timestamp <= {timestamp}
+    /// todo: error 'missing FROM-clause entry for table "ip_blacklists"'
     pub(crate) async fn delete_old_entries(
         &mut self,
         table: DbTable,
@@ -248,6 +245,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
+                r#type: String::new(),
             }),
             body: Some(BatchDeleteBody {
                 advance_filters: vec![AdvanceFilter {
@@ -261,7 +259,6 @@ impl DatastoreWrapper {
         };
 
         log::trace!("Before delete old entries to {table}");
-        // todo: verify query
         let count = self.inner.batch_delete(request, token).await?.count;
         log::trace!("After delete old entries to {table}: {count}");
         Ok(count)
@@ -278,6 +275,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
+                r#type: String::new(),
             }),
             body: Some(GetByFilterBody {
                 pluck: vec!["app_id".to_string(), "firewall".to_string()],
@@ -294,7 +292,6 @@ impl DatastoreWrapper {
         };
 
         log::trace!("Before get by filter to {table}");
-        // todo: verify query
         let result = self.inner.get_by_filter(request, &token).await?.data;
         log::trace!("After get by filter to {table}: {result}");
 
@@ -337,6 +334,10 @@ impl DatastoreWrapper {
 
     pub async fn login(&self, account_id: String, account_secret: String) -> Result<String, Error> {
         let request = LoginRequest {
+            params: Some(LoginParams {
+                is_root: String::new(),
+                t: String::new(),
+            }),
             body: Some(LoginBody {
                 data: Some(LoginData {
                     account_id,
@@ -345,7 +346,9 @@ impl DatastoreWrapper {
             }),
         };
 
+        log::trace!("Before login");
         let response = self.inner.clone().login(request).await?;
+        log::trace!("After login");
 
         Ok(response.token)
     }
@@ -359,6 +362,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: device_id,
                 table: String::from("devices"),
+                r#type: String::new(),
             }),
             query: Some(Query {
                 pluck: String::from("status"),
@@ -366,7 +370,9 @@ impl DatastoreWrapper {
             }),
         };
 
+        log::trace!("Before device status");
         let response = self.inner.clone().get_by_id(request, token).await?;
+        log::trace!("After device status");
 
         let status = Self::internal_ds_parse_response_data(&response.data)?;
 
@@ -396,6 +402,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 table: String::from("devices"),
                 id: device_id,
+                r#type: String::new(),
             }),
             query: Some(Query {
                 pluck: String::from("id,code"),
@@ -411,7 +418,9 @@ impl DatastoreWrapper {
             .to_string(),
         };
 
+        log::trace!("Before device setup");
         let response = self.inner.clone().update(request, token).await?;
+        log::trace!("After device setup");
 
         Ok(response)
     }
@@ -443,6 +452,7 @@ impl DatastoreWrapper {
         }
     }
 
+    // TODO: There was an error while creating the new record
     async fn logs_insert_single(&mut self, log: Log, token: &str) -> Result<ResponseData, Error> {
         let record = serde_json::to_string(&log).handle_err(location!())?;
 
@@ -454,13 +464,14 @@ impl DatastoreWrapper {
                 pluck: String::from("id"),
                 durability: String::from("soft"),
             }),
-            body: Some(CreateBody {
-                record,
-                entity_prefix: String::from("LO"),
-            }),
+            body: Some(CreateBody { record }),
         };
 
-        self.inner.create(request, token).await
+        println!("Before single log insert");
+        let res = self.inner.create(request, token).await?;
+        println!("After single log insert");
+
+        Ok(res)
     }
 
     async fn logs_insert_batch(
@@ -478,15 +489,17 @@ impl DatastoreWrapper {
                 pluck: String::new(),
                 durability: String::from("soft"),
             }),
-            body: Some(BatchCreateBody {
-                records,
-                entity_prefix: String::from("LO"),
-            }),
+            body: Some(BatchCreateBody { records }),
         };
 
-        self.inner.batch_create(request, token).await
+        println!("Before batch log insert");
+        let res = self.inner.batch_create(request, token).await?;
+        println!("After batch log insert");
+
+        Ok(res)
     }
 
+    // TODO: There was an error while creating the new record
     async fn internal_hb_create_hb_record(
         mut client: DatastoreClient,
         device_id: String,
@@ -506,13 +519,14 @@ impl DatastoreWrapper {
                     "timestamp": Utc::now().to_rfc3339(),
                 })
                 .to_string(),
-                entity_prefix: String::from("HB"),
             }),
         };
 
-        let retval = client.create(request, token).await?;
+        log::trace!("Before create heartbeat record");
+        let res = client.create(request, token).await?;
+        log::trace!("After create heartbeat record");
 
-        Ok(retval)
+        Ok(res)
     }
 
     async fn internal_hb_fetch_device_info(
@@ -524,6 +538,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: device_id,
                 table: String::from("devices"),
+                r#type: String::new(),
             }),
             query: Some(Query {
                 pluck: String::from("status,is_monitoring_enabled,is_remote_access_enabled"),
@@ -531,7 +546,9 @@ impl DatastoreWrapper {
             }),
         };
 
+        log::trace!("Before fetch heartbeat device info");
         let response = client.get_by_id(request, token).await?;
+        log::trace!("After fetch heartbeat device info");
         LatestDeviceInfo::from_response_data(&response)
     }
 }

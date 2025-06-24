@@ -235,7 +235,10 @@ impl AppGuardImpl {
         );
         let token = auth_handler.obtain_token_safe().await?;
         let (_, token_info) = authenticate(token.clone())?;
-        let device_id = token_info.account.device.id;
+        let Some(device) = token_info.account.device else {
+            return Err("Device not found in token").handle_err(location!());
+        };
+        let device_id = device.id;
 
         let status = datastore.device_status(device_id.clone(), &token).await?;
         if status == DeviceStatus::Draft {
