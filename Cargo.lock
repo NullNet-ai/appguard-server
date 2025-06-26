@@ -1164,13 +1164,14 @@ dependencies = [
 
 [[package]]
 name = "nullnet-libdatastore"
-version = "0.3.2"
+version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fefa8761ee96f896f52a2b6c5b25d9d2295b52a0e887ca3de3afae3aebe012f"
+checksum = "72dfdbcd1e5221f8b33f12bd6340268ffdb686f5e5c3343a533e92d809bcf06f"
 dependencies = [
  "log",
  "nullnet-liberror",
  "prost",
+ "prost-types",
  "tonic 0.12.3",
  "tonic-build 0.12.3",
 ]
@@ -1218,9 +1219,9 @@ dependencies = [
 
 [[package]]
 name = "nullnet-libtoken"
-version = "0.2.0"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db8ca1cee965f58866ee48bb82d8933a94fb7170ebd0c5428741ed13c5f6812c"
+checksum = "cbc8ff03ffc63d7f8d110307e23dfe45e5a9cab615c39ea2c4fbb1c6e41db52f"
 dependencies = [
  "base64",
  "serde",
