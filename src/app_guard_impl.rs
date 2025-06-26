@@ -21,12 +21,7 @@ use crate::firewall::rules::FirewallRule;
 use crate::helpers::authenticate;
 use crate::ip_info::ip_info_handler;
 use crate::proto::appguard::app_guard_server::AppGuard;
-use crate::proto::appguard::{
-    AppGuardFirewall, AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
-    AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    AppGuardTcpResponse, DeviceStatus, Empty, FirewallPolicy, HeartbeatRequest, HeartbeatResponse,
-    Logs,
-};
+use crate::proto::appguard::{AppGuardFirewall, AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse, AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse, DeviceStatus, Empty, FirewallPolicy, AuthenticationData, HeartbeatResponse, Logs, AuthorizationRequest};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
 use nullnet_libtoken::Token;
@@ -217,9 +212,17 @@ impl AppGuardImpl {
         Ok(res)
     }
 
+    // async fn register_device_impl(&self, req: Request<AuthorizationRequest>) -> Result<AuthenticationData, Error> {
+    //     let authz_req = req.into_inner();
+    //
+    //
+    //
+    //     Ok(())
+    // }
+
     pub(crate) async fn heartbeat_impl(
         &self,
-        request: Request<HeartbeatRequest>,
+        request: Request<AuthenticationData>,
     ) -> Result<Response<<AppGuardImpl as AppGuard>::HeartbeatStream>, Error> {
         let datastore = self.ds.clone();
         let remote_address = request
@@ -465,9 +468,15 @@ impl AppGuardImpl {
 impl AppGuard for AppGuardImpl {
     type HeartbeatStream = ReceiverStream<Result<HeartbeatResponse, Status>>;
 
+    // async fn register_device(&self, request: Request<AuthorizationRequest>) -> Result<Response<AuthenticationData>, Status> {
+    //     self.register_device_impl(request)
+    //         .await
+    //         .map_err(|e| Status::internal(e.to_str().to_string()))
+    // }
+
     async fn heartbeat(
         &self,
-        request: Request<HeartbeatRequest>,
+        request: Request<AuthenticationData>,
     ) -> Result<Response<Self::HeartbeatStream>, Status> {
         self.heartbeat_impl(request)
             .await
