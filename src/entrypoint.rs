@@ -1,22 +1,17 @@
 use std::net::ToSocketAddrs;
 use std::panic;
-use std::sync::Arc;
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 
 use crate::app_guard_impl::{terminate_app_guard, AppGuardImpl};
-use crate::auth_handler::AuthHandler;
-use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET, PORT};
+use crate::constants::{PORT};
 use crate::constants::{ADDR, SERVER_CERT, SERVER_KEY};
-use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::proto::appguard::app_guard_server::AppGuardServer;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
-use nullnet_liblogging::{DatastoreConfig, Logger, LoggerConfig, ServerKind};
-use tokio::sync::RwLock;
 
 #[tokio::main]
 pub async fn start_appguard() -> Result<(), Error> {
-    let token = server_token();
-    init_logger(token);
+    // let ctx = AppContext::new().await?;
+    // init_logger(ctx.root_token_provider.clone());
 
     let addr = format!("{ADDR}:{PORT}")
         .to_socket_addrs()
@@ -39,35 +34,14 @@ pub async fn start_appguard() -> Result<(), Error> {
     Ok(())
 }
 
-fn server_token() -> Arc<RwLock<String>> {
-    let token = Arc::new(RwLock::new(String::new()));
-    let token_clone = token.clone();
-
-    tokio::spawn(async move {
-        let mut auth_handler = AuthHandler::new(
-            ACCOUNT_ID.to_string(),
-            ACCOUNT_SECRET.to_string(),
-            DatastoreWrapper::new()
-                .await
-                .expect("Unable to connect to datastore"),
-        );
-        loop {
-            if let Ok(token_value) = auth_handler.obtain_token_safe().await {
-                *token_clone.write().await = token_value;
-            }
-            tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-        }
-    });
-
-    token
-}
-
-fn init_logger(token: Arc<RwLock<String>>) {
-    let datastore_config =
-        DatastoreConfig::new(token, ServerKind::AppGuard, ADDR.to_string(), PORT, false);
-    let logger_config = LoggerConfig::new(true, false, Some(datastore_config), vec![]);
-    Logger::init(logger_config);
-}
+// fn init_logger(provider: TokenProvider) {
+//     let token = token_provider.get().await?.jwt.clone();
+//
+//     let datastore_config =
+//         DatastoreConfig::new(token, ServerKind::AppGuard, ADDR.to_string(), PORT, false);
+//     let logger_config = LoggerConfig::new(true, false, Some(datastore_config), vec![]);
+//     Logger::init(logger_config);
+// }
 
 async fn init_app_guard() -> Result<AppGuardImpl, Error> {
     if cfg!(not(debug_assertions)) {

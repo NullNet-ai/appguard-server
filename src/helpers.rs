@@ -4,6 +4,8 @@ use crate::proto::appguard::DeviceStatus;
 use chrono::{DateTime, FixedOffset, Utc};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libtoken::Token;
+use rand::distr::Alphanumeric;
+use rand::Rng;
 
 pub fn get_timestamp_string() -> String {
     Utc::now().to_rfc3339()
@@ -53,6 +55,14 @@ pub fn map_status_value_to_enum(status: &str) -> DeviceStatus {
     } else {
         DeviceStatus::DsUnknown
     }
+}
+
+pub fn generate_random_string(length: usize) -> String {
+    rand::rngs::ThreadRng::default()
+        .sample_iter(&Alphanumeric)
+        .take(length)
+        .map(char::from)
+        .collect()
 }
 
 #[cfg(test)]

@@ -1,3 +1,4 @@
+mod app_context;
 mod app_guard_impl;
 mod auth_handler;
 mod config;
@@ -9,9 +10,12 @@ mod entrypoint;
 mod fetch_data;
 mod firewall;
 mod helpers;
+mod http_proxy;
 mod ip_info;
 mod proto;
 mod serialize;
+mod token_provider;
+mod orchestrator;
 
 use crate::entrypoint::start_appguard;
 

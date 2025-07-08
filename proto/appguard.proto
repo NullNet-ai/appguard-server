@@ -2,10 +2,16 @@ syntax = "proto3";
 
 package appguard;
 
+import "google/protobuf/empty.proto";
+import "commands.proto";
+
 service AppGuard {
+  rpc ControlChannel(stream appguard_commands.ClientMessage)
+      returns (stream appguard_commands.ServerMessage);
   // Authentication
 //  rpc RegisterDevice (AuthorizationRequest) returns (AuthenticationData);
-  rpc Heartbeat (AuthenticationData) returns (stream HeartbeatResponse);
+//  rpc Heartbeat (AuthenticationData) returns (stream HeartbeatResponse);
+
   // Firewall
   rpc UpdateFirewall (AppGuardFirewall) returns (Empty);
   // Logs
@@ -21,21 +27,6 @@ service AppGuard {
 }
 
 // Authentication ------------------------------------------------------------------------------------------------------
-
-//message AuthorizationRequest {
-//  string uuid = 1;
-//  string org_id = 2;
-//
-//  // Client Data
-//  string category = 3;  // Client category: App, Load balancer, Firewall, etc.
-//  string model = 4;     // Model of client, e.g. OPNSence vs PfSense.
-//  string target_os = 5; // Client's operating system
-//}
-
-message AuthenticationData {
-  string app_id = 1;
-  string app_secret = 2;
-}
 
 message HeartbeatResponse {
   string token = 1;

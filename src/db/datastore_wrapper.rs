@@ -1,4 +1,5 @@
 use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET};
+use crate::db::device::Device;
 use crate::db::entries::DbEntry;
 use crate::db::store::latest_device_info::LatestDeviceInfo;
 use crate::db::tables::DbTable;
@@ -9,12 +10,13 @@ use chrono::Utc;
 use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
     CreateBody, CreateParams, CreateRequest, GetByFilterBody, GetByFilterRequest, GetByIdRequest,
-    LoginBody, LoginData, LoginParams, LoginRequest, MultipleSort, Params, Query, ResponseData,
-    UpdateRequest, UpsertBody, UpsertRequest,
+    LoginBody, LoginData, LoginParams, LoginRequest, MultipleSort, Params, Query,
+    RegisterDeviceParams, RegisterDeviceRequest, Response, ResponseData, UpdateRequest, UpsertBody,
+    UpsertRequest,
 };
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
-use serde_json::json;
+use serde_json::{json, Value};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -271,7 +273,7 @@ impl DatastoreWrapper {
     pub(crate) async fn get_firewalls(&mut self) -> Result<HashMap<String, Firewall>, Error> {
         let table = DbTable::Firewall.to_str();
         let token = self
-            .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string())
+            .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string(), true)
             .await?;
 
         let request = GetByFilterRequest {
@@ -336,16 +338,25 @@ impl DatastoreWrapper {
         Ok(ret_val)
     }
 
-    pub async fn login(&self, account_id: String, account_secret: String) -> Result<String, Error> {
+    pub async fn login(
+        &self,
+        account_id: String,
+        account_secret: String,
+        is_root: bool,
+    ) -> Result<String, Error> {
         let request = LoginRequest {
             params: Some(LoginParams {
-                is_root: String::new(),
+                is_root: if is_root {
+                    String::from("true")
+                } else {
+                    String::from("false")
+                },
                 t: String::new(),
             }),
             body: Some(LoginBody {
                 data: Some(LoginData {
-                    account_id,
-                    account_secret,
+                    account_id: account_id.to_owned(),
+                    account_secret: account_secret.to_owned(),
                 }),
             }),
         };
@@ -577,6 +588,104 @@ impl DatastoreWrapper {
         let response = client.get_by_id(request, token).await?;
         log::trace!("After fetch heartbeat device info");
         LatestDeviceInfo::from_response_data(&response)
+    }
+
+    pub async fn obtain_device_by_id(
+        &self,
+        token: &str,
+        device_id: &str,
+    ) -> Result<Option<Device>, Error> {
+        let request = GetByIdRequest {
+            params: Some(Params {
+                id: String::from(device_id),
+                table: String::from("devices"),
+                r#type: String::new(),
+            }),
+            query: Some(Query {
+                pluck: serde_json::to_string(&vec![
+                    "id",
+                    "device_uuid",
+                    "is_traffic_monitoring_enabled",
+                    "is_config_monitoring_enabled",
+                    "is_telemetry_monitoring_enabled",
+                    "is_device_authorized",
+                    "device_category",
+                    "device_model",
+                    "device_os",
+                    "is_device_online",
+                    "organization_id",
+                ])
+                .unwrap(),
+                durability: String::from("soft"),
+            }),
+        };
+
+        let response = self.inner.clone().get_by_id(request, token).await?;
+        if response.count == 0 {
+            return Ok(None);
+        }
+
+        let json_data = serde_json::from_str::<Value>(&response.data).handle_err(location!());
+        let data = json_data?
+            .as_array()
+            .and_then(|arr| arr.first())
+            .cloned()
+            .ok_or("Operation failed")
+            .handle_err(location!())?;
+
+        let device = serde_json::from_value::<Device>(data).handle_err(location!())?;
+        Ok(Some(device))
+    }
+
+    pub async fn register_device(
+        &self,
+        token: &str,
+        account_id: &str,
+        account_secret: &str,
+        device: &Device,
+    ) -> Result<Response, Error> {
+        let request = RegisterDeviceRequest {
+            device: Some(RegisterDeviceParams {
+                organization_id: String::new(),
+                account_id: String::from(account_id),
+                account_secret: String::from(account_secret),
+                is_new_user: true,
+                is_invited: false,
+                role_id: String::new(),
+                account_organization_status: "Active".to_string(),
+                account_organization_categories: vec![String::from("Device")],
+                device_categories: vec![String::from("Device")],
+                device_id: device.id.clone(),
+            }),
+        };
+
+        let response = self.inner.clone().register_device(request, token).await?;
+
+        Ok(response)
+    }
+
+    pub async fn update_device(
+        &self,
+        token: &str,
+        device_id: &str,
+        device: &Device,
+    ) -> Result<bool, Error> {
+        let request = UpdateRequest {
+            params: Some(Params {
+                id: String::from(device_id),
+                table: String::from("devices"),
+                r#type: String::new(),
+            }),
+            query: Some(Query {
+                pluck: String::new(),
+                durability: String::from("soft"),
+            }),
+            body: json!(device).to_string(),
+        };
+
+        let data = self.inner.clone().update(request, token).await?;
+
+        Ok(data.count == 1)
     }
 }
 

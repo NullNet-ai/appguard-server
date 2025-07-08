@@ -7,7 +7,6 @@ use std::{process, thread};
 use indexmap::IndexMap;
 use tonic::{Request, Response, Status};
 
-use crate::auth_handler::AuthHandler;
 use crate::config::{watch_config, Config};
 use crate::constants::CONFIG_FILE;
 use crate::db::datastore_wrapper::DatastoreWrapper;
@@ -21,7 +20,13 @@ use crate::firewall::rules::FirewallRule;
 use crate::helpers::authenticate;
 use crate::ip_info::ip_info_handler;
 use crate::proto::appguard::app_guard_server::AppGuard;
-use crate::proto::appguard::{AppGuardFirewall, AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse, AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse, DeviceStatus, Empty, FirewallPolicy, AuthenticationData, HeartbeatResponse, Logs, AuthorizationRequest};
+use crate::proto::appguard::{
+    AppGuardFirewall, AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
+    AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
+    AppGuardTcpResponse, DeviceStatus, Empty,
+    FirewallPolicy, HeartbeatResponse, Logs,
+};
+use crate::proto::appguard_commands::{AuthenticationData, AuthorizationRequest};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
 use nullnet_libtoken::Token;
@@ -29,16 +34,18 @@ use rpn_predicate_interpreter::PredicateEvaluator;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::{mpsc, Mutex, RwLock};
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
+use crate::app_context::AppContext;
+use crate::token_provider::TokenProvider;
 
 pub struct AppGuardImpl {
     config_pair: Arc<(std::sync::Mutex<Config>, Condvar)>,
-    ds: DatastoreWrapper,
     entry_ids: EntryIds,
     unanswered_connections: Arc<Mutex<HashMap<u64, Instant>>>,
     firewalls: Arc<RwLock<HashMap<String, Firewall>>>,
     ip_info_cache: Arc<Mutex<IndexMap<String, AppGuardIpInfo>>>,
     ip_info_handler: IpInfoHandler,
     tx_store: UnboundedSender<DbEntry>,
+    ctx: AppContext,
     // tx_ai: Sender<AiEntry>,
 }
 
@@ -60,6 +67,7 @@ pub fn terminate_app_guard(exit_code: i32) -> Result<(), Error> {
 
 impl AppGuardImpl {
     pub async fn new() -> Result<AppGuardImpl, Error> {
+        let ctx = AppContext::new().await?;
         let mut ds = DatastoreWrapper::new().await?;
         let ds_2 = ds.clone();
         let ds_3 = ds.clone();
@@ -119,7 +127,6 @@ impl AppGuardImpl {
 
         Ok(AppGuardImpl {
             config_pair,
-            ds,
             entry_ids: EntryIds::default(),
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
             firewalls: Arc::new(RwLock::new(firewalls)),
@@ -127,6 +134,7 @@ impl AppGuardImpl {
             ip_info_handler,
             tx_store,
             // tx_ai,
+            ctx,
         })
     }
 
@@ -212,31 +220,33 @@ impl AppGuardImpl {
         Ok(res)
     }
 
-    // async fn register_device_impl(&self, req: Request<AuthorizationRequest>) -> Result<AuthenticationData, Error> {
-    //     let authz_req = req.into_inner();
-    //
-    //
-    //
-    //     Ok(())
-    // }
+    async fn register_device_impl(
+        &self,
+        req: Request<AuthorizationRequest>,
+    ) -> Result<Response<AuthenticationData>, Error> {
+        let authz_req = req.into_inner();
+
+        Ok(())
+    }
 
     pub(crate) async fn heartbeat_impl(
         &self,
         request: Request<AuthenticationData>,
     ) -> Result<Response<<AppGuardImpl as AppGuard>::HeartbeatStream>, Error> {
-        let datastore = self.ds.clone();
+        let datastore = self.ctx.datastore.clone();
         let remote_address = request
             .remote_addr()
             .map_or_else(|| "Unknown".to_string(), |addr| addr.ip().to_string());
         log::info!("Received heartbeat request from {remote_address}");
 
         let authenticate_request = request.into_inner();
-        let mut auth_handler = AuthHandler::new(
+        let token_provider = TokenProvider::new(
             authenticate_request.app_id.clone(),
             authenticate_request.app_secret.clone(),
+            false,
             datastore.clone(),
         );
-        let token = auth_handler.obtain_token_safe().await?;
+        let token = token_provider.get().await?.jwt.clone();
         let (_, token_info) = authenticate(token.clone())?;
         let Some(device) = token_info.account.device else {
             return Err("Device not found in token").handle_err(location!());
@@ -254,7 +264,8 @@ impl AppGuardImpl {
 
         tokio::spawn(async move {
             loop {
-                if let Ok(token) = auth_handler.obtain_token_safe().await {
+                if let Ok(t) = token_provider.get().await {
+                    let token = t.jwt.clone();
                     if let Ok(response) = datastore.heartbeat(&token, device_id.clone()).await {
                         let response = HeartbeatResponse {
                             token,
@@ -281,7 +292,7 @@ impl AppGuardImpl {
         log::info!("Updating firewall for '{app_id}': {firewall:?}",);
 
         DbEntry::Firewall((app_id.clone(), firewall.clone(), firewall_req.token))
-            .store(self.ds.clone())
+            .store(self.ctx.datastore.clone())
             .await?;
 
         self.firewalls.write().await.insert(app_id, firewall);
@@ -293,7 +304,7 @@ impl AppGuardImpl {
         let logs = request.into_inner();
         let (jwt_token, _) = authenticate(logs.token)?;
 
-        let _ = self.ds.logs_insert(&jwt_token, logs.logs).await?;
+        let _ = self.ctx.datastore.logs_insert(&jwt_token, logs.logs).await?;
 
         Ok(Response::new(Empty {}))
     }
@@ -324,12 +335,12 @@ impl AppGuardImpl {
             ip_info = if let Some(info) = info_opt {
                 log::info!("IP information for {ip} already in cache");
                 info
-            } else if let Ok(Some(info)) = self.ds.clone().get_ip_info(ip, token.clone()).await {
+            } else if let Ok(Some(info)) = self.ctx.datastore.clone().get_ip_info(ip, token.clone()).await {
                 log::info!("IP information for {ip} already in database");
                 info
             } else {
                 ip_info =
-                    AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.ds, token.clone())
+                    AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.ctx.datastore, token.clone())
                         .await?;
                 log::info!("Looked up new IP information: {ip_info:?}");
                 self.tx_store
@@ -468,11 +479,14 @@ impl AppGuardImpl {
 impl AppGuard for AppGuardImpl {
     type HeartbeatStream = ReceiverStream<Result<HeartbeatResponse, Status>>;
 
-    // async fn register_device(&self, request: Request<AuthorizationRequest>) -> Result<Response<AuthenticationData>, Status> {
-    //     self.register_device_impl(request)
-    //         .await
-    //         .map_err(|e| Status::internal(e.to_str().to_string()))
-    // }
+    async fn register_device(
+        &self,
+        request: Request<AuthorizationRequest>,
+    ) -> Result<Response<AuthenticationData>, Status> {
+        self.register_device_impl(request)
+            .await
+            .map_err(|e| Status::internal(e.to_str().to_string()))
+    }
 
     async fn heartbeat(
         &self,

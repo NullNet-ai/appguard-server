@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package appguard_commands;
+
+import "google/protobuf/empty.proto";
+
+message AuthorizationRequest {
+    string uuid = 1;
+    string org_id = 2;
+    
+    // Client Data
+    string category = 3;  // Client category: App, Load balancer, Firewall, etc.
+    string model = 4;     // Model of client, e.g. OPNSence vs PfSense.
+    string target_os = 5; // Client's operating system
+}
+
+message Authentication {
+    string app_id = 1;
+    string app_secret = 2;
+}
+
+message ClientMessage {
+    oneof message {
+        AuthorizationRequest authorization_request = 1;
+        Authentication authentication = 2;
+    }
+}
+
+message AuthenticationData {
+    optional string app_id = 1;
+    optional string app_secret = 2;
+}
+
+message SSHSessionData {
+    string tunnel_token = 1;
+    string public_key = 2;
+}
+
+message UISessionData {
+    string tunnel_token = 1;
+    string protocol = 2;
+}
+
+
+message ServerMessage {
+    oneof message {
+        string update_token_command = 1;
+        
+        bool enable_network_monitoring_command = 2;
+        bool enable_configuration_monitoring_command = 3;
+        bool enable_telemetry_monitoring_command = 4;
+
+        SSHSessionData open_ssh_session_command = 5;
+        string open_tty_session_command = 6;
+        UISessionData open_ui_session_command = 7;
+
+        google.protobuf.Empty heartbeat_message = 8;
+
+        AuthenticationData device_authorized_message = 9;
+        google.protobuf.Empty device_deauthorized_message = 10;
+        google.protobuf.Empty authorization_rejected_message = 11;
+    }
+}

@@ -44,6 +44,16 @@ ctrlc = { version = "3.4.5", features = ["termination"] }
 log = "0.4.26"
 rpn-predicate-interpreter = { git = "https://github.com/GyulyVGC/postfix-predicate-interpreter.git", branch = "appguard" }
 indexmap = "2.7.1"
+actix-web = "4.11.0"
+actix-cors = "0.7.1"
+actix-ws = "0.3.0"
+rand = "0.9.1"
+rustls = "0.23.27"
+tokio-rustls = "0.26.2"
+webpki-roots = "1.0.0"
+hyper = { version = "1.6.0", features = [ "client", "http1", "http2" ] }
+hyper-util = { version = "0.1.10", features = ["client", "client-legacy", "http1"] }
+http-body-util = "0.1.3"
 
 [build-dependencies]
 tonic-build = "0.13.1"
