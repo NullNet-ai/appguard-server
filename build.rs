@@ -12,7 +12,10 @@ fn main() {
                 "appguard.Log",
                 "#[derive(serde::Serialize, serde::Deserialize)]",
             )
-            .compile_protos(&[APPGUARD_PROTOBUF_PATH, APPGUARD_COMMANDS_PROTOBUF_PATH], &[PROTOBUF_DIR_PATH])
+            .compile_protos(
+                &[APPGUARD_PROTOBUF_PATH, APPGUARD_COMMANDS_PROTOBUF_PATH],
+                &[PROTOBUF_DIR_PATH],
+            )
             .expect("Protobuf files generation failed");
     }
 }

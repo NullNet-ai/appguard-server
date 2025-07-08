@@ -1,4 +1,4 @@
-use nullnet_liberror::{Error, ErrorHandler, Location, location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 use tokio::sync::mpsc;
 use tonic::Status;
@@ -6,10 +6,10 @@ use tonic::Streaming;
 
 use crate::app_context::AppContext;
 use crate::orchestrator::control_stream::control_stream;
+use crate::proto::appguard_commands::server_message::Message;
 use crate::proto::appguard_commands::AuthenticationData;
 use crate::proto::appguard_commands::ClientMessage;
 use crate::proto::appguard_commands::ServerMessage;
-use crate::proto::appguard_commands::server_message::Message;
 
 pub(crate) type OutboundStream = mpsc::Sender<Result<ServerMessage, Status>>;
 pub(crate) type InboundStream = Streaming<ClientMessage>;

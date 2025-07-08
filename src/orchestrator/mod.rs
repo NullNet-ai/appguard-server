@@ -1,5 +1,5 @@
 use client::Client;
-use nullnet_liberror::{Error, ErrorHandler, Location, location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;

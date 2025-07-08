@@ -1,9 +1,9 @@
-use nullnet_liberror::{Error, ErrorHandler, Location, location};
+use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use std::time::Duration;
 
 use crate::app_context::AppContext;
 use crate::orchestrator::client::{InboundStream, OutboundStream};
-use crate::proto::appguard_commands::{ServerMessage, client_message, server_message};
+use crate::proto::appguard_commands::{client_message, server_message, ServerMessage};
 use crate::token_provider::TokenProvider;
 
 const HEARTBEAT_TIME: Duration = Duration::from_secs(20);

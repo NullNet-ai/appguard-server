@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::sync::{Arc, Condvar};
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 use std::{process, thread};
 
 use indexmap::IndexMap;
-use tonic::{Request, Response, Status};
+use tonic::{Request, Response, Status, Streaming};
 
+use crate::app_context::AppContext;
 use crate::config::{watch_config, Config};
 use crate::constants::CONFIG_FILE;
 use crate::db::datastore_wrapper::DatastoreWrapper;
@@ -23,10 +24,9 @@ use crate::proto::appguard::app_guard_server::AppGuard;
 use crate::proto::appguard::{
     AppGuardFirewall, AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    AppGuardTcpResponse, DeviceStatus, Empty,
-    FirewallPolicy, HeartbeatResponse, Logs,
+    AppGuardTcpResponse, Empty, FirewallPolicy, Logs,
 };
-use crate::proto::appguard_commands::{AuthenticationData, AuthorizationRequest};
+use crate::proto::appguard_commands::{ClientMessage, ServerMessage};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
 use nullnet_libtoken::Token;
@@ -34,8 +34,6 @@ use rpn_predicate_interpreter::PredicateEvaluator;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::{mpsc, Mutex, RwLock};
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
-use crate::app_context::AppContext;
-use crate::token_provider::TokenProvider;
 
 pub struct AppGuardImpl {
     config_pair: Arc<(std::sync::Mutex<Config>, Condvar)>,
@@ -220,65 +218,71 @@ impl AppGuardImpl {
         Ok(res)
     }
 
-    async fn register_device_impl(
+    // pub(crate) async fn heartbeat_impl(
+    //     &self,
+    //     request: Request<AuthenticationData>,
+    // ) -> Result<Response<<AppGuardImpl as AppGuard>::HeartbeatStream>, Error> {
+    //     let datastore = self.ctx.datastore.clone();
+    //     let remote_address = request
+    //         .remote_addr()
+    //         .map_or_else(|| "Unknown".to_string(), |addr| addr.ip().to_string());
+    //     log::info!("Received heartbeat request from {remote_address}");
+    //
+    //     let authenticate_request = request.into_inner();
+    //     let token_provider = TokenProvider::new(
+    //         authenticate_request.app_id.unwrap_or_default().clone(),
+    //         authenticate_request.app_secret.unwrap_or_default().clone(),
+    //         false,
+    //         datastore.clone(),
+    //     );
+    //     let token = token_provider.get().await?.jwt.clone();
+    //     let (_, token_info) = authenticate(token.clone())?;
+    //     let Some(device) = token_info.account.device else {
+    //         return Err("Device not found in token").handle_err(location!());
+    //     };
+    //     let device_id = device.id;
+    //
+    //     let status = datastore.device_status(device_id.clone(), &token).await?;
+    //     if status == DeviceStatus::Draft {
+    //         datastore
+    //             .device_setup(&token, device_id.clone(), remote_address)
+    //             .await?;
+    //     }
+    //
+    //     let (tx, rx) = mpsc::channel(6);
+    //
+    //     tokio::spawn(async move {
+    //         loop {
+    //             if let Ok(t) = token_provider.get().await {
+    //                 let token = t.jwt.clone();
+    //                 if let Ok(response) = datastore.heartbeat(&token, device_id.clone()).await {
+    //                     let response = HeartbeatResponse {
+    //                         token,
+    //                         status: response.status.into(),
+    //                     };
+    //                     tx.send(Ok(response)).await.unwrap();
+    //                 }
+    //             }
+    //             tokio::time::sleep(Duration::from_secs(10)).await;
+    //         }
+    //     });
+    //
+    //     Ok(Response::new(ReceiverStream::new(rx)))
+    // }
+
+    pub(crate) async fn control_channel_impl(
         &self,
-        req: Request<AuthorizationRequest>,
-    ) -> Result<Response<AuthenticationData>, Error> {
-        let authz_req = req.into_inner();
+        request: Request<Streaming<ClientMessage>>,
+    ) -> Result<Response<<AppGuardImpl as AppGuard>::ControlChannelStream>, Status> {
+        let (sender, receiver) = mpsc::channel(64);
 
-        Ok(())
-    }
-
-    pub(crate) async fn heartbeat_impl(
-        &self,
-        request: Request<AuthenticationData>,
-    ) -> Result<Response<<AppGuardImpl as AppGuard>::HeartbeatStream>, Error> {
-        let datastore = self.ctx.datastore.clone();
-        let remote_address = request
-            .remote_addr()
-            .map_or_else(|| "Unknown".to_string(), |addr| addr.ip().to_string());
-        log::info!("Received heartbeat request from {remote_address}");
-
-        let authenticate_request = request.into_inner();
-        let token_provider = TokenProvider::new(
-            authenticate_request.app_id.clone(),
-            authenticate_request.app_secret.clone(),
-            false,
-            datastore.clone(),
+        self.ctx.orchestrator.on_new_connection(
+            request.into_inner(),
+            sender,
+            self.ctx.clone(),
         );
-        let token = token_provider.get().await?.jwt.clone();
-        let (_, token_info) = authenticate(token.clone())?;
-        let Some(device) = token_info.account.device else {
-            return Err("Device not found in token").handle_err(location!());
-        };
-        let device_id = device.id;
 
-        let status = datastore.device_status(device_id.clone(), &token).await?;
-        if status == DeviceStatus::Draft {
-            datastore
-                .device_setup(&token, device_id.clone(), remote_address)
-                .await?;
-        }
-
-        let (tx, rx) = mpsc::channel(6);
-
-        tokio::spawn(async move {
-            loop {
-                if let Ok(t) = token_provider.get().await {
-                    let token = t.jwt.clone();
-                    if let Ok(response) = datastore.heartbeat(&token, device_id.clone()).await {
-                        let response = HeartbeatResponse {
-                            token,
-                            status: response.status.into(),
-                        };
-                        tx.send(Ok(response)).await.unwrap();
-                    }
-                }
-                tokio::time::sleep(Duration::from_secs(10)).await;
-            }
-        });
-
-        Ok(Response::new(ReceiverStream::new(rx)))
+        Ok(Response::new(ReceiverStream::new(receiver)))
     }
 
     async fn update_firewall_impl(&self, req: Request<AppGuardFirewall>) -> Result<(), Error> {
@@ -304,7 +308,11 @@ impl AppGuardImpl {
         let logs = request.into_inner();
         let (jwt_token, _) = authenticate(logs.token)?;
 
-        let _ = self.ctx.datastore.logs_insert(&jwt_token, logs.logs).await?;
+        let _ = self
+            .ctx
+            .datastore
+            .logs_insert(&jwt_token, logs.logs)
+            .await?;
 
         Ok(Response::new(Empty {}))
     }
@@ -335,13 +343,23 @@ impl AppGuardImpl {
             ip_info = if let Some(info) = info_opt {
                 log::info!("IP information for {ip} already in cache");
                 info
-            } else if let Ok(Some(info)) = self.ctx.datastore.clone().get_ip_info(ip, token.clone()).await {
+            } else if let Ok(Some(info)) = self
+                .ctx
+                .datastore
+                .clone()
+                .get_ip_info(ip, token.clone())
+                .await
+            {
                 log::info!("IP information for {ip} already in database");
                 info
             } else {
-                ip_info =
-                    AppGuardIpInfo::lookup(ip, &self.ip_info_handler, &self.ctx.datastore, token.clone())
-                        .await?;
+                ip_info = AppGuardIpInfo::lookup(
+                    ip,
+                    &self.ip_info_handler,
+                    &self.ctx.datastore,
+                    token.clone(),
+                )
+                .await?;
                 log::info!("Looked up new IP information: {ip_info:?}");
                 self.tx_store
                     .send(DbEntry::IpInfo((ip_info.clone(), token)))
@@ -477,24 +495,21 @@ impl AppGuardImpl {
 
 #[tonic::async_trait]
 impl AppGuard for AppGuardImpl {
-    type HeartbeatStream = ReceiverStream<Result<HeartbeatResponse, Status>>;
+    type ControlChannelStream = ReceiverStream<Result<ServerMessage, Status>>;
 
-    async fn register_device(
+    async fn control_channel(
         &self,
-        request: Request<AuthorizationRequest>,
-    ) -> Result<Response<AuthenticationData>, Status> {
-        self.register_device_impl(request)
-            .await
-            .map_err(|e| Status::internal(e.to_str().to_string()))
-    }
+        request: Request<Streaming<ClientMessage>>,
+    ) -> Result<Response<Self::ControlChannelStream>, Status> {
+        log::debug!(
+            "AppGuardService::control_channel requested from addr {}",
+            request
+                .remote_addr()
+                .map(|addr| addr.to_string())
+                .unwrap_or("unknown".into())
+        );
 
-    async fn heartbeat(
-        &self,
-        request: Request<AuthenticationData>,
-    ) -> Result<Response<Self::HeartbeatStream>, Status> {
-        self.heartbeat_impl(request)
-            .await
-            .map_err(|e| Status::internal(e.to_str().to_string()))
+        self.control_channel_impl(request).await
     }
 
     async fn update_firewall(

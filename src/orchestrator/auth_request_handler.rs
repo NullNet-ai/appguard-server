@@ -13,9 +13,7 @@ use crate::app_context::AppContext;
 use crate::db::device::Device;
 use crate::orchestrator::client::{Client, InboundStream, OutboundStream};
 use crate::proto::appguard_commands::server_message::Message;
-use crate::proto::appguard_commands::{
-    AuthenticationData, AuthorizationRequest, ServerMessage,
-};
+use crate::proto::appguard_commands::{AuthenticationData, AuthorizationRequest, ServerMessage};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tonic::Status;

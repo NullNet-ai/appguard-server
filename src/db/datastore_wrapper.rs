@@ -9,10 +9,10 @@ use crate::proto::appguard::{AppGuardIpInfo, DeviceStatus, Log};
 use chrono::Utc;
 use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
-    CreateBody, CreateParams, CreateRequest, GetByFilterBody, GetByFilterRequest, GetByIdRequest,
-    LoginBody, LoginData, LoginParams, LoginRequest, MultipleSort, Params, Query,
-    RegisterDeviceParams, RegisterDeviceRequest, Response, ResponseData, UpdateRequest, UpsertBody,
-    UpsertRequest,
+    BatchUpdateBody, BatchUpdateRequest, CreateBody, CreateParams, CreateRequest, GetByFilterBody,
+    GetByFilterRequest, GetByIdRequest, LoginBody, LoginData, LoginParams, LoginRequest,
+    MultipleSort, Params, Query, RegisterDeviceParams, RegisterDeviceRequest, Response,
+    ResponseData, UpdateRequest, UpsertBody, UpsertRequest,
 };
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
@@ -686,6 +686,141 @@ impl DatastoreWrapper {
         let data = self.inner.clone().update(request, token).await?;
 
         Ok(data.count == 1)
+    }
+
+    pub async fn update_device_online_status(
+        &self,
+        token: &str,
+        device_uuid: &str,
+        is_online: bool,
+    ) -> Result<(), Error> {
+        let updates = json!({
+            "is_device_online": is_online
+        })
+        .to_string();
+
+        let filter = AdvanceFilter {
+            r#type: String::from("criteria"),
+            field: String::from("device_uuid"),
+            operator: String::from("equal"),
+            entity: String::from("devices"),
+            values: format!("[\"{device_uuid}\"]"),
+        };
+
+        let request = BatchUpdateRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: String::from("devices"),
+                r#type: String::new(),
+            }),
+            body: Some(BatchUpdateBody {
+                advance_filters: vec![filter],
+                updates,
+            }),
+        };
+
+        let _ = self.inner.clone().batch_update(request, token).await;
+
+        Ok(())
+    }
+
+    pub async fn create_device(&self, token: &str, device: &Device) -> Result<(), Error> {
+        let mut json = json!(device);
+
+        json.as_object_mut().unwrap().remove("id");
+
+        let request = CreateRequest {
+            params: Some(CreateParams {
+                table: String::from("devices"),
+            }),
+            query: Some(Query {
+                pluck: serde_json::to_string(&vec![
+                    "id",
+                    "device_uuid",
+                    "is_traffic_monitoring_enabled",
+                    "is_config_monitoring_enabled",
+                    "is_telemetry_monitoring_enabled",
+                    "is_device_authorized",
+                    "device_category",
+                    "device_model",
+                    "device_os",
+                    "is_device_online",
+                    "organization_id",
+                ]).unwrap(),
+                durability: String::from("soft"),
+            }),
+            body: Some(CreateBody {
+                record: json.to_string(),
+            }),
+        };
+
+        let _ = self.inner.clone().create(request, token).await?;
+
+        Ok(())
+    }
+
+    pub async fn obtain_device_by_uuid(
+        &self,
+        token: &str,
+        device_uuid: &str,
+    ) -> Result<Option<Device>, Error> {
+        let filter = AdvanceFilter {
+            r#type: String::from("criteria"),
+            field: String::from("device_uuid"),
+            operator: String::from("equal"),
+            entity: String::from("devices"),
+            values: format!("[\"{device_uuid}\"]"),
+        };
+
+        let request = GetByFilterRequest {
+            body: Some(GetByFilterBody {
+                pluck: vec![
+                    "id".to_string(),
+                    "device_uuid".to_string(),
+                    "is_traffic_monitoring_enabled".to_string(),
+                    "is_config_monitoring_enabled".to_string(),
+                    "is_telemetry_monitoring_enabled".to_string(),
+                    "is_device_authorized".to_string(),
+                    "device_category".to_string(),
+                    "device_model".to_string(),
+                    "device_os".to_string(),
+                    "is_device_online".to_string(),
+                    "organization_id".to_string(),
+                ],
+                advance_filters: vec![filter],
+                order_by: "timestamp".to_string(),
+                limit: 1,
+                offset: 0,
+                order_direction: "desc".to_string(),
+                joins: vec![],
+                multiple_sort: vec![],
+                pluck_object: HashMap::new(),
+                date_format: String::new(),
+                is_case_sensitive_sorting: true,
+            }),
+            params: Some(Params {
+                id: String::new(),
+                table: "devices".to_string(),
+                r#type: String::from("root")
+            }),
+        };
+
+        let response = self.inner.clone().get_by_filter(request, token).await?;
+
+        if response.count == 0 {
+            return Ok(None);
+        }
+
+        let json_data = serde_json::from_str::<Value>(&response.data).handle_err(location!());
+        let data = json_data?
+            .as_array()
+            .and_then(|arr| arr.first())
+            .cloned()
+            .ok_or("Operation failed")
+            .handle_err(location!())?;
+
+        let device = serde_json::from_value::<Device>(data).handle_err(location!())?;
+        Ok(Some(device))
     }
 }
 
