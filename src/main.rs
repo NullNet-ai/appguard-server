@@ -1,6 +1,5 @@
 mod app_context;
 mod app_guard_impl;
-mod auth_handler;
 mod config;
 mod constants;
 mod db;
