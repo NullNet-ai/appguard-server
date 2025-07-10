@@ -11,14 +11,16 @@ use actix_web::web::Data;
 use actix_web::web::Json;
 use serde::Deserialize;
 use serde_json::json;
+use crate::proto::appguard_commands::FirewallDefaults;
 
 #[derive(Deserialize)]
 pub struct RequestPayload {
     device_id: String,
     firewall: String,
+    defaults: FirewallDefaults,
 }
 
-// todo: include default policy and timeout in firewalls!!!
+// todo: include default policy Firewall
 
 pub async fn update_client_firewall(
     request: HttpRequest,
@@ -28,6 +30,23 @@ pub async fn update_client_firewall(
     let Some(jwt) = authorization::extract_authorization_token(&request) else {
         return HttpResponse::Unauthorized().json(ErrorJson::from("Missing Authorization header"));
     };
+
+    let Ok(value) = context
+        .datastore
+        .obtain_device_by_id(&jwt, &body.device_id)
+        .await
+    else {
+        return HttpResponse::InternalServerError()
+            .json(ErrorJson::from("Failed to fetch device record"));
+    };
+
+    let Some(device) = value else {
+        return HttpResponse::NotFound().json(ErrorJson::from("Device not found"));
+    };
+
+    if !device.authorized {
+        return HttpResponse::BadRequest().json(ErrorJson::from("Device is not authorized yet"));
+    }
 
     let device_id = &body.device_id;
     let firewall = match Firewall::from_infix(&body.firewall) {
@@ -53,6 +72,20 @@ pub async fn update_client_firewall(
         .write()
         .await
         .insert(device_id.clone(), firewall);
+
+
+    let Some(client) = context.orchestrator.get_client(&device.uuid).await else {
+        return HttpResponse::NotFound().json(ErrorJson::from("Device is not online"));
+    };
+
+    if let Err(err) = client
+        .lock()
+        .await
+        .set_firewall_defaults(body.defaults)
+        .await
+    {
+        return HttpResponse::InternalServerError().json(ErrorJson::from(err));
+    }
 
     HttpResponse::Ok().json(json!({}))
 }

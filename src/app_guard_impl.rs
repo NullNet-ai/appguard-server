@@ -21,9 +21,9 @@ use crate::proto::appguard::app_guard_server::AppGuard;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    AppGuardTcpResponse, Empty, FirewallPolicy, Logs,
+    AppGuardTcpResponse, Empty, Logs,
 };
-use crate::proto::appguard_commands::{ClientMessage, ServerMessage};
+use crate::proto::appguard_commands::{ClientMessage, ServerMessage, FirewallPolicy};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
 use nullnet_libtoken::Token;

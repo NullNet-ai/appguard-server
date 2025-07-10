@@ -47,25 +47,8 @@ pub struct AuthenticationData {
     pub app_secret: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SshSessionData {
-    #[prost(string, tag = "1")]
-    pub tunnel_token: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub public_key: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UiSessionData {
-    #[prost(string, tag = "1")]
-    pub tunnel_token: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub protocol: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ServerMessage {
-    #[prost(
-        oneof = "server_message::Message",
-        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11"
-    )]
+    #[prost(oneof = "server_message::Message", tags = "1, 2, 3, 4, 5, 6")]
     pub message: ::core::option::Option<server_message::Message>,
 }
 /// Nested message and enum types in `ServerMessage`.
@@ -74,25 +57,52 @@ pub mod server_message {
     pub enum Message {
         #[prost(string, tag = "1")]
         UpdateTokenCommand(::prost::alloc::string::String),
-        #[prost(bool, tag = "2")]
-        EnableNetworkMonitoringCommand(bool),
-        #[prost(bool, tag = "3")]
-        EnableConfigurationMonitoringCommand(bool),
-        #[prost(bool, tag = "4")]
-        EnableTelemetryMonitoringCommand(bool),
-        #[prost(message, tag = "5")]
-        OpenSshSessionCommand(super::SshSessionData),
-        #[prost(string, tag = "6")]
-        OpenTtySessionCommand(::prost::alloc::string::String),
-        #[prost(message, tag = "7")]
-        OpenUiSessionCommand(super::UiSessionData),
-        #[prost(message, tag = "8")]
+        #[prost(message, tag = "2")]
+        SetFirewallDefaults(super::FirewallDefaults),
+        #[prost(message, tag = "3")]
         HeartbeatMessage(()),
-        #[prost(message, tag = "9")]
+        #[prost(message, tag = "4")]
         DeviceAuthorizedMessage(super::AuthenticationData),
-        #[prost(message, tag = "10")]
+        #[prost(message, tag = "5")]
         DeviceDeauthorizedMessage(()),
-        #[prost(message, tag = "11")]
+        #[prost(message, tag = "6")]
         AuthorizationRejectedMessage(()),
+    }
+}
+#[derive(serde::Deserialize)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct FirewallDefaults {
+    #[prost(uint32, tag = "1")]
+    pub timeout: u32,
+    #[prost(enumeration = "FirewallPolicy", tag = "2")]
+    pub policy: i32,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum FirewallPolicy {
+    Unknown = 0,
+    Allow = 1,
+    Deny = 2,
+}
+impl FirewallPolicy {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unknown => "UNKNOWN",
+            Self::Allow => "ALLOW",
+            Self::Deny => "DENY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "UNKNOWN" => Some(Self::Unknown),
+            "ALLOW" => Some(Self::Allow),
+            "DENY" => Some(Self::Deny),
+            _ => None,
+        }
     }
 }

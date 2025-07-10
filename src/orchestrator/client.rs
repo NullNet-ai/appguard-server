@@ -7,7 +7,7 @@ use tonic::Streaming;
 use crate::app_context::AppContext;
 use crate::orchestrator::control_stream::control_stream;
 use crate::proto::appguard_commands::server_message::Message;
-use crate::proto::appguard_commands::AuthenticationData;
+use crate::proto::appguard_commands::{AuthenticationData, FirewallDefaults};
 use crate::proto::appguard_commands::ClientMessage;
 use crate::proto::appguard_commands::ServerMessage;
 
@@ -63,6 +63,19 @@ impl Client {
 
         let message = ServerMessage {
             message: Some(Message::DeviceDeauthorizedMessage(())),
+        };
+
+        self.outbound
+            .send(Ok(message))
+            .await
+            .handle_err(location!())?;
+
+        Ok(())
+    }
+
+    pub async fn set_firewall_defaults(&mut self, data: FirewallDefaults) -> Result<(), Error> {
+        let message = ServerMessage {
+            message: Some(Message::SetFirewallDefaults(data)),
         };
 
         self.outbound

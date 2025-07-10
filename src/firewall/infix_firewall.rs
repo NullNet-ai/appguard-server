@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::firewall::firewall::Firewall;
 use crate::firewall::rules::{FirewallExpression, FirewallRule};
-use crate::proto::appguard::FirewallPolicy;
+use crate::proto::appguard_commands::FirewallPolicy;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(transparent, rename_all = "snake_case")]

@@ -31,33 +31,27 @@ message AuthenticationData {
     optional string app_secret = 2;
 }
 
-message SSHSessionData {
-    string tunnel_token = 1;
-    string public_key = 2;
-}
-
-message UISessionData {
-    string tunnel_token = 1;
-    string protocol = 2;
-}
-
-
 message ServerMessage {
     oneof message {
         string update_token_command = 1;
         
-        bool enable_network_monitoring_command = 2;
-        bool enable_configuration_monitoring_command = 3;
-        bool enable_telemetry_monitoring_command = 4;
+        FirewallDefaults set_firewall_defaults = 2;
 
-        SSHSessionData open_ssh_session_command = 5;
-        string open_tty_session_command = 6;
-        UISessionData open_ui_session_command = 7;
+        google.protobuf.Empty heartbeat_message = 3;
 
-        google.protobuf.Empty heartbeat_message = 8;
-
-        AuthenticationData device_authorized_message = 9;
-        google.protobuf.Empty device_deauthorized_message = 10;
-        google.protobuf.Empty authorization_rejected_message = 11;
+        AuthenticationData device_authorized_message = 4;
+        google.protobuf.Empty device_deauthorized_message = 5;
+        google.protobuf.Empty authorization_rejected_message = 6;
     }
+}
+
+message FirewallDefaults {
+    uint32 timeout = 1;
+    FirewallPolicy policy = 2;
+}
+
+enum FirewallPolicy {
+    UNKNOWN = 0;
+    ALLOW = 1;
+    DENY = 2;
 }

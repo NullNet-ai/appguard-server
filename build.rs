@@ -8,6 +8,7 @@ fn main() {
         tonic_build::configure()
             .out_dir(out_dir)
             .type_attribute("appguard.AppGuardIpInfo", "#[derive(serde::Deserialize)]")
+            .type_attribute("appguard_commands.FirewallDefaults", "#[derive(serde::Deserialize)]")
             .type_attribute(
                 "appguard.Log",
                 "#[derive(serde::Serialize, serde::Deserialize)]",

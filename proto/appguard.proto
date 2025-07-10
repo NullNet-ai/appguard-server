@@ -130,15 +130,9 @@ message AppGuardSmtpResponse {
 message Empty {}
 
 message AppGuardResponse {
-  FirewallPolicy policy = 2;
+  appguard_commands.FirewallPolicy policy = 2;
 }
 
 message AppGuardTcpResponse {
   AppGuardTcpInfo tcp_info = 1;
-}
-
-enum FirewallPolicy {
-  UNKNOWN = 0;
-  ALLOW = 1;
-  DENY = 2;
 }

@@ -143,7 +143,7 @@ pub struct AppGuardSmtpResponse {
 pub struct Empty {}
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct AppGuardResponse {
-    #[prost(enumeration = "FirewallPolicy", tag = "2")]
+    #[prost(enumeration = "super::appguard_commands::FirewallPolicy", tag = "2")]
     pub policy: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -182,35 +182,6 @@ impl DeviceStatus {
             "ARCHIVED" => Some(Self::Archived),
             "DELETED" => Some(Self::Deleted),
             "DS_UNKNOWN" => Some(Self::DsUnknown),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum FirewallPolicy {
-    Unknown = 0,
-    Allow = 1,
-    Deny = 2,
-}
-impl FirewallPolicy {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unknown => "UNKNOWN",
-            Self::Allow => "ALLOW",
-            Self::Deny => "DENY",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "UNKNOWN" => Some(Self::Unknown),
-            "ALLOW" => Some(Self::Allow),
-            "DENY" => Some(Self::Deny),
             _ => None,
         }
     }
