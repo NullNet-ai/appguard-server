@@ -8,12 +8,13 @@ import "commands.proto";
 service AppGuard {
   rpc ControlChannel(stream appguard_commands.ClientMessage)
       returns (stream appguard_commands.ServerMessage);
-  // Authentication
-//  rpc RegisterDevice (AuthorizationRequest) returns (AuthenticationData);
-//  rpc Heartbeat (AuthenticationData) returns (stream HeartbeatResponse);
 
+  // Authentication
+  //  rpc RegisterDevice (AuthorizationRequest) returns (AuthenticationData);
+  //  rpc Heartbeat (AuthenticationData) returns (stream HeartbeatResponse);
   // Firewall
-  rpc UpdateFirewall (AppGuardFirewall) returns (Empty);
+  //  rpc UpdateFirewall (AppGuardFirewall) returns (Empty);
+
   // Logs
   rpc HandleLogs (Logs) returns (Empty);
   // TCP

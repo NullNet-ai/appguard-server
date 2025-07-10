@@ -1,8 +1,8 @@
 use crate::app_context::AppContext;
-use crate::http_proxy::api::{update_client_firewall, update_client_timeout};
+use crate::http_proxy::api::update_client_firewall;
 use actix_cors::Cors;
 use actix_web::{http, web, App, HttpServer};
-use api::{authorize_device, configure_ip_info_cache};
+use api::{authorize_device, update_config};
 use config::HttpProxyConfig;
 
 mod api;
@@ -33,16 +33,12 @@ pub async fn run_http_proxy(context: AppContext) {
                 web::post().to(authorize_device),
             )
             .route(
-                "/appguard/api/v1/configure_ip_info_cache",
-                web::post().to(configure_ip_info_cache),
+                "/appguard/api/v1/update_config",
+                web::post().to(update_config),
             )
             .route(
                 "/appguard/api/v1/update_client_firewall",
                 web::post().to(update_client_firewall),
-            )
-            .route(
-                "/appguard/api/v1/update_client_timeout",
-                web::post().to(update_client_timeout),
             )
         // .default_service(web::to(proxy::proxy_http_request))
     })

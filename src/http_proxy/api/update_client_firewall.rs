@@ -5,6 +5,8 @@ use actix_web::HttpRequest;
 use actix_web::HttpResponse;
 use actix_web::Responder;
 
+use crate::db::entries::DbEntry;
+use crate::firewall::firewall::Firewall;
 use actix_web::web::Data;
 use actix_web::web::Json;
 use serde::Deserialize;
@@ -13,8 +15,10 @@ use serde_json::json;
 #[derive(Deserialize)]
 pub struct RequestPayload {
     device_id: String,
-    enable: bool,
+    firewall: String,
 }
+
+// todo: include default policy and timeout in firewalls!!!
 
 pub async fn update_client_firewall(
     request: HttpRequest,
@@ -25,49 +29,30 @@ pub async fn update_client_firewall(
         return HttpResponse::Unauthorized().json(ErrorJson::from("Missing Authorization header"));
     };
 
-    let Ok(device) = context
-        .datastore
-        .obtain_device_by_id(&jwt, &body.device_id)
-        .await
-    else {
-        return HttpResponse::InternalServerError()
-            .json(ErrorJson::from("Failed to fetch device record"));
+    let device_id = &body.device_id;
+    let firewall = match Firewall::from_infix(&body.firewall) {
+        Ok(firewall) => firewall,
+        Err(err) => {
+            log::error!("Failed to parse firewall rules: {}", err.to_str());
+            return HttpResponse::BadRequest().json(ErrorJson::from(err.to_str()));
+        }
     };
+    log::info!("Updating firewall for '{device_id}': {firewall:?}",);
 
-    if device.is_none() {
-        return HttpResponse::NotFound().json(ErrorJson::from("Device not found"));
-    }
-
-    let mut device = device.unwrap();
-
-    if !device.authorized {
-        return HttpResponse::BadRequest().json(ErrorJson::from("Device is not authorized yet"));
-    }
-
-    device.traffic_monitoring = body.enable;
-
-    if context
-        .datastore
-        .update_device(&jwt, &body.device_id, &device)
+    if DbEntry::Firewall((device_id.clone(), firewall.clone(), jwt))
+        .store(context.datastore.clone())
         .await
         .is_err()
     {
         return HttpResponse::InternalServerError()
-            .json(ErrorJson::from("Failed to update device"));
+            .json(ErrorJson::from("Failed to save firewall in datastore"));
     }
 
-    let Some(client) = context.orchestrator.get_client(&device.uuid).await else {
-        return HttpResponse::NotFound().json(ErrorJson::from("Device is not online"));
-    };
-
-    if let Err(err) = client
-        .lock()
+    context
+        .firewalls
+        .write()
         .await
-        .enable_network_monitoring(body.enable)
-        .await
-    {
-        return HttpResponse::InternalServerError().json(ErrorJson::from(err));
-    }
+        .insert(device_id.clone(), firewall);
 
     HttpResponse::Ok().json(json!({}))
 }

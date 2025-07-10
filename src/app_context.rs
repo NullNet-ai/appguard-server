@@ -1,9 +1,12 @@
-use nullnet_liberror::Error;
-
+use crate::config::Config;
 use crate::db::datastore_wrapper::DatastoreWrapper;
+use crate::firewall::firewall::Firewall;
 use crate::orchestrator::Orchestrator;
 use crate::token_provider::TokenProvider;
-
+use nullnet_liberror::Error;
+use std::collections::HashMap;
+use std::sync::{Arc, Condvar};
+use tokio::sync::RwLock;
 // Unfortunately, we have to use both root and system device credentials because:
 // - The system device cannot fetch data outside its own organization; only the root account can do that.
 // - We cannot use the root account for everything because it cannot create records in the database.
@@ -42,12 +45,28 @@ pub struct AppContext {
     pub orchestrator: Orchestrator,
     pub root_token_provider: TokenProvider,
     pub sysdev_token_provider: TokenProvider,
+    pub firewalls: Arc<RwLock<HashMap<String, Firewall>>>,
+    pub config_pair: Arc<(std::sync::Mutex<Config>, Condvar)>,
 }
 
 impl AppContext {
     pub async fn new() -> Result<Self, Error> {
-        let datastore = DatastoreWrapper::new().await?;
+        let mut datastore = DatastoreWrapper::new().await?;
         let orchestrator = Orchestrator::new();
+
+        let firewalls = datastore.get_firewalls().await?;
+        log::info!(
+            "Loaded firewalls from datastore: {}",
+            serde_json::to_string(&firewalls).unwrap_or_default()
+        );
+
+        // todo: read config from datastore
+        // let config = Config::from_file(CONFIG_FILE).unwrap_or_default();
+        let config = Config::default();
+        log::info!(
+            "Loaded AppGuard configuration: {}",
+            serde_json::to_string(&config).unwrap_or_default()
+        );
 
         let sysdev_token_provider = TokenProvider::new(
             SYSTEM_ACCOUNT_ID.to_string(),
@@ -67,7 +86,9 @@ impl AppContext {
             datastore,
             orchestrator,
             sysdev_token_provider,
+            firewalls: Arc::new(RwLock::new(firewalls)),
             root_token_provider,
+            config_pair: Arc::new((std::sync::Mutex::new(config), Condvar::new())),
         })
     }
 }

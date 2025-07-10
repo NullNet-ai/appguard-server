@@ -746,7 +746,8 @@ impl DatastoreWrapper {
                     "device_os",
                     "is_device_online",
                     "organization_id",
-                ]).unwrap(),
+                ])
+                .unwrap(),
                 durability: String::from("soft"),
             }),
             body: Some(CreateBody {
@@ -801,7 +802,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: "devices".to_string(),
-                r#type: String::from("root")
+                r#type: String::from("root"),
             }),
         };
 

@@ -1,16 +1,13 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use std::sync::{Arc, Condvar};
-use std::time::{Instant};
-use std::{process, thread};
+use std::process;
+use std::sync::Arc;
+use std::time::Instant;
 
 use indexmap::IndexMap;
 use tonic::{Request, Response, Status, Streaming};
 
 use crate::app_context::AppContext;
-use crate::config::{watch_config, Config};
-use crate::constants::CONFIG_FILE;
-use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::entries::{DbDetails, DbEntry, EntryIds};
 use crate::db::helpers::{delete_old_entries, store_entries};
 use crate::db::tables::DbTable;
@@ -22,7 +19,7 @@ use crate::helpers::authenticate;
 use crate::ip_info::ip_info_handler;
 use crate::proto::appguard::app_guard_server::AppGuard;
 use crate::proto::appguard::{
-    AppGuardFirewall, AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
+    AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
     AppGuardTcpResponse, Empty, FirewallPolicy, Logs,
 };
@@ -32,14 +29,12 @@ use nullnet_libipinfo::IpInfoHandler;
 use nullnet_libtoken::Token;
 use rpn_predicate_interpreter::PredicateEvaluator;
 use tokio::sync::mpsc::UnboundedSender;
-use tokio::sync::{mpsc, Mutex, RwLock};
+use tokio::sync::{mpsc, Mutex};
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 
 pub struct AppGuardImpl {
-    config_pair: Arc<(std::sync::Mutex<Config>, Condvar)>,
     entry_ids: EntryIds,
     unanswered_connections: Arc<Mutex<HashMap<u64, Instant>>>,
-    firewalls: Arc<RwLock<HashMap<String, Firewall>>>,
     ip_info_cache: Arc<Mutex<IndexMap<String, AppGuardIpInfo>>>,
     ip_info_handler: IpInfoHandler,
     tx_store: UnboundedSender<DbEntry>,
@@ -66,23 +61,14 @@ pub fn terminate_app_guard(exit_code: i32) -> Result<(), Error> {
 impl AppGuardImpl {
     pub async fn new() -> Result<AppGuardImpl, Error> {
         let ctx = AppContext::new().await?;
-        let mut ds = DatastoreWrapper::new().await?;
-        let ds_2 = ds.clone();
-        let ds_3 = ds.clone();
-        let ds_4 = ds.clone();
+
+        let ds = ctx.datastore.clone();
+        let ds_2 = ctx.datastore.clone();
+        let ds_3 = ctx.datastore.clone();
 
         log::info!("Connected to Datastore");
 
-        let config = Config::from_file(CONFIG_FILE).unwrap_or_default();
-        log::info!(
-            "Loaded AppGuard initial configuration: {}",
-            serde_json::to_string(&config).unwrap_or_default()
-        );
-        let config_pair = Arc::new((std::sync::Mutex::new(config), Condvar::new()));
-        let config_pair_2 = config_pair.clone();
-        let config_pair_3 = config_pair.clone();
-
-        let firewalls = ds.get_firewalls().await?;
+        let config_2 = ctx.config_pair.clone();
 
         let ip_info_handler = ip_info_handler();
 
@@ -106,28 +92,22 @@ impl AppGuardImpl {
         // }
 
         tokio::spawn(async move {
-            fetch_ip_data(ds_4).await;
-        });
-
-        thread::spawn(move || {
-            watch_config(&config_pair_2).expect("Watch configuration thread failed");
+            fetch_ip_data(ds_3).await;
         });
 
         tokio::spawn(async move {
-            delete_old_entries(&config_pair_3, &ds_2, &ip_info_cache_2)
+            delete_old_entries(&config_2, &ds_2, &ip_info_cache_2)
                 .await
                 .expect("Delete old entries thread failed");
         });
 
         tokio::spawn(async move {
-            store_entries(&ds_3, &mut rx_store).await;
+            store_entries(&ds, &mut rx_store).await;
         });
 
         Ok(AppGuardImpl {
-            config_pair,
             entry_ids: EntryIds::default(),
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
-            firewalls: Arc::new(RwLock::new(firewalls)),
             ip_info_cache,
             ip_info_handler,
             tx_store,
@@ -138,6 +118,7 @@ impl AppGuardImpl {
 
     fn config_log_requests(&self) -> Result<bool, Error> {
         Ok(self
+            .ctx
             .config_pair
             .0
             .lock()
@@ -147,6 +128,7 @@ impl AppGuardImpl {
 
     fn config_log_responses(&self) -> Result<bool, Error> {
         Ok(self
+            .ctx
             .config_pair
             .0
             .lock()
@@ -156,6 +138,7 @@ impl AppGuardImpl {
 
     fn config_ip_info_cache_size(&self) -> Result<usize, Error> {
         Ok(self
+            .ctx
             .config_pair
             .0
             .lock()
@@ -196,7 +179,7 @@ impl AppGuardImpl {
         };
         let app_id = t.account.account_id;
 
-        let fws = self.firewalls.read().await;
+        let fws = self.ctx.firewalls.read().await;
         let default = Firewall::default();
         let fw = fws.get(&app_id).unwrap_or(&default);
 
@@ -276,32 +259,11 @@ impl AppGuardImpl {
     ) -> Result<Response<<AppGuardImpl as AppGuard>::ControlChannelStream>, Status> {
         let (sender, receiver) = mpsc::channel(64);
 
-        self.ctx.orchestrator.on_new_connection(
-            request.into_inner(),
-            sender,
-            self.ctx.clone(),
-        );
+        self.ctx
+            .orchestrator
+            .on_new_connection(request.into_inner(), sender, self.ctx.clone());
 
         Ok(Response::new(ReceiverStream::new(receiver)))
-    }
-
-    async fn update_firewall_impl(&self, req: Request<AppGuardFirewall>) -> Result<(), Error> {
-        let firewall_req = req.into_inner();
-        let Ok(t) = Token::from_jwt(&firewall_req.token) else {
-            return Err("invalid token").handle_err(location!());
-        };
-        let firewall = Firewall::from_infix(&firewall_req.firewall)?;
-
-        let app_id = t.account.account_id;
-        log::info!("Updating firewall for '{app_id}': {firewall:?}",);
-
-        DbEntry::Firewall((app_id.clone(), firewall.clone(), firewall_req.token))
-            .store(self.ctx.datastore.clone())
-            .await?;
-
-        self.firewalls.write().await.insert(app_id, firewall);
-
-        Ok(())
     }
 
     async fn handle_logs_impl(&self, request: Request<Logs>) -> Result<Response<Empty>, Error> {
@@ -510,19 +472,6 @@ impl AppGuard for AppGuardImpl {
         );
 
         self.control_channel_impl(request).await
-    }
-
-    async fn update_firewall(
-        &self,
-        request: Request<AppGuardFirewall>,
-    ) -> Result<Response<Empty>, Status> {
-        self.update_firewall_impl(request)
-            .await
-            .map(|()| Response::new(Empty {}))
-            .map_err(|err| {
-                log::error!("Error updating firewall");
-                Status::internal(err.to_str())
-            })
     }
 
     async fn handle_logs(&self, request: Request<Logs>) -> Result<Response<Empty>, Status> {
