@@ -832,10 +832,10 @@ mod tests {
 
     #[test]
     fn test_internal_firewall_parse_response_data() {
-        let data = r#"[{"app_id": "app1", "firewall": "[]"}, {"app_id": "app2", "firewall": "[{\"policy\": \"deny\", \"postfix_tokens\": [{\"type\": \"predicate\", \"condition\": \"equal\", \"protocol\": [\"HTTPS\"]}]}]"}]"#;
+        let data = r#"[{"app_id": "app1", "firewall": "{\"default_policy\": \"unknown\", \"expressions\": []}"}, {"app_id": "app2", "firewall": "{\"default_policy\": \"allow\", \"expressions\": [{\"policy\": \"deny\", \"postfix_tokens\": [{\"type\": \"predicate\", \"condition\": \"equal\", \"protocol\": [\"HTTPS\"]}]}]}"}]"#;
         let result = DatastoreWrapper::internal_firewall_parse_response_data(data).unwrap();
         assert_eq!(result.len(), 2);
         assert_eq!(*result.get("app1").unwrap(), Firewall::default());
-        assert_eq!(*result.get("app2").unwrap(), Firewall::from_postfix(r#"[{"policy": "deny", "postfix_tokens": [{"type": "predicate", "condition": "equal", "protocol": ["HTTPS"]}]}]"#).unwrap());
+        assert_eq!(*result.get("app2").unwrap(), Firewall::from_postfix(r#"{"default_policy": "allow", "expressions": [{"policy": "deny", "postfix_tokens": [{"type": "predicate", "condition": "equal", "protocol": ["HTTPS"]}]}]}"#).unwrap());
     }
 }

@@ -11,16 +11,14 @@ use actix_web::web::Data;
 use actix_web::web::Json;
 use serde::Deserialize;
 use serde_json::json;
-use crate::proto::appguard_commands::FirewallDefaults;
+use crate::proto::appguard_commands::{FirewallDefaults};
 
 #[derive(Deserialize)]
 pub struct RequestPayload {
     device_id: String,
     firewall: String,
-    defaults: FirewallDefaults,
+    timeout: u32,
 }
-
-// todo: include default policy Firewall
 
 pub async fn update_client_firewall(
     request: HttpRequest,
@@ -52,11 +50,12 @@ pub async fn update_client_firewall(
     let firewall = match Firewall::from_infix(&body.firewall) {
         Ok(firewall) => firewall,
         Err(err) => {
-            log::error!("Failed to parse firewall rules: {}", err.to_str());
+            log::error!("Failed to parse firewall: {}", err.to_str());
             return HttpResponse::BadRequest().json(ErrorJson::from(err.to_str()));
         }
     };
     log::info!("Updating firewall for '{device_id}': {firewall:?}",);
+    let default_policy = firewall.default_policy;
 
     if DbEntry::Firewall((device_id.clone(), firewall.clone(), jwt))
         .store(context.datastore.clone())
@@ -78,10 +77,14 @@ pub async fn update_client_firewall(
         return HttpResponse::NotFound().json(ErrorJson::from("Device is not online"));
     };
 
+    let defaults = FirewallDefaults {
+        timeout: body.timeout,
+        policy: default_policy.into()
+    };
     if let Err(err) = client
         .lock()
         .await
-        .set_firewall_defaults(body.defaults)
+        .set_firewall_defaults(defaults)
         .await
     {
         return HttpResponse::InternalServerError().json(ErrorJson::from(err));

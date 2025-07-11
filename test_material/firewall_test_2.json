@@ -1,11 +1,14 @@
-[
-  {
-    "policy": "allow",
-    "infix_tokens": [
-      {
-        "type": "operator",
-        "value": "and"
-      }
-    ]
-  }
-]
+{
+  "default_policy": "deny",
+  "expressions": [
+    {
+      "policy": "allow",
+      "infix_tokens": [
+        {
+          "type": "operator",
+          "value": "and"
+        }
+      ]
+    }
+  ]
+}
