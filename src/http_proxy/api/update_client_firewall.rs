@@ -7,11 +7,11 @@ use actix_web::Responder;
 
 use crate::db::entries::DbEntry;
 use crate::firewall::firewall::Firewall;
+use crate::proto::appguard_commands::FirewallDefaults;
 use actix_web::web::Data;
 use actix_web::web::Json;
 use serde::Deserialize;
 use serde_json::json;
-use crate::proto::appguard_commands::{FirewallDefaults};
 
 #[derive(Deserialize)]
 pub struct RequestPayload {
@@ -72,21 +72,15 @@ pub async fn update_client_firewall(
         .await
         .insert(device_id.clone(), firewall);
 
-
     let Some(client) = context.orchestrator.get_client(&device.uuid).await else {
         return HttpResponse::NotFound().json(ErrorJson::from("Device is not online"));
     };
 
     let defaults = FirewallDefaults {
         timeout: body.timeout,
-        policy: default_policy.into()
+        policy: default_policy.into(),
     };
-    if let Err(err) = client
-        .lock()
-        .await
-        .set_firewall_defaults(defaults)
-        .await
-    {
+    if let Err(err) = client.lock().await.set_firewall_defaults(defaults).await {
         return HttpResponse::InternalServerError().json(ErrorJson::from(err));
     }
 

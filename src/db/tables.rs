@@ -9,6 +9,7 @@ pub enum DbTable {
     Blacklist,
     Firewall,
     DeniedIp,
+    Config,
 }
 
 impl DbTable {
@@ -23,6 +24,7 @@ impl DbTable {
             DbTable::Blacklist => "ip_blacklists",
             DbTable::Firewall => "app_firewalls",
             DbTable::DeniedIp => "app_denied_ips",
+            DbTable::Config => "appguard_configs",
         }
     }
 }

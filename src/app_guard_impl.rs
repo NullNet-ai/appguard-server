@@ -23,7 +23,7 @@ use crate::proto::appguard::{
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
     AppGuardTcpResponse, Empty, Logs,
 };
-use crate::proto::appguard_commands::{ClientMessage, ServerMessage, FirewallPolicy};
+use crate::proto::appguard_commands::{ClientMessage, FirewallPolicy, ServerMessage};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
 use nullnet_libtoken::Token;
@@ -123,7 +123,7 @@ impl AppGuardImpl {
             .0
             .lock()
             .handle_err(location!())?
-            .log_requests)
+            .log_request)
     }
 
     fn config_log_responses(&self) -> Result<bool, Error> {
@@ -133,7 +133,7 @@ impl AppGuardImpl {
             .0
             .lock()
             .handle_err(location!())?
-            .log_responses)
+            .log_response)
     }
 
     fn config_ip_info_cache_size(&self) -> Result<usize, Error> {

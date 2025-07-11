@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Config {
-    pub log_requests: bool,
-    pub log_responses: bool,
+    pub log_request: bool,
+    pub log_response: bool,
     pub retention_sec: u64,
     pub ip_info_cache_size: usize,
 }
@@ -11,8 +11,8 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            log_requests: true,
-            log_responses: true,
+            log_request: true,
+            log_response: true,
             ip_info_cache_size: 1000,
             retention_sec: 0,
         }
