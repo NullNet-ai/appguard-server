@@ -2,11 +2,19 @@ syntax = "proto3";
 
 package appguard;
 
+import "google/protobuf/empty.proto";
+import "commands.proto";
+
 service AppGuard {
+  rpc ControlChannel(stream appguard_commands.ClientMessage)
+      returns (stream appguard_commands.ServerMessage);
+
   // Authentication
-  rpc Heartbeat (HeartbeatRequest) returns (stream HeartbeatResponse);
+  //  rpc RegisterDevice (AuthorizationRequest) returns (AuthenticationData);
+  //  rpc Heartbeat (AuthenticationData) returns (stream HeartbeatResponse);
   // Firewall
-  rpc UpdateFirewall (AppGuardFirewall) returns (Empty);
+  //  rpc UpdateFirewall (AppGuardFirewall) returns (Empty);
+
   // Logs
   rpc HandleLogs (Logs) returns (Empty);
   // TCP
@@ -21,9 +29,9 @@ service AppGuard {
 
 // Authentication ------------------------------------------------------------------------------------------------------
 
-message HeartbeatRequest {
-  string app_id = 1;
-  string app_secret = 2;
+message HeartbeatResponse {
+  string token = 1;
+  DeviceStatus status = 2;
 }
 
 enum DeviceStatus {
@@ -32,11 +40,6 @@ enum DeviceStatus {
   ARCHIVED = 2;
   DELETED = 3;
   DS_UNKNOWN = 4;
-}
-
-message HeartbeatResponse {
-  string token = 1;
-  DeviceStatus status = 2;
 }
 
 // Firewall ------------------------------------------------------------------------------------------------------------
@@ -127,15 +130,9 @@ message AppGuardSmtpResponse {
 message Empty {}
 
 message AppGuardResponse {
-  FirewallPolicy policy = 2;
+  appguard_commands.FirewallPolicy policy = 2;
 }
 
 message AppGuardTcpResponse {
   AppGuardTcpInfo tcp_info = 1;
-}
-
-enum FirewallPolicy {
-  UNKNOWN = 0;
-  ALLOW = 1;
-  DENY = 2;
 }

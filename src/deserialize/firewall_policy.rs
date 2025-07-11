@@ -1,6 +1,6 @@
 use serde::{Deserialize, Deserializer};
 
-use crate::proto::appguard::FirewallPolicy;
+use crate::proto::appguard_commands::FirewallPolicy;
 
 impl<'de> Deserialize<'de> for FirewallPolicy {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

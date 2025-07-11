@@ -7,7 +7,7 @@ use crate::firewall::items::ip_info::IpInfoField;
 use crate::firewall::items::smtp_request::SmtpRequestField;
 use crate::firewall::items::smtp_response::SmtpResponseField;
 use crate::firewall::items::tcp_connection::TcpConnectionField;
-use crate::proto::appguard::FirewallPolicy;
+use crate::proto::appguard_commands::FirewallPolicy;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]

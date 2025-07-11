@@ -39,7 +39,7 @@ pub async fn delete_old_entries(
             .to_rfc3339();
         let mut oldest = get_timestamp_string();
         let token = ds
-            .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string())
+            .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string(), true)
             .await?;
 
         let num_deleted = ds

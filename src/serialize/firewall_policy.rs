@@ -1,6 +1,6 @@
 use serde::{Serialize, Serializer};
 
-use crate::proto::appguard::FirewallPolicy;
+use crate::proto::appguard_commands::FirewallPolicy;
 
 impl Serialize for FirewallPolicy {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

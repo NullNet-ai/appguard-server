@@ -1,52 +1,55 @@
-[
-  {
-    "policy": "deny",
-    "infix_tokens": [
-      {
-        "type": "predicate",
-        "condition": "not_equal",
-        "country": [
-          "US",
-          "PH",
-          "IT",
-          "CA"
-        ]
-      },
-      {
-        "type": "operator",
-        "value": "or"
-      },
-      {
-        "type": "predicate",
-        "condition": "contains",
-        "http_request_url": [
-          ".php",
-          ".env"
-        ]
-      }
-    ]
-  },
-  {
-    "policy": "allow",
-    "infix_tokens": [
-      {
-        "type": "predicate",
-        "condition": "equal",
-        "org": [
-          "EVOQUE"
-        ]
-      },
-      {
-        "type": "operator",
-        "value": "and"
-      },
-      {
-        "type": "predicate",
-        "condition": "equal",
-        "country": [
-          "US"
-        ]
-      }
-    ]
-  }
-]
+{
+  "default_policy": "allow",
+  "expressions": [
+    {
+      "policy": "deny",
+      "infix_tokens": [
+        {
+          "type": "predicate",
+          "condition": "not_equal",
+          "country": [
+            "US",
+            "PH",
+            "IT",
+            "CA"
+          ]
+        },
+        {
+          "type": "operator",
+          "value": "or"
+        },
+        {
+          "type": "predicate",
+          "condition": "contains",
+          "http_request_url": [
+            ".php",
+            ".env"
+          ]
+        }
+      ]
+    },
+    {
+      "policy": "allow",
+      "infix_tokens": [
+        {
+          "type": "predicate",
+          "condition": "equal",
+          "org": [
+            "EVOQUE"
+          ]
+        },
+        {
+          "type": "operator",
+          "value": "and"
+        },
+        {
+          "type": "predicate",
+          "condition": "equal",
+          "country": [
+            "US"
+          ]
+        }
+      ]
+    }
+  ]
+}

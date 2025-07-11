@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::tables::DbTable;
 use crate::firewall::denied_ip::DeniedIp;
@@ -22,6 +23,7 @@ pub enum DbEntry {
     Blacklist((Vec<String>, String)),
     Firewall((String, Firewall, String)),
     DeniedIp((String, DeniedIp, String)),
+    Config((Config, String)),
 }
 
 impl DbEntry {
@@ -78,6 +80,16 @@ impl DbEntry {
                     denied_ip.deny_reasons
                 );
             }
+            DbEntry::Config((configs, _)) => {
+                ds.delete_old_entries(
+                    DbTable::Config,
+                    get_timestamp_string().as_str(),
+                    token.as_str(),
+                )
+                .await?;
+                let _ = ds.insert(self, token.as_str()).await?;
+                log::info!("AppGuard configs inserted in datastore: {:?}", configs);
+            }
         }
         Ok(())
     }
@@ -101,6 +113,7 @@ impl DbEntry {
             }
             DbEntry::Firewall((app_id, f, _)) => f.to_json(app_id),
             DbEntry::DeniedIp((app_id, denied_ip, _)) => denied_ip.to_json(app_id),
+            DbEntry::Config((configs, _)) => serde_json::to_string(configs).handle_err(location!()),
         }
     }
 
@@ -115,6 +128,7 @@ impl DbEntry {
             DbEntry::Blacklist(_) => DbTable::Blacklist,
             DbEntry::Firewall(_) => DbTable::Firewall,
             DbEntry::DeniedIp(_) => DbTable::DeniedIp,
+            DbEntry::Config(_) => DbTable::Config,
         }
     }
 
@@ -126,6 +140,7 @@ impl DbEntry {
             DbEntry::SmtpResponse((r, _)) => r.token.clone(),
             DbEntry::TcpConnection((c, _)) => c.token.clone(),
             DbEntry::IpInfo((_, a))
+            | DbEntry::Config((_, a))
             | DbEntry::Blacklist((_, a))
             | DbEntry::Firewall((_, _, a))
             | DbEntry::DeniedIp((_, _, a)) => a.clone(),
@@ -181,9 +196,11 @@ impl EntryIds {
             DbTable::HttpResponse => &self.http_response,
             DbTable::SmtpRequest => &self.smtp_request,
             DbTable::SmtpResponse => &self.smtp_response,
-            DbTable::IpInfo | DbTable::Blacklist | DbTable::Firewall | DbTable::DeniedIp => {
-                return Err("Not applicable").handle_err(location!())
-            }
+            DbTable::IpInfo
+            | DbTable::Blacklist
+            | DbTable::Firewall
+            | DbTable::DeniedIp
+            | DbTable::Config => return Err("Not applicable").handle_err(location!()),
         }
         .lock()
         .await;
