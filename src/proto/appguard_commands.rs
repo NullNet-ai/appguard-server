@@ -60,13 +60,13 @@ pub mod server_message {
         #[prost(message, tag = "2")]
         SetFirewallDefaults(super::FirewallDefaults),
         #[prost(message, tag = "3")]
-        HeartbeatMessage(()),
+        Heartbeat(()),
         #[prost(message, tag = "4")]
-        DeviceAuthorizedMessage(super::AuthenticationData),
+        DeviceAuthorized(super::AuthenticationData),
         #[prost(message, tag = "5")]
-        DeviceDeauthorizedMessage(()),
+        DeviceDeauthorized(()),
         #[prost(message, tag = "6")]
-        AuthorizationRejectedMessage(()),
+        AuthorizationRejected(()),
     }
 }
 #[derive(serde::Deserialize)]

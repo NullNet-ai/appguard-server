@@ -41,10 +41,10 @@ impl Orchestrator {
     }
 
     pub async fn on_disconnected(&self, uuid: &str) -> Result<(), Error> {
-        log::info!("Orchestrator: on_client_disconnected, uuid {}", uuid);
+        log::info!("Orchestrator: on_client_disconnected, uuid {uuid}");
 
         if self.clients.lock().await.remove(uuid).is_none() {
-            Err(format!("Device with UUID '{}' is not connected", uuid)).handle_err(location!())?;
+            Err(format!("Device with UUID '{uuid}' is not connected")).handle_err(location!())?;
         }
 
         Ok(())

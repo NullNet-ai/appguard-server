@@ -48,7 +48,7 @@ impl AuthReqHandler {
             );
             let _ = outbound
                 .send(Ok(ServerMessage {
-                    message: Some(Message::AuthorizationRejectedMessage(())),
+                    message: Some(Message::AuthorizationRejected(())),
                 }))
                 .await;
             return;
@@ -109,7 +109,7 @@ impl AuthReqHandler {
                 .await
                 .map_err(|err| Status::internal(err.to_str()))
             {
-                log::error!("Failed to create device credentials: {}", status);
+                log::error!("Failed to create device credentials: {status}");
                 let _ = outbound.send(Err(status)).await;
                 return;
             };
@@ -137,7 +137,7 @@ impl AuthReqHandler {
                 .await
                 .map_err(|err| Status::internal(err.to_str()))
             {
-                log::error!("Failed to udpate device record: {}", status);
+                log::error!("Failed to udpate device record: {status}");
                 let _ = outbound.send(Err(status)).await;
                 return;
             }

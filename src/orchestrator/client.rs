@@ -47,7 +47,7 @@ impl Client {
         log::debug!("Authorizing device {}", self.uuid);
 
         let message = ServerMessage {
-            message: Some(Message::DeviceAuthorizedMessage(data)),
+            message: Some(Message::DeviceAuthorized(data)),
         };
 
         self.outbound
@@ -62,7 +62,7 @@ impl Client {
         log::debug!("Deauthorizing device {}", self.uuid);
 
         let message = ServerMessage {
-            message: Some(Message::DeviceDeauthorizedMessage(())),
+            message: Some(Message::DeviceDeauthorized(())),
         };
 
         self.outbound

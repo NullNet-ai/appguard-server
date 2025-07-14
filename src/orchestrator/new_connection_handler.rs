@@ -34,7 +34,7 @@ impl NewConnectionHandler {
             }
             res = self.await_authorization(inbound, outbound) => {
                 if let Err(e) = res {
-                    log::warn!("Authorization failed: {}", e);
+                    log::warn!("Authorization failed: {e}");
                 }
             }
         }
@@ -48,7 +48,7 @@ impl NewConnectionHandler {
         let Some(msg) = inbound
             .message()
             .await
-            .map_err(|e| format!("Failed to receive message: {}", e))?
+            .map_err(|e| format!("Failed to receive message: {e}"))?
         else {
             return Err("Client disconnected without sending a message.".into());
         };

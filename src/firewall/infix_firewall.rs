@@ -14,8 +14,10 @@ pub struct InfixFirewall {
 
 impl InfixFirewall {
     pub fn into_firewall(self) -> Firewall {
-        let mut firewall = Firewall::default();
-        firewall.default_policy = self.default_policy;
+        let mut firewall = Firewall {
+            default_policy: self.default_policy,
+            ..Firewall::default()
+        };
         for expr in self.expressions {
             firewall.expressions.push(FirewallExpression {
                 policy: expr.policy,

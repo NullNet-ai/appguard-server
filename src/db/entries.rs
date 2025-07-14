@@ -88,7 +88,7 @@ impl DbEntry {
                 )
                 .await?;
                 let _ = ds.insert(self, token.as_str()).await?;
-                log::info!("AppGuard configs inserted in datastore: {:?}", configs);
+                log::info!("AppGuard configs inserted in datastore: {configs:?}");
             }
         }
         Ok(())

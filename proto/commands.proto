@@ -37,11 +37,11 @@ message ServerMessage {
         
         FirewallDefaults set_firewall_defaults = 2;
 
-        google.protobuf.Empty heartbeat_message = 3;
+        google.protobuf.Empty heartbeat = 3;
 
-        AuthenticationData device_authorized_message = 4;
-        google.protobuf.Empty device_deauthorized_message = 5;
-        google.protobuf.Empty authorization_rejected_message = 6;
+        AuthenticationData device_authorized = 4;
+        google.protobuf.Empty device_deauthorized = 5;
+        google.protobuf.Empty authorization_rejected = 6;
     }
 }
 
