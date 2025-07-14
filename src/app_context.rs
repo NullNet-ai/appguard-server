@@ -60,9 +60,7 @@ impl AppContext {
             serde_json::to_string(&firewalls).unwrap_or_default()
         );
 
-        // todo: read config from datastore
-        // let config = Config::from_file(CONFIG_FILE).unwrap_or_default();
-        let config = Config::default();
+        let config = datastore.get_configs().await?;
         log::info!(
             "Loaded AppGuard configuration: {}",
             serde_json::to_string(&config).unwrap_or_default()

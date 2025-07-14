@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET};
 use crate::db::device::Device;
 use crate::db::entries::DbEntry;
@@ -336,6 +337,86 @@ impl DatastoreWrapper {
         }
 
         Ok(ret_val)
+    }
+
+    pub(crate) async fn get_configs(&mut self) -> Result<Config, Error> {
+        let table = DbTable::Config.to_str();
+        let token = self
+            .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string(), true)
+            .await?;
+
+        let request = GetByFilterRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: table.into(),
+                r#type: String::new(),
+            }),
+            body: Some(GetByFilterBody {
+                pluck: vec![
+                    "log_request".to_string(),
+                    "log_response".to_string(),
+                    "retention_sec".to_string(),
+                    "ip_info_cache_size".to_string(),
+                ],
+                advance_filters: vec![],
+                order_by: String::new(),
+                limit: 1,
+                offset: 0,
+                order_direction: String::new(),
+                joins: vec![],
+                multiple_sort: vec![],
+                pluck_object: HashMap::default(),
+                date_format: String::new(),
+                is_case_sensitive_sorting: false,
+            }),
+        };
+
+        log::trace!("Before get by filter to {table}");
+        let result = self.inner.get_by_filter(request, &token).await?.data;
+        log::trace!("After get by filter to {table}: {result}");
+
+        Self::internal_configs_parse_response_data(&result)
+    }
+
+    fn internal_configs_parse_response_data(data: &str) -> Result<Config, Error> {
+        let array_val = serde_json::from_str::<serde_json::Value>(data).handle_err(location!())?;
+        let array = array_val
+            .as_array()
+            .ok_or("Failed to parse response")
+            .handle_err(location!())?;
+
+        let i = array
+            .first()
+            .ok_or("No data found")
+            .handle_err(location!())?;
+
+        let map = i
+            .as_object()
+            .ok_or("Invalid data")
+            .handle_err(location!())?;
+        let log_request = map
+            .get("log_request")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(true);
+        let log_response = map
+            .get("log_response")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(true);
+        let retention_sec = map
+            .get("retention_sec")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0);
+        let ip_info_cache_size = map
+            .get("ip_info_cache_size")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(1000) as usize;
+
+        Ok(Config {
+            log_request,
+            log_response,
+            retention_sec,
+            ip_info_cache_size,
+        })
     }
 
     pub async fn login(

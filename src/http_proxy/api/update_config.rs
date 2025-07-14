@@ -28,13 +28,14 @@ pub async fn update_config(
         .await
         .is_err()
     {
-        return HttpResponse::InternalServerError()
-            .json(ErrorJson::from("Failed to save firewall in datastore"));
+        return HttpResponse::InternalServerError().json(ErrorJson::from(
+            "Failed to save AppGuard configs in datastore",
+        ));
     }
 
     match context.config_pair.0.lock().handle_err(location!()) {
         Ok(mut config) => {
-            log::info!("Updated IP info cache configuration: {body_config:?}");
+            log::info!("Updated configuration: {body_config:?}");
             *config = body_config;
             context.config_pair.1.notify_all();
         }
