@@ -2,12 +2,12 @@ use std::net::ToSocketAddrs;
 use std::panic;
 use tonic::transport::{Identity, Server, ServerTlsConfig};
 
+use crate::app_context::AppContext;
 use crate::app_guard_impl::{terminate_app_guard, AppGuardImpl};
 use crate::constants::PORT;
 use crate::constants::{ADDR, SERVER_CERT, SERVER_KEY};
 use crate::proto::appguard::app_guard_server::AppGuardServer;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
-use crate::app_context::AppContext;
 
 pub async fn start_appguard(ctx: AppContext) -> Result<(), Error> {
     // init_logger(ctx.root_token_provider.clone());
