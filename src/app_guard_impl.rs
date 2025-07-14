@@ -59,9 +59,7 @@ pub fn terminate_app_guard(exit_code: i32) -> Result<(), Error> {
 }
 
 impl AppGuardImpl {
-    pub async fn new() -> Result<AppGuardImpl, Error> {
-        let ctx = AppContext::new().await?;
-
+    pub async fn new(ctx: AppContext) -> Result<AppGuardImpl, Error> {
         let ds = ctx.datastore.clone();
         let ds_2 = ctx.datastore.clone();
         let ds_3 = ctx.datastore.clone();
