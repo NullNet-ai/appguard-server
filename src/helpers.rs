@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use crate::proto::appguard::DeviceStatus;
 use chrono::{DateTime, FixedOffset, Utc};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libtoken::Token;
@@ -41,21 +40,21 @@ pub(crate) fn authenticate(token: String) -> Result<(String, Token), Error> {
     Ok((token, token_info))
 }
 
-pub fn map_status_value_to_enum(status: &str) -> DeviceStatus {
-    let lowercase: String = status.to_lowercase();
-
-    if lowercase.starts_with("draft") {
-        DeviceStatus::Draft
-    } else if lowercase.starts_with("active") {
-        DeviceStatus::Active
-    } else if lowercase.starts_with("archive") {
-        DeviceStatus::Archived
-    } else if lowercase.starts_with("delete") {
-        DeviceStatus::Deleted
-    } else {
-        DeviceStatus::DsUnknown
-    }
-}
+// pub fn map_status_value_to_enum(status: &str) -> DeviceStatus {
+//     let lowercase: String = status.to_lowercase();
+//
+//     if lowercase.starts_with("draft") {
+//         DeviceStatus::Draft
+//     } else if lowercase.starts_with("active") {
+//         DeviceStatus::Active
+//     } else if lowercase.starts_with("archive") {
+//         DeviceStatus::Archived
+//     } else if lowercase.starts_with("delete") {
+//         DeviceStatus::Deleted
+//     } else {
+//         DeviceStatus::DsUnknown
+//     }
+// }
 
 pub fn generate_random_string(length: usize) -> String {
     rand::rngs::ThreadRng::default()

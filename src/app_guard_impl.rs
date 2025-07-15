@@ -21,7 +21,7 @@ use crate::proto::appguard::app_guard_server::AppGuard;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardResponse,
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    AppGuardTcpResponse, Empty, Logs,
+    AppGuardTcpResponse, Logs,
 };
 use crate::proto::appguard_commands::{ClientMessage, FirewallPolicy, ServerMessage};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
@@ -264,7 +264,7 @@ impl AppGuardImpl {
         Response::new(ReceiverStream::new(receiver))
     }
 
-    async fn handle_logs_impl(&self, request: Request<Logs>) -> Result<Response<Empty>, Error> {
+    async fn handle_logs_impl(&self, request: Request<Logs>) -> Result<Response<()>, Error> {
         let logs = request.into_inner();
         let (jwt_token, _) = authenticate(logs.token)?;
 
@@ -274,7 +274,7 @@ impl AppGuardImpl {
             .logs_insert(&jwt_token, logs.logs)
             .await?;
 
-        Ok(Response::new(Empty {}))
+        Ok(Response::new(()))
     }
 
     async fn handle_tcp_connection_impl(
@@ -471,7 +471,7 @@ impl AppGuard for AppGuardImpl {
         Ok(self.control_channel_impl(request))
     }
 
-    async fn handle_logs(&self, request: Request<Logs>) -> Result<Response<Empty>, Status> {
+    async fn handle_logs(&self, request: Request<Logs>) -> Result<Response<()>, Status> {
         // do not log inside here, otherwise it will loop
         let result = self.handle_logs_impl(request).await;
         result.map_err(|e| Status::internal(format!("{e:?}")))

@@ -6,17 +6,11 @@ import "google/protobuf/empty.proto";
 import "commands.proto";
 
 service AppGuard {
+  // Control channel
   rpc ControlChannel(stream appguard_commands.ClientMessage)
       returns (stream appguard_commands.ServerMessage);
-
-  // Authentication
-  //  rpc RegisterDevice (AuthorizationRequest) returns (AuthenticationData);
-  //  rpc Heartbeat (AuthenticationData) returns (stream HeartbeatResponse);
-  // Firewall
-  //  rpc UpdateFirewall (AppGuardFirewall) returns (Empty);
-
   // Logs
-  rpc HandleLogs (Logs) returns (Empty);
+  rpc HandleLogs (Logs) returns (google.protobuf.Empty);
   // TCP
   rpc HandleTcpConnection (AppGuardTcpConnection) returns (AppGuardTcpResponse);
   // HTTP
@@ -25,28 +19,6 @@ service AppGuard {
   // SMTP
   rpc HandleSmtpRequest (AppGuardSmtpRequest) returns (AppGuardResponse);
   rpc HandleSmtpResponse (AppGuardSmtpResponse) returns (AppGuardResponse);
-}
-
-// Authentication ------------------------------------------------------------------------------------------------------
-
-message HeartbeatResponse {
-  string token = 1;
-  DeviceStatus status = 2;
-}
-
-enum DeviceStatus {
-  DRAFT = 0;
-  ACTIVE = 1;
-  ARCHIVED = 2;
-  DELETED = 3;
-  DS_UNKNOWN = 4;
-}
-
-// Firewall ------------------------------------------------------------------------------------------------------------
-
-message AppGuardFirewall {
-  string token = 1;
-  string firewall = 2;
 }
 
 // Logs ----------------------------------------------------------------------------------------------------------------
@@ -126,8 +98,6 @@ message AppGuardSmtpResponse {
 }
 
 // Response ------------------------------------------------------------------------------------------------------------
-
-message Empty {}
 
 message AppGuardResponse {
   appguard_commands.FirewallPolicy policy = 2;

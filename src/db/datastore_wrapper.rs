@@ -2,12 +2,9 @@ use crate::config::Config;
 use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET};
 use crate::db::device::Device;
 use crate::db::entries::DbEntry;
-use crate::db::store::latest_device_info::LatestDeviceInfo;
 use crate::db::tables::DbTable;
 use crate::firewall::firewall::Firewall;
-use crate::helpers::map_status_value_to_enum;
-use crate::proto::appguard::{AppGuardIpInfo, DeviceStatus, Log};
-use chrono::Utc;
+use crate::proto::appguard::{AppGuardIpInfo, Log};
 use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
     BatchUpdateBody, BatchUpdateRequest, CreateBody, CreateParams, CreateRequest, GetByFilterBody,
@@ -449,44 +446,44 @@ impl DatastoreWrapper {
         Ok(response.token)
     }
 
-    pub async fn device_status(
-        &self,
-        device_id: String,
-        token: &str,
-    ) -> Result<DeviceStatus, Error> {
-        let request = GetByIdRequest {
-            params: Some(Params {
-                id: device_id,
-                table: String::from("devices"),
-                r#type: String::new(),
-            }),
-            query: Some(Query {
-                pluck: String::from("status"),
-                durability: String::from("soft"),
-            }),
-        };
+    // pub async fn device_status(
+    //     &self,
+    //     device_id: String,
+    //     token: &str,
+    // ) -> Result<DeviceStatus, Error> {
+    //     let request = GetByIdRequest {
+    //         params: Some(Params {
+    //             id: device_id,
+    //             table: String::from("devices"),
+    //             r#type: String::new(),
+    //         }),
+    //         query: Some(Query {
+    //             pluck: String::from("status"),
+    //             durability: String::from("soft"),
+    //         }),
+    //     };
+    //
+    //     log::trace!("Before device status");
+    //     let response = self.inner.clone().get_by_id(request, token).await?;
+    //     log::trace!("After device status");
+    //
+    //     let status = Self::internal_ds_parse_response_data(&response.data)?;
+    //
+    //     Ok(map_status_value_to_enum(&status))
+    // }
 
-        log::trace!("Before device status");
-        let response = self.inner.clone().get_by_id(request, token).await?;
-        log::trace!("After device status");
-
-        let status = Self::internal_ds_parse_response_data(&response.data)?;
-
-        Ok(map_status_value_to_enum(&status))
-    }
-
-    fn internal_ds_parse_response_data(data: &str) -> Result<String, Error> {
-        serde_json::from_str::<serde_json::Value>(data)
-            .handle_err(location!())?
-            .as_array()
-            .and_then(|arr| arr.first())
-            .and_then(|obj| obj.as_object())
-            .and_then(|map| map.get("status"))
-            .and_then(|v| v.as_str())
-            .map(std::string::ToString::to_string)
-            .ok_or("Failed to parse response")
-            .handle_err(location!())
-    }
+    // fn internal_ds_parse_response_data(data: &str) -> Result<String, Error> {
+    //     serde_json::from_str::<serde_json::Value>(data)
+    //         .handle_err(location!())?
+    //         .as_array()
+    //         .and_then(|arr| arr.first())
+    //         .and_then(|obj| obj.as_object())
+    //         .and_then(|map| map.get("status"))
+    //         .and_then(|v| v.as_str())
+    //         .map(std::string::ToString::to_string)
+    //         .ok_or("Failed to parse response")
+    //         .handle_err(location!())
+    // }
 
     pub async fn device_setup(
         &self,
@@ -544,20 +541,20 @@ impl DatastoreWrapper {
     //     Ok(response)
     // }
 
-    pub async fn heartbeat(
-        &self,
-        token: &str,
-        device_id: String,
-    ) -> Result<LatestDeviceInfo, Error> {
-        let (create_result, fetch_result) = tokio::join!(
-            Self::internal_hb_create_hb_record(self.inner.clone(), device_id.clone(), token),
-            Self::internal_hb_fetch_device_info(self.inner.clone(), device_id, token)
-        );
-
-        let _ = create_result?;
-
-        fetch_result
-    }
+    // pub async fn heartbeat(
+    //     &self,
+    //     token: &str,
+    //     device_id: String,
+    // ) -> Result<LatestDeviceInfo, Error> {
+    //     let (create_result, fetch_result) = tokio::join!(
+    //         Self::internal_hb_create_hb_record(self.inner.clone(), device_id.clone(), token),
+    //         Self::internal_hb_fetch_device_info(self.inner.clone(), device_id, token)
+    //     );
+    //
+    //     let _ = create_result?;
+    //
+    //     fetch_result
+    // }
 
     pub async fn logs_insert(&self, token: &str, logs: Vec<Log>) -> Result<ResponseData, Error> {
         match logs.as_slice() {
@@ -619,57 +616,57 @@ impl DatastoreWrapper {
     }
 
     // TODO: There was an error while creating the new record
-    async fn internal_hb_create_hb_record(
-        mut client: DatastoreClient,
-        device_id: String,
-        token: &str,
-    ) -> Result<ResponseData, Error> {
-        let request = CreateRequest {
-            params: Some(CreateParams {
-                table: String::from("device_heartbeats"),
-            }),
-            query: Some(Query {
-                pluck: String::new(),
-                durability: String::from("soft"),
-            }),
-            body: Some(CreateBody {
-                record: json!({
-                    "device_id": device_id.clone(),
-                    "timestamp": Utc::now().to_rfc3339(),
-                })
-                .to_string(),
-            }),
-        };
+    // async fn internal_hb_create_hb_record(
+    //     mut client: DatastoreClient,
+    //     device_id: String,
+    //     token: &str,
+    // ) -> Result<ResponseData, Error> {
+    //     let request = CreateRequest {
+    //         params: Some(CreateParams {
+    //             table: String::from("device_heartbeats"),
+    //         }),
+    //         query: Some(Query {
+    //             pluck: String::new(),
+    //             durability: String::from("soft"),
+    //         }),
+    //         body: Some(CreateBody {
+    //             record: json!({
+    //                 "device_id": device_id.clone(),
+    //                 "timestamp": Utc::now().to_rfc3339(),
+    //             })
+    //             .to_string(),
+    //         }),
+    //     };
+    //
+    //     log::trace!("Before create heartbeat record");
+    //     let res = client.create(request, token).await?;
+    //     log::trace!("After create heartbeat record");
+    //
+    //     Ok(res)
+    // }
 
-        log::trace!("Before create heartbeat record");
-        let res = client.create(request, token).await?;
-        log::trace!("After create heartbeat record");
-
-        Ok(res)
-    }
-
-    async fn internal_hb_fetch_device_info(
-        mut client: DatastoreClient,
-        device_id: String,
-        token: &str,
-    ) -> Result<LatestDeviceInfo, Error> {
-        let request = GetByIdRequest {
-            params: Some(Params {
-                id: device_id,
-                table: String::from("devices"),
-                r#type: String::new(),
-            }),
-            query: Some(Query {
-                pluck: String::from("status,is_monitoring_enabled,is_remote_access_enabled"),
-                durability: String::from("soft"),
-            }),
-        };
-
-        log::trace!("Before fetch heartbeat device info");
-        let response = client.get_by_id(request, token).await?;
-        log::trace!("After fetch heartbeat device info");
-        LatestDeviceInfo::from_response_data(&response)
-    }
+    // async fn internal_hb_fetch_device_info(
+    //     mut client: DatastoreClient,
+    //     device_id: String,
+    //     token: &str,
+    // ) -> Result<LatestDeviceInfo, Error> {
+    //     let request = GetByIdRequest {
+    //         params: Some(Params {
+    //             id: device_id,
+    //             table: String::from("devices"),
+    //             r#type: String::new(),
+    //         }),
+    //         query: Some(Query {
+    //             pluck: String::from("status,is_monitoring_enabled,is_remote_access_enabled"),
+    //             durability: String::from("soft"),
+    //         }),
+    //     };
+    //
+    //     log::trace!("Before fetch heartbeat device info");
+    //     let response = client.get_by_id(request, token).await?;
+    //     log::trace!("After fetch heartbeat device info");
+    //     LatestDeviceInfo::from_response_data(&response)
+    // }
 
     pub async fn obtain_device_by_id(
         &self,
