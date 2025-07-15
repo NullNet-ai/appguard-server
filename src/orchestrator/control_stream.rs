@@ -104,7 +104,7 @@ async fn authstream(
 
     loop {
         tokio::select! {
-            _ = tokio::time::sleep(TOKEN_UPDATE_TIME) => {
+            () = tokio::time::sleep(TOKEN_UPDATE_TIME) => {
                 outbound
                     .send(Ok(ServerMessage {
                         message: Some(server_message::Message::UpdateTokenCommand(

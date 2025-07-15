@@ -46,5 +46,5 @@ pub async fn run_http_proxy(context: AppContext) {
     .unwrap()
     .run()
     .await
-    .unwrap()
+    .unwrap();
 }

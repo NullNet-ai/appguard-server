@@ -29,7 +29,7 @@ impl NewConnectionHandler {
 
     pub async fn handle(self, inbound: InboundStream, outbound: OutboundStream) {
         tokio::select! {
-            _ = tokio::time::sleep(AUTH_TIMEOUT) => {
+            () = tokio::time::sleep(AUTH_TIMEOUT) => {
                 log::warn!("Connection abandoned: no authorization message received within timeout.");
             }
             res = self.await_authorization(inbound, outbound) => {

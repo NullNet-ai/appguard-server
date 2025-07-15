@@ -59,7 +59,7 @@ pub fn terminate_app_guard(exit_code: i32) -> Result<(), Error> {
 }
 
 impl AppGuardImpl {
-    pub async fn new(ctx: AppContext) -> Result<AppGuardImpl, Error> {
+    pub fn new(ctx: AppContext) -> AppGuardImpl {
         let ds = ctx.datastore.clone();
         let ds_2 = ctx.datastore.clone();
         let ds_3 = ctx.datastore.clone();
@@ -103,7 +103,7 @@ impl AppGuardImpl {
             store_entries(&ds, &mut rx_store).await;
         });
 
-        Ok(AppGuardImpl {
+        AppGuardImpl {
             entry_ids: EntryIds::default(),
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
             ip_info_cache,
@@ -111,7 +111,7 @@ impl AppGuardImpl {
             tx_store,
             // tx_ai,
             ctx,
-        })
+        }
     }
 
     fn config_log_requests(&self) -> Result<bool, Error> {
@@ -251,17 +251,17 @@ impl AppGuardImpl {
     //     Ok(Response::new(ReceiverStream::new(rx)))
     // }
 
-    pub(crate) async fn control_channel_impl(
+    pub(crate) fn control_channel_impl(
         &self,
         request: Request<Streaming<ClientMessage>>,
-    ) -> Result<Response<<AppGuardImpl as AppGuard>::ControlChannelStream>, Status> {
+    ) -> Response<<AppGuardImpl as AppGuard>::ControlChannelStream> {
         let (sender, receiver) = mpsc::channel(64);
 
         self.ctx
             .orchestrator
             .on_new_connection(request.into_inner(), sender, self.ctx.clone());
 
-        Ok(Response::new(ReceiverStream::new(receiver)))
+        Response::new(ReceiverStream::new(receiver))
     }
 
     async fn handle_logs_impl(&self, request: Request<Logs>) -> Result<Response<Empty>, Error> {
@@ -465,11 +465,10 @@ impl AppGuard for AppGuardImpl {
             "AppGuardService::control_channel requested from addr {}",
             request
                 .remote_addr()
-                .map(|addr| addr.to_string())
-                .unwrap_or("unknown".into())
+                .map_or("unknown".into(), |addr| addr.to_string())
         );
 
-        self.control_channel_impl(request).await
+        Ok(self.control_channel_impl(request))
     }
 
     async fn handle_logs(&self, request: Request<Logs>) -> Result<Response<Empty>, Status> {

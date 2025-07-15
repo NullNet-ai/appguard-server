@@ -28,7 +28,7 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - os: macos
+#          - os: macos
           - os: ubuntu
 #          - os: windows
 
@@ -39,13 +39,13 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Install macOS dependencies
-        if: matrix.os == 'macos'
-        run: |
-          curl -OL https://github.com/google/protobuf/releases/download/v3.20.3/protoc-3.20.3-osx-x86_64.zip
-          unzip protoc-3.20.3-osx-x86_64.zip -d protoc3
-          sudo mv protoc3/bin/* /usr/local/bin/
-          sudo mv protoc3/include/* /usr/local/include/
+#      - name: Install macOS dependencies
+#        if: matrix.os == 'macos'
+#        run: |
+#          curl -OL https://github.com/google/protobuf/releases/download/v3.20.3/protoc-3.20.3-osx-x86_64.zip
+#          unzip protoc-3.20.3-osx-x86_64.zip -d protoc3
+#          sudo mv protoc3/bin/* /usr/local/bin/
+#          sudo mv protoc3/include/* /usr/local/include/
 
       - name: Install Linux dependencies
         if: matrix.os == 'ubuntu'

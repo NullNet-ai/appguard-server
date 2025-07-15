@@ -6,12 +6,6 @@ pub struct Device {
 
     #[serde(rename = "device_uuid")]
     pub uuid: String,
-    #[serde(rename = "is_traffic_monitoring_enabled")]
-    pub traffic_monitoring: bool,
-    #[serde(rename = "is_config_monitoring_enabled")]
-    pub sysconf_monitoring: bool,
-    #[serde(rename = "is_telemetry_monitoring_enabled")]
-    pub telemetry_monitoring: bool,
     #[serde(rename = "is_device_authorized")]
     pub authorized: bool,
     #[serde(rename = "device_category")]

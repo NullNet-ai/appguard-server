@@ -112,7 +112,7 @@ impl AuthReqHandler {
                 log::error!("Failed to create device credentials: {status}");
                 let _ = outbound.send(Err(status)).await;
                 return;
-            };
+            }
 
             let client = Client::new(
                 auth.uuid.clone(),
@@ -166,7 +166,7 @@ impl AuthReqHandler {
                 if client.lock().await.authorize(authentication).await.is_ok() {
                     clients.insert(auth.uuid, client.clone());
                 } else {
-                    log::error!("Failed to authorize a device")
+                    log::error!("Failed to authorize a device");
                 }
             }
         }

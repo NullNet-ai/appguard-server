@@ -23,8 +23,7 @@ pub async fn start_appguard(ctx: AppContext) -> Result<(), Error> {
 
     server_builder()?
         .add_service(
-            AppGuardServer::new(init_app_guard(ctx).await?)
-                .max_decoding_message_size(50 * 1024 * 1024),
+            AppGuardServer::new(init_app_guard(ctx)?).max_decoding_message_size(50 * 1024 * 1024),
         )
         .serve(addr)
         .await
@@ -42,7 +41,7 @@ pub async fn start_appguard(ctx: AppContext) -> Result<(), Error> {
 //     Logger::init(logger_config);
 // }
 
-async fn init_app_guard(ctx: AppContext) -> Result<AppGuardImpl, Error> {
+fn init_app_guard(ctx: AppContext) -> Result<AppGuardImpl, Error> {
     if cfg!(not(debug_assertions)) {
         // custom panic hook to correctly clean up the server, even in case a secondary thread fails
         let orig_hook = panic::take_hook();
@@ -59,7 +58,7 @@ async fn init_app_guard(ctx: AppContext) -> Result<AppGuardImpl, Error> {
     })
     .handle_err(location!())?;
 
-    let app_guard_impl = AppGuardImpl::new(ctx).await?;
+    let app_guard_impl = AppGuardImpl::new(ctx);
 
     Ok(app_guard_impl)
 }

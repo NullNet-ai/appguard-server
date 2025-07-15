@@ -74,7 +74,7 @@ pub async fn authorize_device(
     {
         return HttpResponse::InternalServerError()
             .json(ErrorJson::from("Failed to update device record"));
-    };
+    }
 
     let mut lock = client.lock().await;
 

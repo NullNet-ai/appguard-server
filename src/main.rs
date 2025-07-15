@@ -32,6 +32,6 @@ pub async fn main() {
     tokio::select! {
         _ = tokio::signal::ctrl_c() => {},
         _ = start_appguard(app_context.clone()) => {},
-        _ = run_http_proxy(app_context) => {}
+        () = run_http_proxy(app_context) => {}
     }
 }
