@@ -2,13 +2,15 @@ syntax = "proto3";
 
 package appguard;
 
+import "google/protobuf/empty.proto";
+import "commands.proto";
+
 service AppGuard {
-  // Authentication
-  rpc Heartbeat (HeartbeatRequest) returns (stream HeartbeatResponse);
-  // Firewall
-  rpc UpdateFirewall (AppGuardFirewall) returns (Empty);
+  // Control channel
+  rpc ControlChannel(stream appguard_commands.ClientMessage)
+      returns (stream appguard_commands.ServerMessage);
   // Logs
-  rpc HandleLogs (Logs) returns (Empty);
+  rpc HandleLogs (Logs) returns (google.protobuf.Empty);
   // TCP
   rpc HandleTcpConnection (AppGuardTcpConnection) returns (AppGuardTcpResponse);
   // HTTP
@@ -17,33 +19,6 @@ service AppGuard {
   // SMTP
   rpc HandleSmtpRequest (AppGuardSmtpRequest) returns (AppGuardResponse);
   rpc HandleSmtpResponse (AppGuardSmtpResponse) returns (AppGuardResponse);
-}
-
-// Authentication ------------------------------------------------------------------------------------------------------
-
-message HeartbeatRequest {
-  string app_id = 1;
-  string app_secret = 2;
-}
-
-enum DeviceStatus {
-  DRAFT = 0;
-  ACTIVE = 1;
-  ARCHIVED = 2;
-  DELETED = 3;
-  DS_UNKNOWN = 4;
-}
-
-message HeartbeatResponse {
-  string token = 1;
-  DeviceStatus status = 2;
-}
-
-// Firewall ------------------------------------------------------------------------------------------------------------
-
-message AppGuardFirewall {
-  string token = 1;
-  string firewall = 2;
 }
 
 // Logs ----------------------------------------------------------------------------------------------------------------
@@ -124,18 +99,10 @@ message AppGuardSmtpResponse {
 
 // Response ------------------------------------------------------------------------------------------------------------
 
-message Empty {}
-
 message AppGuardResponse {
-  FirewallPolicy policy = 2;
+  appguard_commands.FirewallPolicy policy = 2;
 }
 
 message AppGuardTcpResponse {
   AppGuardTcpInfo tcp_info = 1;
-}
-
-enum FirewallPolicy {
-  UNKNOWN = 0;
-  ALLOW = 1;
-  DENY = 2;
 }

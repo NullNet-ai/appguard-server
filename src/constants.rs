@@ -31,19 +31,6 @@ pub static ACCOUNT_SECRET: std::sync::LazyLock<String> = std::sync::LazyLock::ne
 
 // -------------------------------------------------------------------------------------------------
 
-// config constants
-#[cfg(not(debug_assertions))]
-pub const CONFIG_DIR: &str = "/opt/config";
-#[cfg(debug_assertions)]
-pub const CONFIG_DIR: &str = "./test_material/config";
-
-#[cfg(not(debug_assertions))]
-pub const CONFIG_FILE: &str = "/opt/config/config.json";
-#[cfg(debug_assertions)]
-pub const CONFIG_FILE: &str = "./test_material/config/config.json";
-
-// -------------------------------------------------------------------------------------------------
-
 // blacklist
 const DEFAULT_BLACKLIST_LINK: &str =
     "https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt";

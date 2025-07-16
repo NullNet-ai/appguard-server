@@ -59,7 +59,7 @@ pub async fn fetch_ip_blacklist(ds: DatastoreWrapper, client: &Client) -> Result
     }
 
     let token = ds
-        .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string())
+        .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string(), true)
         .await?;
 
     DbEntry::Blacklist((blacklist, token)).store(ds).await?;
