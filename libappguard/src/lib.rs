@@ -1,14 +1,15 @@
 mod proto;
 
-use crate::proto::appguard::HeartbeatRequest;
+use crate::proto::appguard_commands::{ClientMessage, FirewallPolicy, ServerMessage};
 use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::appguard::{
-    AppGuardFirewall, AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse,
-    AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
-    AppGuardTcpResponse, DeviceStatus, FirewallPolicy, HeartbeatResponse, Log, Logs,
+    AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
+    AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse, Log, Logs,
 };
 use std::future::Future;
+use tokio::sync::mpsc;
 pub use tonic::Streaming;
+use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 use tonic::transport::{Channel, ClientTlsConfig};
 use tonic::{Request, Response, Status};
 
@@ -40,25 +41,19 @@ impl AppGuardGrpcInterface {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    pub async fn heartbeat(
-        &mut self,
-        app_id: String,
-        app_secret: String,
-    ) -> Result<Streaming<HeartbeatResponse>, String> {
-        self.client
-            .heartbeat(Request::new(HeartbeatRequest { app_id, app_secret }))
-            .await
-            .map(tonic::Response::into_inner)
-            .map_err(|e| e.to_string())
-    }
+    pub async fn control_channel(
+        &self,
+        receiver: mpsc::Receiver<ClientMessage>,
+    ) -> Result<Streaming<ServerMessage>, String> {
+        let receiver = ReceiverStream::new(receiver);
 
-    #[allow(clippy::missing_errors_doc)]
-    pub async fn update_firewall(&mut self, firewall: AppGuardFirewall) -> Result<(), String> {
-        self.client
-            .update_firewall(Request::new(firewall))
+        Ok(self
+            .client
+            .clone()
+            .control_channel(Request::new(receiver))
             .await
-            .map(|_| ())
-            .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())?
+            .into_inner())
     }
 
     #[allow(clippy::missing_errors_doc)]
