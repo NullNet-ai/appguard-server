@@ -1,17 +1,15 @@
 mod proto;
 
-use crate::proto::appguard_commands::{ClientMessage, FirewallPolicy, ServerMessage};
 use proto::appguard::app_guard_client::AppGuardClient;
-pub use proto::appguard::{
-    AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
-    AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse, Log, Logs,
-};
+pub use proto::*;
 use std::future::Future;
 use tokio::sync::mpsc;
 pub use tonic::Streaming;
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 use tonic::transport::{Channel, ClientTlsConfig};
 use tonic::{Request, Response, Status};
+use crate::appguard::{AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse, Logs};
+use crate::appguard_commands::{ClientMessage, FirewallPolicy, ServerMessage};
 
 #[derive(Clone)]
 pub struct AppGuardGrpcInterface {
