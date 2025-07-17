@@ -18,4 +18,5 @@ pub struct Device {
     pub online: bool,
     #[serde(rename = "organization_id")]
     pub organization: String,
+    pub r#type: String,
 }

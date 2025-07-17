@@ -6,12 +6,10 @@ import "google/protobuf/empty.proto";
 
 message AuthorizationRequest {
     string uuid = 1;
-    string org_id = 2;
-    
-    // Client Data
-    string category = 3;  // Client category: App, Load balancer, Firewall, etc.
-    string model = 4;     // Model of client, e.g. OPNSence vs PfSense.
-    string target_os = 5; // Client's operating system
+    string code = 2;
+    string category = 3;
+    string type = 4;
+    string target_os = 5;
 }
 
 message Authentication {

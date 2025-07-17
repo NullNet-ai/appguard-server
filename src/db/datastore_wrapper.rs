@@ -2,6 +2,7 @@ use crate::config::Config;
 use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET};
 use crate::db::device::Device;
 use crate::db::entries::DbEntry;
+use crate::db::installation_code::InstallationCode;
 use crate::db::tables::DbTable;
 use crate::firewall::firewall::Firewall;
 use crate::proto::appguard::{AppGuardIpInfo, Log};
@@ -672,12 +673,19 @@ impl DatastoreWrapper {
         &self,
         token: &str,
         device_id: &str,
+        performed_by_root: bool,
     ) -> Result<Option<Device>, Error> {
+        let r#type = if performed_by_root {
+            String::from("root")
+        } else {
+            String::new()
+        };
+
         let request = GetByIdRequest {
             params: Some(Params {
                 id: String::from(device_id),
                 table: String::from("devices"),
-                r#type: String::new(),
+                r#type,
             }),
             query: Some(Query {
                 pluck: serde_json::to_string(&vec![
@@ -900,6 +908,88 @@ impl DatastoreWrapper {
 
         let device = serde_json::from_value::<Device>(data).handle_err(location!())?;
         Ok(Some(device))
+    }
+
+    pub async fn obtain_installation_code(
+        &self,
+        code: &str,
+        token: &str,
+    ) -> Result<Option<InstallationCode>, Error> {
+        let filter = AdvanceFilter {
+            r#type: String::from("criteria"),
+            field: String::from("code"),
+            operator: String::from("equal"),
+            entity: String::from("installation_codes"),
+            values: format!("[\"{code}\"]"),
+        };
+
+        let request = GetByFilterRequest {
+            body: Some(GetByFilterBody {
+                pluck: vec![
+                    "id".into(),
+                    "redeemed".into(),
+                    "device_id".into(),
+                    "device_code".into(),
+                    "organization_id".into(),
+                ],
+                advance_filters: vec![filter],
+                order_by: "timestamp".to_string(),
+                limit: 1,
+                offset: 0,
+                order_direction: "desc".to_string(),
+                joins: vec![],
+                multiple_sort: vec![],
+                pluck_object: HashMap::new(),
+                date_format: String::new(),
+                is_case_sensitive_sorting: true,
+            }),
+            params: Some(Params {
+                id: String::new(),
+                table: "installation_codes".to_string(),
+                r#type: String::from("root"),
+            }),
+        };
+
+        let response = self.inner.clone().get_by_filter(request, token).await?;
+
+        if response.count == 0 {
+            return Ok(None);
+        }
+
+        let json_data = serde_json::from_str::<Value>(&response.data).handle_err(location!());
+        let data = json_data?
+            .as_array()
+            .and_then(|arr| arr.first())
+            .cloned()
+            .ok_or("Operation failed")
+            .handle_err(location!())?;
+
+        let installation_code =
+            serde_json::from_value::<InstallationCode>(data).handle_err(location!())?;
+        Ok(Some(installation_code))
+    }
+
+    pub async fn redeem_installation_code(
+        &self,
+        code: &InstallationCode,
+        token: &str,
+    ) -> Result<(), Error> {
+        let request = UpdateRequest {
+            params: Some(Params {
+                table: String::from("installation_codes"),
+                id: code.id.clone(),
+                r#type: String::from("root"),
+            }),
+            query: Some(Query {
+                pluck: String::from("id,code"),
+                durability: String::from("soft"),
+            }),
+            body: json!({"redeemed": true}).to_string(),
+        };
+
+        let _ = self.inner.clone().update(request, token).await;
+
+        Ok(())
     }
 }
 

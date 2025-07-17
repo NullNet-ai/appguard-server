@@ -11,12 +11,21 @@
 
 use crate::app_context::AppContext;
 use crate::db::device::Device;
+use crate::helpers::generate_random_string;
 use crate::orchestrator::client::{Client, InboundStream, OutboundStream};
 use crate::proto::appguard_commands::server_message::Message;
 use crate::proto::appguard_commands::{AuthenticationData, AuthorizationRequest, ServerMessage};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tonic::Status;
+
+macro_rules! fail_with_status {
+    ($outbound:expr, $msg:expr) => {{
+        log::error!("{}", $msg);
+        let _ = $outbound.send(Err(tonic::Status::internal($msg))).await;
+        return;
+    }};
+}
 
 pub struct AuthReqHandler {
     context: AppContext,
@@ -34,8 +43,8 @@ impl AuthReqHandler {
         auth: AuthorizationRequest,
     ) {
         log::info!(
-            "Auth request received: org_id={}, uuid={}",
-            auth.org_id,
+            "Auth request received: code={}, uuid={}",
+            auth.code,
             auth.uuid
         );
 
@@ -56,118 +65,166 @@ impl AuthReqHandler {
 
         let root_token = match self.context.root_token_provider.get().await {
             Ok(token) => token,
-            Err(err) => {
-                log::error!("Failed to fetch root token: {}", err.to_str());
-                let status = Status::internal("Internal Server Error: wrong root credentials");
-                let _ = outbound.send(Err(status)).await;
-                return;
-            }
+            Err(_) => fail_with_status!(outbound, "Failed to obtain root token"),
         };
 
         let sys_token = match self.context.sysdev_token_provider.get().await {
             Ok(token) => token,
-            Err(err) => {
-                log::error!("Failed to fetch sysdevice token: {}", err.to_str());
-                let status =
-                    Status::internal("Internal Server Error: wrong system device credentials");
-                let _ = outbound.send(Err(status)).await;
-                return;
-            }
+            Err(_) => fail_with_status!(outbound, "Failed to obtain system device token"),
         };
 
-        let device = match self
+        let installation_code = match self
             .context
             .datastore
-            .obtain_device_by_uuid(&root_token.jwt, &auth.uuid)
+            .obtain_installation_code(&auth.code, &root_token.jwt)
             .await
         {
-            Ok(device) => device,
-            Err(err) => {
-                log::error!("Failed to fetch device: {}", err.to_str());
-                let status = Status::internal("Internal Server Error: datastore operation failed");
-                let _ = outbound.send(Err(status)).await;
-                return;
+            Ok(code) => {
+                if code.is_none() {
+                    let status = Status::internal(format!("Code {} is invalid", auth.code));
+                    let _ = outbound.send(Err(status)).await;
+                    return;
+                }
+
+                code.unwrap()
             }
+            Err(_) => fail_with_status!(outbound, "Failed to fetch installation code"),
         };
 
-        if device.is_none() {
-            let device = Device {
-                authorized: false,
-                uuid: auth.uuid.clone(),
-                category: auth.category,
-                model: auth.model,
-                os: auth.target_os,
-                online: true,
-                organization: auth.org_id.clone(),
-                ..Default::default()
-            };
-
-            if let Err(status) = self
+        if !installation_code.redeemed {
+            let mut device = match self
                 .context
                 .datastore
-                .create_device(&sys_token.jwt, &device)
+                .obtain_device_by_id(&root_token.jwt, &installation_code.device_id, true)
                 .await
-                .map_err(|err| Status::internal(err.to_str()))
             {
-                log::error!("Failed to create device credentials: {status}");
-                let _ = outbound.send(Err(status)).await;
-                return;
+                Ok(Some(device)) => device,
+                Ok(None) => {
+                    fail_with_status!(outbound, "Device assosiated with the device does not exist")
+                }
+                Err(_) => fail_with_status!(outbound, "Failed to fetch device"),
+            };
+
+            device.authorized = true;
+            device.online = true;
+            device.os = auth.target_os;
+            device.uuid = auth.uuid.clone();
+
+            if self
+                .context
+                .datastore
+                .update_device(&sys_token.jwt, &installation_code.device_id, &device)
+                .await
+                .is_err()
+            {
+                fail_with_status!(outbound, "Failed to update device")
             }
 
-            let client = Client::new(
+            if self
+                .context
+                .datastore
+                .redeem_installation_code(&installation_code, &root_token.jwt)
+                .await
+                .is_err()
+            {
+                fail_with_status!(outbound, "Failed to redeem installation code")
+            }
+
+            let account_id = generate_random_string(12);
+            let account_secret = generate_random_string(36);
+
+            if self
+                .context
+                .datastore
+                .register_device(&sys_token.jwt, &account_id, &account_secret, &device)
+                .await
+                .is_err()
+            {
+                fail_with_status!(outbound, "Failed to register device")
+            }
+
+            let client = Arc::new(Mutex::new(Client::new(
                 auth.uuid.clone(),
-                auth.org_id,
+                installation_code.organization_id,
                 inbound,
                 outbound,
                 self.context.clone(),
-            );
+            )));
 
-            clients.insert(auth.uuid, Arc::new(Mutex::new(client)));
+            let authentication = AuthenticationData {
+                app_id: Some(account_id),
+                app_secret: Some(account_secret),
+            };
+
+            if client.lock().await.authorize(authentication).await.is_ok() {
+                clients.insert(auth.uuid, client.clone());
+            } else {
+                log::error!("Failed to authorize a device")
+            }
         } else {
-            let device = device.unwrap();
-
-            // @TODO:
-            // Here we can check if device's data (`model`, `target_os` or `category`) has changed
-            // and act accordingly.
-
-            if let Err(status) = self
+            let device = match self
                 .context
                 .datastore
-                .update_device_online_status(&sys_token.jwt, &device.uuid, true)
+                .obtain_device_by_uuid(&root_token.jwt, &auth.uuid)
                 .await
-                .map_err(|err| Status::internal(err.to_str()))
             {
-                log::error!("Failed to udpate device record: {status}");
-                let _ = outbound.send(Err(status)).await;
-                return;
-            }
+                Ok(device) => device,
+                Err(_) => fail_with_status!(outbound, "Failed to obtain device"),
+            };
 
-            if !device.authorized {
-                let client = Client::new(
-                    auth.uuid.clone(),
-                    auth.org_id,
-                    inbound,
-                    outbound,
-                    self.context.clone(),
-                );
-
-                clients.insert(auth.uuid, Arc::new(Mutex::new(client)));
-            } else {
-                let authentication = AuthenticationData::default();
+            if device.is_some() {
+                let device = device.unwrap();
 
                 let client = Arc::new(Mutex::new(Client::new(
                     auth.uuid.clone(),
-                    auth.org_id,
+                    installation_code.organization_id,
                     inbound,
                     outbound,
                     self.context.clone(),
                 )));
 
-                if client.lock().await.authorize(authentication).await.is_ok() {
-                    clients.insert(auth.uuid, client.clone());
+                if device.authorized {
+                    let authentication = AuthenticationData::default();
+
+                    if client.lock().await.authorize(authentication).await.is_ok() {
+                        clients.insert(auth.uuid, client.clone());
+                    } else {
+                        log::error!("Failed to authorize a device")
+                    }
                 } else {
-                    log::error!("Failed to authorize a device");
+                    clients.insert(auth.uuid, client.clone());
                 }
+            } else {
+                let device = Device {
+                    authorized: false,
+                    uuid: auth.uuid.clone(),
+                    category: auth.category,
+                    r#type: auth.r#type,
+                    os: auth.target_os,
+                    online: true,
+                    organization: installation_code.organization_id.clone(),
+                    ..Default::default()
+                };
+
+                if self
+                    .context
+                    .datastore
+                    .create_device(&sys_token.jwt, &device)
+                    .await
+                    .is_err()
+                {
+                    fail_with_status!(outbound, "Failed to create device")
+                }
+
+                let client = Arc::new(Mutex::new(Client::new(
+                    auth.uuid.clone(),
+                    installation_code.organization_id,
+                    inbound,
+                    outbound,
+                    self.context.clone(),
+                )));
+
+                clients.insert(auth.uuid, client.clone());
             }
         }
     }

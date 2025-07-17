@@ -27,7 +27,7 @@ pub async fn authorize_device(
 
     let Ok(value) = context
         .datastore
-        .obtain_device_by_id(&jwt, &body.device_id)
+        .obtain_device_by_id(&jwt, &body.device_id, false)
         .await
     else {
         return HttpResponse::InternalServerError()
