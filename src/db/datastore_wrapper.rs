@@ -1,5 +1,4 @@
 use crate::config::Config;
-use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET};
 use crate::db::device::Device;
 use crate::db::entries::DbEntry;
 use crate::db::installation_code::InstallationCode;
@@ -269,11 +268,11 @@ impl DatastoreWrapper {
     }
 
     // SELECT app_id, firewall FROM {table}
-    pub(crate) async fn get_firewalls(&mut self) -> Result<HashMap<String, Firewall>, Error> {
+    pub(crate) async fn get_firewalls(
+        &mut self,
+        token: String,
+    ) -> Result<HashMap<String, Firewall>, Error> {
         let table = DbTable::Firewall.to_str();
-        let token = self
-            .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string(), true)
-            .await?;
 
         let request = GetByFilterRequest {
             params: Some(Params {
@@ -337,11 +336,8 @@ impl DatastoreWrapper {
         Ok(ret_val)
     }
 
-    pub(crate) async fn get_configs(&mut self) -> Result<Config, Error> {
+    pub(crate) async fn get_configs(&mut self, token: String) -> Result<Config, Error> {
         let table = DbTable::Config.to_str();
-        let token = self
-            .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string(), true)
-            .await?;
 
         let request = GetByFilterRequest {
             params: Some(Params {

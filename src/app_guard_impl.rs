@@ -91,12 +91,14 @@ impl AppGuardImpl {
         //     });
         // }
 
+        let root_token_provider = ctx.root_token_provider.clone();
         tokio::spawn(async move {
-            fetch_ip_data(ds_3).await;
+            fetch_ip_data(ds_3, root_token_provider).await;
         });
 
+        let root_token_provider = ctx.root_token_provider.clone();
         tokio::spawn(async move {
-            delete_old_entries(&config_2, &ds_2, &ip_info_cache_2)
+            delete_old_entries(&config_2, &ds_2, &ip_info_cache_2, root_token_provider)
                 .await
                 .expect("Delete old entries thread failed");
         });

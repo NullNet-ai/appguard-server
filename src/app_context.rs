@@ -1,4 +1,7 @@
 use crate::config::Config;
+use crate::constants::{
+    ROOT_ACCOUNT_ID, ROOT_ACCOUNT_SECRET, SYSTEM_ACCOUNT_ID, SYSTEM_ACCOUNT_SECRET,
+};
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::firewall::firewall::Firewall;
 use crate::orchestrator::Orchestrator;
@@ -10,34 +13,6 @@ use tokio::sync::RwLock;
 // Unfortunately, we have to use both root and system device credentials because:
 // - The system device cannot fetch data outside its own organization; only the root account can do that.
 // - We cannot use the root account for everything because it cannot create records in the database.
-
-pub static ROOT_ACCOUNT_ID: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
-    std::env::var("ROOT_ACCOUNT_ID").unwrap_or_else(|_| {
-        log::warn!("'ROOT_ACCOUNT_ID' environment variable not set");
-        String::new()
-    })
-});
-
-pub static ROOT_ACCOUNT_SECRET: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
-    std::env::var("ROOT_ACCOUNT_SECRET").unwrap_or_else(|_| {
-        log::warn!("'ROOT_ACCOUNT_SECRET' environment variable not set");
-        String::new()
-    })
-});
-
-pub static SYSTEM_ACCOUNT_ID: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
-    std::env::var("SYSTEM_ACCOUNT_ID").unwrap_or_else(|_| {
-        log::warn!("'SYSTEM_ACCOUNT_ID' environment variable not set");
-        String::new()
-    })
-});
-
-pub static SYSTEM_ACCOUNT_SECRET: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
-    std::env::var("SYSTEM_ACCOUNT_SECRET").unwrap_or_else(|_| {
-        log::warn!("'SYSTEM_ACCOUNT_SECRET' environment variable not set");
-        String::new()
-    })
-});
 
 #[derive(Debug, Clone)]
 pub struct AppContext {
@@ -54,18 +29,6 @@ impl AppContext {
         let mut datastore = DatastoreWrapper::new().await?;
         let orchestrator = Orchestrator::new();
 
-        let firewalls = datastore.get_firewalls().await?;
-        log::info!(
-            "Loaded firewalls from datastore: {}",
-            serde_json::to_string(&firewalls).unwrap_or_default()
-        );
-
-        let config = datastore.get_configs().await?;
-        log::info!(
-            "Loaded AppGuard configuration: {}",
-            serde_json::to_string(&config).unwrap_or_default()
-        );
-
         let sysdev_token_provider = TokenProvider::new(
             SYSTEM_ACCOUNT_ID.to_string(),
             SYSTEM_ACCOUNT_SECRET.to_string(),
@@ -78,6 +41,20 @@ impl AppContext {
             ROOT_ACCOUNT_SECRET.to_string(),
             true,
             datastore.clone(),
+        );
+
+        let root_token = root_token_provider.get().await?.jwt.clone();
+
+        let firewalls = datastore.get_firewalls(root_token.clone()).await?;
+        log::info!(
+            "Loaded firewalls from datastore: {}",
+            serde_json::to_string(&firewalls).unwrap_or_default()
+        );
+
+        let config = datastore.get_configs(root_token).await?;
+        log::info!(
+            "Loaded AppGuard configuration: {}",
+            serde_json::to_string(&config).unwrap_or_default()
         );
 
         Ok(Self {

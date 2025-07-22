@@ -16,15 +16,34 @@ pub const PORT: u16 = 50051;
 
 // pub const AI_PORT: u16 = 50052;
 
-pub static ACCOUNT_ID: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
-    std::env::var("ACCOUNT_ID").unwrap_or_else(|_| {
-        log::warn!("Environment variable ACCOUNT_ID not found");
+// Unfortunately, we have to use both root and system device credentials because:
+// - The system device cannot fetch data outside its own organization; only the root account can do that.
+// - We cannot use the root account for everything because it cannot create records in the database.
+
+pub static ROOT_ACCOUNT_ID: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    std::env::var("ROOT_ACCOUNT_ID").unwrap_or_else(|_| {
+        log::warn!("'ROOT_ACCOUNT_ID' environment variable not set");
         String::new()
     })
 });
-pub static ACCOUNT_SECRET: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
-    std::env::var("ACCOUNT_SECRET").unwrap_or_else(|_| {
-        log::warn!("Environment variable ACCOUNT_SECRET not found");
+
+pub static ROOT_ACCOUNT_SECRET: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    std::env::var("ROOT_ACCOUNT_SECRET").unwrap_or_else(|_| {
+        log::warn!("'ROOT_ACCOUNT_SECRET' environment variable not set");
+        String::new()
+    })
+});
+
+pub static SYSTEM_ACCOUNT_ID: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    std::env::var("SYSTEM_ACCOUNT_ID").unwrap_or_else(|_| {
+        log::warn!("'SYSTEM_ACCOUNT_ID' environment variable not set");
+        String::new()
+    })
+});
+
+pub static SYSTEM_ACCOUNT_SECRET: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    std::env::var("SYSTEM_ACCOUNT_SECRET").unwrap_or_else(|_| {
+        log::warn!("'SYSTEM_ACCOUNT_SECRET' environment variable not set");
         String::new()
     })
 });

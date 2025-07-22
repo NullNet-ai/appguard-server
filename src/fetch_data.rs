@@ -4,12 +4,13 @@ use std::time::Duration;
 
 use reqwest::{Client, ClientBuilder};
 
-use crate::constants::{ACCOUNT_ID, ACCOUNT_SECRET, BLACKLIST_LINK};
+use crate::constants::BLACKLIST_LINK;
 use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::entries::DbEntry;
+use crate::token_provider::TokenProvider;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
-pub async fn fetch_ip_data(ds: DatastoreWrapper) {
+pub async fn fetch_ip_data(ds: DatastoreWrapper, token_provider: TokenProvider) {
     if cfg!(test) {
         return;
     }
@@ -21,14 +22,18 @@ pub async fn fetch_ip_data(ds: DatastoreWrapper) {
         .unwrap_or_default();
 
     loop {
-        fetch_ip_blacklist(ds.clone(), &client)
+        fetch_ip_blacklist(ds.clone(), &client, token_provider.clone())
             .await
             .unwrap_or_default();
         tokio::time::sleep(Duration::from_secs(60 * 60 * 24)).await; // 24 hours
     }
 }
 
-pub async fn fetch_ip_blacklist(ds: DatastoreWrapper, client: &Client) -> Result<(), Error> {
+pub async fn fetch_ip_blacklist(
+    ds: DatastoreWrapper,
+    client: &Client,
+    token_provider: TokenProvider,
+) -> Result<(), Error> {
     log::info!("Fetching IP blacklist from {}...", BLACKLIST_LINK.as_str());
 
     let blacklist_string = client
@@ -58,9 +63,7 @@ pub async fn fetch_ip_blacklist(ds: DatastoreWrapper, client: &Client) -> Result
             .handle_err(location!())?;
     }
 
-    let token = ds
-        .login(ACCOUNT_ID.to_string(), ACCOUNT_SECRET.to_string(), true)
-        .await?;
+    let token = token_provider.get().await?.jwt.clone();
 
     DbEntry::Blacklist((blacklist, token)).store(ds).await?;
 
