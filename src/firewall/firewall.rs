@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::firewall::infix_firewall::InfixFirewall;
 use crate::firewall::rules::{FirewallExpression, FirewallRule};
-use crate::proto::appguard_commands::{FirewallDefaults, FirewallPolicy};
+use crate::proto::appguard_commands::FirewallPolicy;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
@@ -69,15 +69,6 @@ impl Default for Firewall {
             timeout: 1000, // default timeout in milliseconds
             default_policy: FirewallPolicy::Allow,
             expressions: Vec::new(),
-        }
-    }
-}
-
-impl Default for FirewallDefaults {
-    fn default() -> Self {
-        Self {
-            timeout: 1000, // default timeout in milliseconds
-            policy: FirewallPolicy::Allow.into(),
         }
     }
 }
