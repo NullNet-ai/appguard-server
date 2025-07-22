@@ -1,5 +1,10 @@
 mod proto;
 
+use crate::appguard::{
+    AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest,
+    AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse, Logs,
+};
+use crate::appguard_commands::{ClientMessage, FirewallDefaults, FirewallPolicy, ServerMessage};
 use proto::appguard::app_guard_client::AppGuardClient;
 pub use proto::*;
 use std::future::Future;
@@ -8,8 +13,6 @@ pub use tonic::Streaming;
 use tonic::codegen::tokio_stream::wrappers::ReceiverStream;
 use tonic::transport::{Channel, ClientTlsConfig};
 use tonic::{Request, Response, Status};
-use crate::appguard::{AppGuardHttpRequest, AppGuardHttpResponse, AppGuardResponse, AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo, AppGuardTcpResponse, Logs};
-use crate::appguard_commands::{ClientMessage, FirewallPolicy, ServerMessage};
 
 #[derive(Clone)]
 pub struct AppGuardGrpcInterface {
@@ -153,6 +156,17 @@ impl AppGuardGrpcInterface {
                 },
             )
             .await
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    pub async fn firewall_defaults_request(
+        &mut self,
+        token: String,
+    ) -> Result<FirewallDefaults, Status> {
+        self.client
+            .firewall_defaults_request(Request::new(appguard::Token { token }))
+            .await
+            .map(Response::into_inner)
     }
 }
 
