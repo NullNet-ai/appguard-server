@@ -69,7 +69,7 @@ impl AppGuardGrpcInterface {
     #[allow(clippy::missing_errors_doc)]
     pub async fn handle_tcp_connection(
         &mut self,
-        timeout: Option<u64>,
+        timeout: u32,
         tcp_connection: AppGuardTcpConnection,
     ) -> Result<AppGuardTcpResponse, Status> {
         self.client
@@ -89,7 +89,7 @@ impl AppGuardGrpcInterface {
     #[allow(clippy::missing_errors_doc)]
     pub async fn handle_http_request(
         &mut self,
-        timeout: Option<u64>,
+        timeout: u32,
         default_policy: FirewallPolicy,
         http_request: AppGuardHttpRequest,
     ) -> Result<AppGuardResponse, Status> {
@@ -107,7 +107,7 @@ impl AppGuardGrpcInterface {
     #[allow(clippy::missing_errors_doc)]
     pub async fn handle_http_response(
         &mut self,
-        timeout: Option<u64>,
+        timeout: u32,
         default_policy: FirewallPolicy,
         http_response: AppGuardHttpResponse,
     ) -> Result<AppGuardResponse, Status> {
@@ -125,7 +125,7 @@ impl AppGuardGrpcInterface {
     #[allow(clippy::missing_errors_doc)]
     pub async fn handle_smtp_request(
         &mut self,
-        timeout: Option<u64>,
+        timeout: u32,
         default_policy: FirewallPolicy,
         smtp_request: AppGuardSmtpRequest,
     ) -> Result<AppGuardResponse, Status> {
@@ -143,7 +143,7 @@ impl AppGuardGrpcInterface {
     #[allow(clippy::missing_errors_doc)]
     pub async fn handle_smtp_response(
         &mut self,
-        timeout: Option<u64>,
+        timeout: u32,
         default_policy: FirewallPolicy,
         smtp_response: AppGuardSmtpResponse,
     ) -> Result<AppGuardResponse, Status> {
@@ -171,20 +171,18 @@ impl AppGuardGrpcInterface {
 }
 
 trait WaitUntilTimeout<T> {
-    async fn wait_until_timeout(self, timeout: Option<u64>, default: T) -> Result<T, Status>;
+    async fn wait_until_timeout(self, timeout: u32, default: T) -> Result<T, Status>;
 }
 
 impl<T, F: Future<Output = Result<Response<T>, Status>>> WaitUntilTimeout<T> for F {
-    async fn wait_until_timeout(self, timeout: Option<u64>, default: T) -> Result<T, Status> {
-        if let Some(t) = timeout {
-            if let Ok(res) = tokio::time::timeout(std::time::Duration::from_millis(t), self).await {
-                res.map(Response::into_inner)
-            } else {
-                // handler timed out, return default value
-                Ok(default)
-            }
+    async fn wait_until_timeout(self, timeout: u32, default: T) -> Result<T, Status> {
+        if let Ok(res) =
+            tokio::time::timeout(std::time::Duration::from_millis(u64::from(timeout)), self).await
+        {
+            res.map(Response::into_inner)
         } else {
-            self.await.map(Response::into_inner)
+            // handler timed out, return default value
+            Ok(default)
         }
     }
 }
