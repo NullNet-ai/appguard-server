@@ -19,6 +19,8 @@ service AppGuard {
   // SMTP
   rpc HandleSmtpRequest (AppGuardSmtpRequest) returns (AppGuardResponse);
   rpc HandleSmtpResponse (AppGuardSmtpResponse) returns (AppGuardResponse);
+  // Other
+  rpc FirewallDefaultsRequest (Token) returns (appguard_commands.FirewallDefaults);
 }
 
 // Logs ----------------------------------------------------------------------------------------------------------------
@@ -105,4 +107,10 @@ message AppGuardResponse {
 
 message AppGuardTcpResponse {
   AppGuardTcpInfo tcp_info = 1;
+}
+
+// Other --------------------------------------------------------------------------------------
+
+message Token {
+  string token = 1;
 }

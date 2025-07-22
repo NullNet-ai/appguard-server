@@ -6,9 +6,10 @@ use crate::firewall::rules::{FirewallExpression, FirewallRule};
 use crate::proto::appguard_commands::FirewallPolicy;
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 
-#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub struct Firewall {
+    pub(crate) timeout: u32,
     pub(crate) default_policy: FirewallPolicy,
     pub(super) expressions: Vec<FirewallExpression>,
 }
@@ -62,6 +63,16 @@ impl Firewall {
     }
 }
 
+impl Default for Firewall {
+    fn default() -> Self {
+        Self {
+            timeout: 1000, // default timeout in milliseconds
+            default_policy: FirewallPolicy::Allow,
+            expressions: Vec::new(),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug)]
 pub struct FirewallResult {
     pub policy: FirewallPolicy,
@@ -103,6 +114,7 @@ mod tests {
 
     const DESERIALIZED_SAMPLE_FIREWALL: std::sync::LazyLock<Firewall> =
         std::sync::LazyLock::new(|| Firewall {
+            timeout: 1000,
             default_policy: FirewallPolicy::Allow,
             expressions: Vec::from([
                 FirewallExpression {
@@ -199,7 +211,7 @@ mod tests {
             ]),
         });
 
-    const SERIALIZED_SAMPLE_FIREWALL: &str = r#"{"default_policy":"allow","expressions":[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"equal","protocol":["HTTP","HTTPS"],"direction":"in"},{"type":"predicate","condition":"contains","http_request_url":[".php"]},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","country":["US"]},{"type":"operator","value":"and"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","smtp_request_body":["Hello"]},{"type":"predicate","condition":"greater_equal","smtp_request_header":{"From":["foo@bar.com","bar@foo.com","foo@baz.com"]}},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","smtp_response_code":[205,206]},{"type":"predicate","condition":"not_starts_with","http_request_query":{"Name":["giuliano","giacomo"]}},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","http_response_size":[100,200,300]},{"type":"operator","value":"or"}]}]}"#;
+    const SERIALIZED_SAMPLE_FIREWALL: &str = r#"{"timeout":1000,"default_policy":"allow","expressions":[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"equal","protocol":["HTTP","HTTPS"],"direction":"in"},{"type":"predicate","condition":"contains","http_request_url":[".php"]},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","country":["US"]},{"type":"operator","value":"and"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","smtp_request_body":["Hello"]},{"type":"predicate","condition":"greater_equal","smtp_request_header":{"From":["foo@bar.com","bar@foo.com","foo@baz.com"]}},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","smtp_response_code":[205,206]},{"type":"predicate","condition":"not_starts_with","http_request_query":{"Name":["giuliano","giacomo"]}},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","http_response_size":[100,200,300]},{"type":"operator","value":"or"}]}]}"#;
 
     #[test]
     fn test_firewall_load_from_infix_json() {

@@ -5,9 +5,10 @@ use crate::firewall::firewall::Firewall;
 use crate::firewall::rules::{FirewallExpression, FirewallRule};
 use crate::proto::appguard_commands::FirewallPolicy;
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct InfixFirewall {
+    timeout: u32,
     default_policy: FirewallPolicy,
     expressions: Vec<InfixFirewallExpression>,
 }
@@ -15,6 +16,7 @@ pub struct InfixFirewall {
 impl InfixFirewall {
     pub fn into_firewall(self) -> Firewall {
         let mut firewall = Firewall {
+            timeout: self.timeout,
             default_policy: self.default_policy,
             ..Firewall::default()
         };
@@ -31,6 +33,16 @@ impl InfixFirewall {
         self.expressions
             .iter()
             .all(|expr| expr.expression.is_valid())
+    }
+}
+
+impl Default for InfixFirewall {
+    fn default() -> Self {
+        Self {
+            timeout: 1000, // default timeout in milliseconds
+            default_policy: FirewallPolicy::Allow,
+            expressions: Vec::new(),
+        }
     }
 }
 

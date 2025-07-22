@@ -23,7 +23,9 @@ use crate::proto::appguard::{
     AppGuardSmtpRequest, AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
     AppGuardTcpResponse, Logs,
 };
-use crate::proto::appguard_commands::{ClientMessage, FirewallPolicy, ServerMessage};
+use crate::proto::appguard_commands::{
+    ClientMessage, FirewallDefaults, FirewallPolicy, ServerMessage,
+};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use nullnet_libipinfo::IpInfoHandler;
 use nullnet_libtoken::Token;
@@ -451,6 +453,26 @@ impl AppGuardImpl {
 
         Ok(policy)
     }
+
+    async fn firewall_defaults_request_impl(
+        &self,
+        req: Request<crate::proto::appguard::Token>,
+    ) -> Result<FirewallDefaults, Error> {
+        let token = &req.get_ref().token;
+        let Ok(t) = Token::from_jwt(token) else {
+            return Err("invalid token").handle_err(location!());
+        };
+        let app_id = t.account.account_id;
+
+        let fws = self.ctx.firewalls.read().await;
+        let default = Firewall::default();
+        let fw = fws.get(&app_id).unwrap_or(&default);
+
+        Ok(FirewallDefaults {
+            timeout: fw.timeout,
+            policy: fw.default_policy.into(),
+        })
+    }
 }
 
 #[tonic::async_trait]
@@ -558,6 +580,19 @@ impl AppGuard for AppGuardImpl {
             })
             .map_err(|err| {
                 log::error!("Error handling SMTP response");
+                Status::internal(err.to_str())
+            })
+    }
+
+    async fn firewall_defaults_request(
+        &self,
+        req: Request<crate::proto::appguard::Token>,
+    ) -> Result<Response<FirewallDefaults>, Status> {
+        self.firewall_defaults_request_impl(req)
+            .await
+            .map(Response::new)
+            .map_err(|err| {
+                log::error!("Error retrieving firewall defaults");
                 Status::internal(err.to_str())
             })
     }
