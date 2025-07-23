@@ -422,9 +422,9 @@ impl DatastoreWrapper {
         let request = LoginRequest {
             params: Some(LoginParams {
                 is_root: if is_root {
-                    String::from("true")
+                    String::from("root")
                 } else {
-                    String::from("false")
+                    String::new()
                 },
                 t: String::new(),
             }),

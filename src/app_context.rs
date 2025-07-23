@@ -51,7 +51,7 @@ impl AppContext {
             serde_json::to_string(&firewalls).unwrap_or_default()
         );
 
-        let config = datastore.get_configs(root_token).await?;
+        let config = datastore.get_configs(root_token).await.unwrap_or_default();
         log::info!(
             "Loaded AppGuard configuration: {}",
             serde_json::to_string(&config).unwrap_or_default()
