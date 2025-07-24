@@ -248,7 +248,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
-                r#type: String::new(),
+                r#type: String::from("root"),
             }),
             body: Some(BatchDeleteBody {
                 advance_filters: vec![AdvanceFilter {
@@ -278,7 +278,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
-                r#type: String::new(),
+                r#type: String::from("root"),
             }),
             body: Some(GetByFilterBody {
                 pluck: vec!["app_id".to_string(), "firewall".to_string()],
@@ -343,7 +343,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
-                r#type: String::new(),
+                r#type: String::from("root"),
             }),
             body: Some(GetByFilterBody {
                 pluck: vec![
@@ -422,9 +422,9 @@ impl DatastoreWrapper {
         let request = LoginRequest {
             params: Some(LoginParams {
                 is_root: if is_root {
-                    String::from("root")
+                    String::from("true")
                 } else {
-                    String::new()
+                    String::from("false")
                 },
                 t: String::new(),
             }),
@@ -439,6 +439,10 @@ impl DatastoreWrapper {
         log::trace!("Before login");
         let response = self.inner.clone().login(request).await?;
         log::trace!("After login");
+
+        if response.token.is_empty() {
+            return  Err("Unauthenticated: wrong app_id and/or app_secret").handle_err(location!());
+        }
 
         Ok(response.token)
     }
