@@ -441,7 +441,7 @@ impl DatastoreWrapper {
         log::trace!("After login");
 
         if response.token.is_empty() {
-            return  Err("Unauthenticated: wrong app_id and/or app_secret").handle_err(location!());
+            return Err("Unauthenticated: wrong app_id and/or app_secret").handle_err(location!());
         }
 
         Ok(response.token)

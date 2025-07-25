@@ -81,12 +81,6 @@ impl DbEntry {
                 );
             }
             DbEntry::Config((configs, _)) => {
-                ds.delete_old_entries(
-                    DbTable::Config,
-                    get_timestamp_string().as_str(),
-                    token.as_str(),
-                )
-                .await?;
                 let _ = ds.insert(self, token.as_str()).await?;
                 log::info!("AppGuard configs inserted in datastore: {configs:?}");
             }

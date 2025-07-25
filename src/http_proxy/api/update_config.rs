@@ -8,6 +8,8 @@ use nullnet_liberror::{location, ErrorHandler, Location};
 
 use crate::config::Config;
 use crate::db::entries::DbEntry;
+use crate::db::tables::DbTable;
+use crate::helpers::get_timestamp_string;
 use actix_web::web::Data;
 use actix_web::web::Json;
 use serde_json::json;
@@ -23,6 +25,16 @@ pub async fn update_config(
 
     let body_config = body.into_inner();
 
+    context
+        .datastore
+        .clone()
+        .delete_old_entries(
+            DbTable::Config,
+            get_timestamp_string().as_str(),
+            &context.root_token_provider.get().await.unwrap().jwt,
+        )
+        .await
+        .unwrap();
     if DbEntry::Config((body_config, jwt))
         .store(context.datastore.clone())
         .await
