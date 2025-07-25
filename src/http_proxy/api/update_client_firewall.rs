@@ -17,7 +17,6 @@ use serde_json::json;
 pub struct RequestPayload {
     device_id: String,
     firewall: String,
-    timeout: u32,
 }
 
 pub async fn update_client_firewall(
@@ -56,6 +55,7 @@ pub async fn update_client_firewall(
     };
     log::info!("Updating firewall for '{device_id}': {firewall:?}",);
     let default_policy = firewall.default_policy;
+    let timeout = firewall.timeout;
 
     if DbEntry::Firewall((device_id.clone(), firewall.clone(), jwt))
         .store(context.datastore.clone())
@@ -77,7 +77,7 @@ pub async fn update_client_firewall(
     };
 
     let defaults = FirewallDefaults {
-        timeout: body.timeout,
+        timeout,
         policy: default_policy.into(),
     };
     if let Err(err) = client.lock().await.set_firewall_defaults(defaults).await {
