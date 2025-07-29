@@ -25,17 +25,12 @@ pub async fn update_config(
 
     let body_config = body.into_inner();
 
-    // todo: delete configs in a separate method
-    context
-        .datastore
-        .clone()
-        .delete_old_entries(
-            DbTable::Config,
-            get_timestamp_string().as_str(),
-            &context.root_token_provider.get().await.unwrap().jwt,
-        )
-        .await
-        .unwrap();
+    if delete_old_configs(&context).await.is_err() {
+        return HttpResponse::InternalServerError().json(ErrorJson::from(
+            "Failed to delete old AppGuard configs from datastore",
+        ));
+    }
+
     if DbEntry::Config((body_config, jwt))
         .store(context.datastore.clone())
         .await
@@ -58,4 +53,18 @@ pub async fn update_config(
     }
 
     HttpResponse::Ok().json(json!({}))
+}
+
+async fn delete_old_configs(context: &AppContext) -> Result<(), nullnet_liberror::Error> {
+    context
+        .datastore
+        .clone()
+        .delete_old_entries(
+            DbTable::Config,
+            get_timestamp_string().as_str(),
+            &context.root_token_provider.get().await?.jwt,
+        )
+        .await?;
+
+    Ok(())
 }
