@@ -179,7 +179,12 @@ impl AppGuardImpl {
         let Ok(t) = Token::from_jwt(token) else {
             return Err("invalid token").handle_err(location!());
         };
-        let app_id = t.account.account_id;
+        let app_id = t
+            .account
+            .device
+            .ok_or("Device not found in token")
+            .handle_err(location!())?
+            .id;
 
         let fws = self.ctx.firewalls.read().await;
         let default = Firewall::default();
