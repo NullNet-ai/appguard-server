@@ -688,7 +688,7 @@ impl DatastoreWrapper {
                 r#type,
             }),
             query: Some(Query {
-                pluck: serde_json::to_string(&vec![
+                pluck: vec![
                     "id",
                     "device_uuid",
                     "is_traffic_monitoring_enabled",
@@ -696,12 +696,16 @@ impl DatastoreWrapper {
                     "is_telemetry_monitoring_enabled",
                     "is_device_authorized",
                     "device_category",
-                    "device_model",
+                    "device_type",
                     "device_os",
+                    "device_name",
                     "is_device_online",
                     "organization_id",
-                ])
-                .unwrap(),
+                ]
+                .into_iter()
+                .map(Into::<String>::into)
+                .collect::<Vec<_>>()
+                .join(","),
                 durability: String::from("soft"),
             }),
         };
@@ -732,7 +736,7 @@ impl DatastoreWrapper {
     ) -> Result<Response, Error> {
         let request = RegisterDeviceRequest {
             device: Some(RegisterDeviceParams {
-                organization_id: String::new(),
+                organization_id: device.organization.clone(),
                 account_id: String::from(account_id),
                 account_secret: String::from(account_secret),
                 is_new_user: true,
@@ -820,7 +824,7 @@ impl DatastoreWrapper {
                 table: String::from("devices"),
             }),
             query: Some(Query {
-                pluck: serde_json::to_string(&vec![
+                pluck: vec![
                     "id",
                     "device_uuid",
                     "is_traffic_monitoring_enabled",
@@ -828,12 +832,16 @@ impl DatastoreWrapper {
                     "is_telemetry_monitoring_enabled",
                     "is_device_authorized",
                     "device_category",
-                    "device_model",
+                    "device_type",
                     "device_os",
+                    "device_name",
                     "is_device_online",
                     "organization_id",
-                ])
-                .unwrap(),
+                ]
+                .into_iter()
+                .map(Into::<String>::into)
+                .collect::<Vec<_>>()
+                .join(","),
                 durability: String::from("soft"),
             }),
             body: Some(CreateBody {
@@ -862,17 +870,18 @@ impl DatastoreWrapper {
         let request = GetByFilterRequest {
             body: Some(GetByFilterBody {
                 pluck: vec![
-                    "id".to_string(),
-                    "device_uuid".to_string(),
-                    "is_traffic_monitoring_enabled".to_string(),
-                    "is_config_monitoring_enabled".to_string(),
-                    "is_telemetry_monitoring_enabled".to_string(),
-                    "is_device_authorized".to_string(),
-                    "device_category".to_string(),
-                    "device_model".to_string(),
-                    "device_os".to_string(),
-                    "is_device_online".to_string(),
-                    "organization_id".to_string(),
+                    "id".into(),
+                    "device_uuid".into(),
+                    "is_traffic_monitoring_enabled".into(),
+                    "is_config_monitoring_enabled".into(),
+                    "is_telemetry_monitoring_enabled".into(),
+                    "is_device_authorized".into(),
+                    "device_category".into(),
+                    "device_type".into(),
+                    "device_os".into(),
+                    "device_name".into(),
+                    "is_device_online".into(),
+                    "organization_id".into(),
                 ],
                 advance_filters: vec![filter],
                 order_by: "timestamp".to_string(),

@@ -25,6 +25,7 @@ pub async fn update_config(
 
     let body_config = body.into_inner();
 
+    // todo: delete configs in a separate method
     context
         .datastore
         .clone()
