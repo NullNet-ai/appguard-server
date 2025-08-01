@@ -17,15 +17,15 @@ pub enum TcpConnectionField {
 }
 
 impl TcpConnectionField {
-    pub fn get_field_name(&self) -> &str {
-        match self {
-            TcpConnectionField::SourceIp(_) => "source_ip",
-            TcpConnectionField::DestinationIp(_) => "destination_ip",
-            TcpConnectionField::SourcePort(_) => "source_port",
-            TcpConnectionField::DestinationPort(_) => "destination_port",
-            TcpConnectionField::Protocol(_) => "protocol",
-        }
-    }
+    // pub fn get_field_name(&self) -> &str {
+    //     match self {
+    //         TcpConnectionField::SourceIp(_) => "source_ip",
+    //         TcpConnectionField::DestinationIp(_) => "destination_ip",
+    //         TcpConnectionField::SourcePort(_) => "source_port",
+    //         TcpConnectionField::DestinationPort(_) => "destination_port",
+    //         TcpConnectionField::Protocol(_) => "protocol",
+    //     }
+    // }
 
     fn get_compare_fields<'a>(
         &'a self,
@@ -75,7 +75,7 @@ impl<'a> PredicateEvaluator for &'a AppGuardTcpConnection {
     }
 
     fn get_reason(&self, predicate: &Self::Predicate) -> Self::Reason {
-        predicate.rule.field.get_field_name()
+        serde_json::to_string(predicate.rule).unwrap_or_default()
     }
 
     fn get_remote_ip(&self) -> String {

@@ -24,7 +24,7 @@ impl<'a> PredicateEvaluator for &'a AppGuardTcpInfo {
     }
 
     fn get_reason(&self, predicate: &Self::Predicate) -> Self::Reason {
-        predicate.rule.field.get_field_name()
+        serde_json::to_string(predicate.rule).unwrap_or_default()
     }
 
     fn is_blacklisted(&self) -> bool {

@@ -50,19 +50,19 @@ pub enum FirewallRuleField {
     SmtpResponse(SmtpResponseField),
 }
 
-impl FirewallRuleField {
-    pub fn get_field_name(&self) -> String {
-        match self {
-            FirewallRuleField::TcpConnection(f) => f.get_field_name(),
-            FirewallRuleField::IpInfo(f) => f.get_field_name(),
-            FirewallRuleField::HttpRequest(f) => f.get_field_name(),
-            FirewallRuleField::HttpResponse(f) => f.get_field_name(),
-            FirewallRuleField::SmtpRequest(f) => f.get_field_name(),
-            FirewallRuleField::SmtpResponse(f) => f.get_field_name(),
-        }
-        .to_string()
-    }
-}
+// impl FirewallRuleField {
+//     pub fn get_field_name(&self) -> String {
+//         match self {
+//             FirewallRuleField::TcpConnection(f) => f.get_field_name(),
+//             FirewallRuleField::IpInfo(f) => f.get_field_name(),
+//             FirewallRuleField::HttpRequest(f) => f.get_field_name(),
+//             FirewallRuleField::HttpResponse(f) => f.get_field_name(),
+//             FirewallRuleField::SmtpRequest(f) => f.get_field_name(),
+//             FirewallRuleField::SmtpResponse(f) => f.get_field_name(),
+//         }
+//         .to_string()
+//     }
+// }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
