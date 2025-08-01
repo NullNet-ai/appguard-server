@@ -267,12 +267,19 @@ impl DatastoreWrapper {
         Ok(count)
     }
 
-    // SELECT app_id, firewall FROM {table}
     pub(crate) async fn get_firewalls(
         &mut self,
         token: String,
     ) -> Result<HashMap<String, Firewall>, Error> {
         let table = DbTable::Firewall.to_str();
+
+        let filter = AdvanceFilter {
+            r#type: String::from("criteria"),
+            field: String::from("active"),
+            operator: String::from("equal"),
+            entity: table.to_string(),
+            values: "[true]".to_string(),
+        };
 
         let request = GetByFilterRequest {
             params: Some(Params {
@@ -282,7 +289,7 @@ impl DatastoreWrapper {
             }),
             body: Some(GetByFilterBody {
                 pluck: vec!["app_id".to_string(), "firewall".to_string()],
-                advance_filters: vec![],
+                advance_filters: vec![filter],
                 order_by: String::new(),
                 limit: i32::MAX,
                 offset: 0,
@@ -1018,6 +1025,41 @@ impl DatastoreWrapper {
             operator: "equal".to_string(),
             entity: table.to_string(),
             values: "[true]".to_string(),
+        };
+
+        let updates = json!({"active": false}).to_string();
+
+        let request = BatchUpdateRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: table.into(),
+                r#type: String::from("root"),
+            }),
+            body: Some(BatchUpdateBody {
+                advance_filters: vec![filter],
+                updates,
+            }),
+        };
+
+        log::trace!("Before batch update to {table}");
+        let count = self.inner.batch_update(request, token).await?.count;
+        log::trace!("After batch update to {table}: {count}");
+        Ok(count)
+    }
+
+    pub(crate) async fn deactivate_old_firewalls(
+        &mut self,
+        token: &str,
+        device_id: &str,
+    ) -> Result<i32, Error> {
+        let table = DbTable::Firewall.to_str();
+
+        let filter = AdvanceFilter {
+            r#type: "criteria".to_string(),
+            field: "app_id".to_string(),
+            operator: "equal".to_string(),
+            entity: table.to_string(),
+            values: format!("[\"{device_id}\"]"),
         };
 
         let updates = json!({"active": false}).to_string();

@@ -67,9 +67,7 @@ impl DbEntry {
                 let _ = ds.insert_batch(self, token.as_str()).await?;
             }
             DbEntry::Firewall(_) => {
-                let _ = ds
-                    .upsert(self, vec!["app_id".to_string()], token.as_str())
-                    .await?;
+                let _ = ds.insert(self, token.as_str()).await?;
                 log::info!("Firewall inserted in datastore");
             }
             DbEntry::DeniedIp((_, denied_ip, _)) => {
