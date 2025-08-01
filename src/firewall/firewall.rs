@@ -1,6 +1,7 @@
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
 
+use crate::constants::BLACKLIST_LINK;
 use crate::firewall::infix_firewall::InfixFirewall;
 use crate::firewall::rules::{FirewallExpression, FirewallRule};
 use crate::proto::appguard_commands::FirewallPolicy;
@@ -47,7 +48,14 @@ impl Firewall {
     ) -> FirewallResult {
         // first let's check if this is blacklisted
         if item.is_blacklisted() {
-            return FirewallResult::new(FirewallPolicy::Deny, vec!["IP is blacklisted".to_string()]);
+            return FirewallResult::new(
+                FirewallPolicy::Deny,
+                vec![format!(
+                    "IP {} is blacklisted by {}",
+                    item.get_remote_ip(),
+                    BLACKLIST_LINK.as_str()
+                )],
+            );
         }
         // if not blacklisted, check the firewall expressions one by one
         for expr in &self.expressions {
