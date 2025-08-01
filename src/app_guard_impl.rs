@@ -225,6 +225,7 @@ impl AppGuardImpl {
         let logs = request.into_inner();
         let (jwt_token, _) = authenticate(logs.token)?;
 
+        // TODO: call tx_store to store logs
         let _ = self
             .ctx
             .datastore
