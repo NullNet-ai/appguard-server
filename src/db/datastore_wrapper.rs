@@ -339,6 +339,14 @@ impl DatastoreWrapper {
     pub(crate) async fn get_configs(&mut self, token: String) -> Result<Config, Error> {
         let table = DbTable::Config.to_str();
 
+        let filter = AdvanceFilter {
+            r#type: String::from("criteria"),
+            field: String::from("active"),
+            operator: String::from("equal"),
+            entity: table.to_string(),
+            values: "[true]".to_string(),
+        };
+
         let request = GetByFilterRequest {
             params: Some(Params {
                 id: String::new(),
@@ -352,7 +360,7 @@ impl DatastoreWrapper {
                     "retention_sec".to_string(),
                     "ip_info_cache_size".to_string(),
                 ],
-                advance_filters: vec![],
+                advance_filters: vec![filter],
                 order_by: String::new(),
                 limit: 1,
                 offset: 0,
@@ -381,7 +389,7 @@ impl DatastoreWrapper {
 
         let i = array
             .first()
-            .ok_or("No data found")
+            .ok_or("No active configs found for AppGuard")
             .handle_err(location!())?;
 
         let map = i
@@ -999,6 +1007,37 @@ impl DatastoreWrapper {
         let _ = self.inner.clone().update(request, token).await;
 
         Ok(())
+    }
+
+    pub(crate) async fn deactivate_old_configs(&mut self, token: &str) -> Result<i32, Error> {
+        let table = DbTable::Config.to_str();
+
+        let filter = AdvanceFilter {
+            r#type: "criteria".to_string(),
+            field: "active".to_string(),
+            operator: "equal".to_string(),
+            entity: table.to_string(),
+            values: "[true]".to_string(),
+        };
+
+        let updates = json!({"active": false}).to_string();
+
+        let request = BatchUpdateRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: table.into(),
+                r#type: String::from("root"),
+            }),
+            body: Some(BatchUpdateBody {
+                advance_filters: vec![filter],
+                updates,
+            }),
+        };
+
+        log::trace!("Before batch update to {table}");
+        let count = self.inner.batch_update(request, token).await?.count;
+        log::trace!("After batch update to {table}: {count}");
+        Ok(count)
     }
 }
 
