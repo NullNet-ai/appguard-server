@@ -194,6 +194,7 @@ impl DatastoreWrapper {
         Ok(result)
     }
 
+    // TODO: spot error in this query
     // SELECT MIN(timestamp) FROM {table}
     pub(crate) async fn get_oldest_timestamp(
         &mut self,
@@ -205,7 +206,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
-                r#type: String::new(),
+                r#type: String::from("root"),
             }),
             body: Some(GetByFilterBody {
                 pluck: vec!["timestamp".to_string()],
