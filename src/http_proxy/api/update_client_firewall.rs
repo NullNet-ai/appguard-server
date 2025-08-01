@@ -57,6 +57,12 @@ pub async fn update_client_firewall(
     let default_policy = firewall.default_policy;
     let timeout = firewall.timeout;
 
+    if deactivate_old_firewalls(&context, device_id).await.is_err() {
+        return HttpResponse::InternalServerError().json(ErrorJson::from(
+            "Failed to deactivate old firewalls from datastore",
+        ));
+    }
+
     if DbEntry::Firewall((device_id.clone(), firewall.clone(), jwt))
         .store(context.datastore.clone())
         .await
@@ -85,4 +91,17 @@ pub async fn update_client_firewall(
     }
 
     HttpResponse::Ok().json(json!({}))
+}
+
+async fn deactivate_old_firewalls(
+    context: &AppContext,
+    device_id: &str,
+) -> Result<(), nullnet_liberror::Error> {
+    context
+        .datastore
+        .clone()
+        .deactivate_old_firewalls(&context.root_token_provider.get().await?.jwt, device_id)
+        .await?;
+
+    Ok(())
 }

@@ -14,11 +14,11 @@ pub enum SmtpResponseField {
 }
 
 impl SmtpResponseField {
-    pub fn get_field_name(&self) -> &str {
-        match self {
-            SmtpResponseField::SmtpResponseCode(_) => "smtp_response_code",
-        }
-    }
+    // pub fn get_field_name(&self) -> &str {
+    //     match self {
+    //         SmtpResponseField::SmtpResponseCode(_) => "smtp_response_code",
+    //     }
+    // }
 
     fn get_compare_fields<'a>(
         &'a self,
@@ -56,7 +56,7 @@ impl PredicateEvaluator for AppGuardSmtpResponse {
     }
 
     fn get_reason(&self, predicate: &Self::Predicate) -> Self::Reason {
-        predicate.field.get_field_name()
+        serde_json::to_string(predicate).unwrap_or_default()
     }
 
     fn is_blacklisted(&self) -> bool {

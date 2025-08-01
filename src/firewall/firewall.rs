@@ -1,6 +1,7 @@
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
 
+use crate::constants::BLACKLIST_LINK;
 use crate::firewall::infix_firewall::InfixFirewall;
 use crate::firewall::rules::{FirewallExpression, FirewallRule};
 use crate::proto::appguard_commands::FirewallPolicy;
@@ -47,7 +48,14 @@ impl Firewall {
     ) -> FirewallResult {
         // first let's check if this is blacklisted
         if item.is_blacklisted() {
-            return FirewallResult::new(FirewallPolicy::Deny, vec!["blacklist".to_string()]);
+            return FirewallResult::new(
+                FirewallPolicy::Deny,
+                vec![format!(
+                    "IP {} is blacklisted by {}",
+                    item.get_remote_ip(),
+                    BLACKLIST_LINK.as_str()
+                )],
+            );
         }
         // if not blacklisted, check the firewall expressions one by one
         for expr in &self.expressions {
@@ -260,7 +268,10 @@ mod tests {
             firewall.match_item(&item_1),
             FirewallResult::new(
                 FirewallPolicy::Deny,
-                vec!["protocol".to_string(), "country".to_string()]
+                vec![
+                    "{\"condition\":\"equal\",\"protocol\":[\"HTTP\",\"HTTPS\"],\"direction\":\"in\"}".to_string(),
+                    "{\"condition\":\"equal\",\"country\":[\"US\"]}".to_string()
+                ]
             )
         );
 
@@ -270,7 +281,10 @@ mod tests {
         item_2.body = Some("Hey! Hello World!!!".to_string());
         assert_eq!(
             firewall.match_item(&item_2),
-            FirewallResult::new(FirewallPolicy::Allow, vec!["smtp_request_body".to_string()])
+            FirewallResult::new(
+                FirewallPolicy::Allow,
+                vec!["{\"condition\":\"contains\",\"smtp_request_body\":[\"Hello\"]}".to_string()]
+            )
         );
 
         item_2.body = Some("Hey! World!!!".to_string());

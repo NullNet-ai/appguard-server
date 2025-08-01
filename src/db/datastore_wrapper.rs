@@ -195,7 +195,6 @@ impl DatastoreWrapper {
     }
 
     // SELECT MIN(timestamp) FROM {table}
-    // TODO: An error occurred while processing your request
     pub(crate) async fn get_oldest_timestamp(
         &mut self,
         table: DbTable,
@@ -236,7 +235,6 @@ impl DatastoreWrapper {
     }
 
     // DELETE FROM {table} WHERE timestamp <= {timestamp}
-    /// todo: error 'missing FROM-clause entry for table "ip_blacklists"'
     pub(crate) async fn delete_old_entries(
         &mut self,
         table: DbTable,
@@ -267,12 +265,19 @@ impl DatastoreWrapper {
         Ok(count)
     }
 
-    // SELECT app_id, firewall FROM {table}
     pub(crate) async fn get_firewalls(
         &mut self,
         token: String,
     ) -> Result<HashMap<String, Firewall>, Error> {
         let table = DbTable::Firewall.to_str();
+
+        let filter = AdvanceFilter {
+            r#type: String::from("criteria"),
+            field: String::from("active"),
+            operator: String::from("equal"),
+            entity: table.to_string(),
+            values: "[true]".to_string(),
+        };
 
         let request = GetByFilterRequest {
             params: Some(Params {
@@ -282,7 +287,7 @@ impl DatastoreWrapper {
             }),
             body: Some(GetByFilterBody {
                 pluck: vec!["app_id".to_string(), "firewall".to_string()],
-                advance_filters: vec![],
+                advance_filters: vec![filter],
                 order_by: String::new(),
                 limit: i32::MAX,
                 offset: 0,
@@ -339,6 +344,14 @@ impl DatastoreWrapper {
     pub(crate) async fn get_configs(&mut self, token: String) -> Result<Config, Error> {
         let table = DbTable::Config.to_str();
 
+        let filter = AdvanceFilter {
+            r#type: String::from("criteria"),
+            field: String::from("active"),
+            operator: String::from("equal"),
+            entity: table.to_string(),
+            values: "[true]".to_string(),
+        };
+
         let request = GetByFilterRequest {
             params: Some(Params {
                 id: String::new(),
@@ -352,7 +365,7 @@ impl DatastoreWrapper {
                     "retention_sec".to_string(),
                     "ip_info_cache_size".to_string(),
                 ],
-                advance_filters: vec![],
+                advance_filters: vec![filter],
                 order_by: String::new(),
                 limit: 1,
                 offset: 0,
@@ -381,7 +394,7 @@ impl DatastoreWrapper {
 
         let i = array
             .first()
-            .ok_or("No data found")
+            .ok_or("No active configs found for AppGuard")
             .handle_err(location!())?;
 
         let map = i
@@ -519,44 +532,6 @@ impl DatastoreWrapper {
         Ok(response)
     }
 
-    // pub async fn register_device(
-    //     &self,
-    //     token: &str,
-    //     account_id: &str,
-    //     account_secret: &str,
-    //     device: &Device,
-    // ) -> Result<Response, Error> {
-    //     let request = RegisterDeviceRequestBuilder::new()
-    //         .account_id(account_id)
-    //         .account_secret(account_secret)
-    //         .account_organization_status("Active")
-    //         .is_new_user(true)
-    //         .add_account_organization_category("Device")
-    //         .add_device_category("Device")
-    //         .organization_id(&device.organization)
-    //         .device_id(&device.id)
-    //         .build();
-    //
-    //     let response = self.inner.clone().register_device(request, token).await?;
-    //
-    //     Ok(response)
-    // }
-
-    // pub async fn heartbeat(
-    //     &self,
-    //     token: &str,
-    //     device_id: String,
-    // ) -> Result<LatestDeviceInfo, Error> {
-    //     let (create_result, fetch_result) = tokio::join!(
-    //         Self::internal_hb_create_hb_record(self.inner.clone(), device_id.clone(), token),
-    //         Self::internal_hb_fetch_device_info(self.inner.clone(), device_id, token)
-    //     );
-    //
-    //     let _ = create_result?;
-    //
-    //     fetch_result
-    // }
-
     pub async fn logs_insert(&self, token: &str, logs: Vec<Log>) -> Result<ResponseData, Error> {
         match logs.as_slice() {
             [] => Ok(ResponseData {
@@ -569,7 +544,6 @@ impl DatastoreWrapper {
         }
     }
 
-    // TODO: There was an error while creating the new record
     async fn logs_insert_single(&mut self, log: Log, token: &str) -> Result<ResponseData, Error> {
         let record = serde_json::to_string(&log).handle_err(location!())?;
 
@@ -615,59 +589,6 @@ impl DatastoreWrapper {
 
         Ok(res)
     }
-
-    // TODO: There was an error while creating the new record
-    // async fn internal_hb_create_hb_record(
-    //     mut client: DatastoreClient,
-    //     device_id: String,
-    //     token: &str,
-    // ) -> Result<ResponseData, Error> {
-    //     let request = CreateRequest {
-    //         params: Some(CreateParams {
-    //             table: String::from("device_heartbeats"),
-    //         }),
-    //         query: Some(Query {
-    //             pluck: String::new(),
-    //             durability: String::from("soft"),
-    //         }),
-    //         body: Some(CreateBody {
-    //             record: json!({
-    //                 "device_id": device_id.clone(),
-    //                 "timestamp": Utc::now().to_rfc3339(),
-    //             })
-    //             .to_string(),
-    //         }),
-    //     };
-    //
-    //     log::trace!("Before create heartbeat record");
-    //     let res = client.create(request, token).await?;
-    //     log::trace!("After create heartbeat record");
-    //
-    //     Ok(res)
-    // }
-
-    // async fn internal_hb_fetch_device_info(
-    //     mut client: DatastoreClient,
-    //     device_id: String,
-    //     token: &str,
-    // ) -> Result<LatestDeviceInfo, Error> {
-    //     let request = GetByIdRequest {
-    //         params: Some(Params {
-    //             id: device_id,
-    //             table: String::from("devices"),
-    //             r#type: String::new(),
-    //         }),
-    //         query: Some(Query {
-    //             pluck: String::from("status,is_monitoring_enabled,is_remote_access_enabled"),
-    //             durability: String::from("soft"),
-    //         }),
-    //     };
-    //
-    //     log::trace!("Before fetch heartbeat device info");
-    //     let response = client.get_by_id(request, token).await?;
-    //     log::trace!("After fetch heartbeat device info");
-    //     LatestDeviceInfo::from_response_data(&response)
-    // }
 
     pub async fn obtain_device_by_id(
         &self,
@@ -999,6 +920,72 @@ impl DatastoreWrapper {
         let _ = self.inner.clone().update(request, token).await;
 
         Ok(())
+    }
+
+    pub(crate) async fn deactivate_old_configs(&mut self, token: &str) -> Result<i32, Error> {
+        let table = DbTable::Config.to_str();
+
+        let filter = AdvanceFilter {
+            r#type: "criteria".to_string(),
+            field: "active".to_string(),
+            operator: "equal".to_string(),
+            entity: table.to_string(),
+            values: "[true]".to_string(),
+        };
+
+        let updates = json!({"active": false}).to_string();
+
+        let request = BatchUpdateRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: table.into(),
+                r#type: String::from("root"),
+            }),
+            body: Some(BatchUpdateBody {
+                advance_filters: vec![filter],
+                updates,
+            }),
+        };
+
+        log::trace!("Before batch update to {table}");
+        let count = self.inner.batch_update(request, token).await?.count;
+        log::trace!("After batch update to {table}: {count}");
+        Ok(count)
+    }
+
+    pub(crate) async fn deactivate_old_firewalls(
+        &mut self,
+        token: &str,
+        device_id: &str,
+    ) -> Result<i32, Error> {
+        let table = DbTable::Firewall.to_str();
+
+        let filter = AdvanceFilter {
+            r#type: "criteria".to_string(),
+            field: "app_id".to_string(),
+            operator: "equal".to_string(),
+            entity: table.to_string(),
+            values: format!("[\"{device_id}\"]"),
+        };
+
+        let updates = json!({"active": false}).to_string();
+
+        let request = BatchUpdateRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: table.into(),
+                r#type: String::from("root"),
+            }),
+            body: Some(BatchUpdateBody {
+                advance_filters: vec![filter],
+                updates,
+            }),
+        };
+
+        log::trace!("Before batch update to {table}");
+        let count = self.inner.batch_update(request, token).await?.count;
+        log::trace!("After batch update to {table}: {count}");
+        Ok(count)
     }
 }
 

@@ -8,8 +8,6 @@ use nullnet_liberror::{location, ErrorHandler, Location};
 
 use crate::config::Config;
 use crate::db::entries::DbEntry;
-use crate::db::tables::DbTable;
-use crate::helpers::get_timestamp_string;
 use actix_web::web::Data;
 use actix_web::web::Json;
 use serde_json::json;
@@ -25,9 +23,9 @@ pub async fn update_config(
 
     let body_config = body.into_inner();
 
-    if delete_old_configs(&context).await.is_err() {
+    if deactivate_old_configs(&context).await.is_err() {
         return HttpResponse::InternalServerError().json(ErrorJson::from(
-            "Failed to delete old AppGuard configs from datastore",
+            "Failed to deactivate old AppGuard configs from datastore",
         ));
     }
 
@@ -55,15 +53,11 @@ pub async fn update_config(
     HttpResponse::Ok().json(json!({}))
 }
 
-async fn delete_old_configs(context: &AppContext) -> Result<(), nullnet_liberror::Error> {
+async fn deactivate_old_configs(context: &AppContext) -> Result<(), nullnet_liberror::Error> {
     context
         .datastore
         .clone()
-        .delete_old_entries(
-            DbTable::Config,
-            get_timestamp_string().as_str(),
-            &context.root_token_provider.get().await?.jwt,
-        )
+        .deactivate_old_configs(&context.root_token_provider.get().await?.jwt)
         .await?;
 
     Ok(())

@@ -19,14 +19,14 @@ pub enum SmtpRequestField {
 }
 
 impl SmtpRequestField {
-    pub fn get_field_name(&self) -> &str {
-        match self {
-            SmtpRequestField::SmtpRequestHeader(_) => "smtp_request_header",
-            SmtpRequestField::SmtpRequestBody(_) => "smtp_request_body",
-            SmtpRequestField::SmtpRequestBodyLen(_) => "smtp_request_body_len",
-            SmtpRequestField::SmtpRequestUserAgent(_) => "smtp_request_user_agent",
-        }
-    }
+    // pub fn get_field_name(&self) -> &str {
+    //     match self {
+    //         SmtpRequestField::SmtpRequestHeader(_) => "smtp_request_header",
+    //         SmtpRequestField::SmtpRequestBody(_) => "smtp_request_body",
+    //         SmtpRequestField::SmtpRequestBodyLen(_) => "smtp_request_body_len",
+    //         SmtpRequestField::SmtpRequestUserAgent(_) => "smtp_request_user_agent",
+    //     }
+    // }
 
     fn get_compare_fields<'a>(
         &'a self,
@@ -73,7 +73,7 @@ impl PredicateEvaluator for AppGuardSmtpRequest {
     }
 
     fn get_reason(&self, predicate: &Self::Predicate) -> Self::Reason {
-        predicate.field.get_field_name()
+        serde_json::to_string(predicate).unwrap_or_default()
     }
 
     fn is_blacklisted(&self) -> bool {

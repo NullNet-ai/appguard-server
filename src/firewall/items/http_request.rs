@@ -23,18 +23,18 @@ pub enum HttpRequestField {
 }
 
 impl HttpRequestField {
-    pub fn get_field_name(&self) -> &str {
-        match self {
-            HttpRequestField::HttpRequestUrl(_) => "http_request_url",
-            HttpRequestField::HttpRequestMethod(_) => "http_request_method",
-            HttpRequestField::HttpRequestQuery(_) => "http_request_query",
-            HttpRequestField::HttpRequestCookie(_) => "http_request_cookie",
-            HttpRequestField::HttpRequestHeader(_) => "http_request_header",
-            HttpRequestField::HttpRequestBody(_) => "http_request_body",
-            HttpRequestField::HttpRequestBodyLen(_) => "http_request_body_len",
-            HttpRequestField::HttpRequestUserAgent(_) => "http_request_user_agent",
-        }
-    }
+    // pub fn get_field_name(&self) -> &str {
+    //     match self {
+    //         HttpRequestField::HttpRequestUrl(_) => "http_request_url",
+    //         HttpRequestField::HttpRequestMethod(_) => "http_request_method",
+    //         HttpRequestField::HttpRequestQuery(_) => "http_request_query",
+    //         HttpRequestField::HttpRequestCookie(_) => "http_request_cookie",
+    //         HttpRequestField::HttpRequestHeader(_) => "http_request_header",
+    //         HttpRequestField::HttpRequestBody(_) => "http_request_body",
+    //         HttpRequestField::HttpRequestBodyLen(_) => "http_request_body_len",
+    //         HttpRequestField::HttpRequestUserAgent(_) => "http_request_user_agent",
+    //     }
+    // }
 
     fn get_compare_fields<'a>(
         &'a self,
@@ -92,7 +92,7 @@ impl PredicateEvaluator for AppGuardHttpRequest {
     }
 
     fn get_reason(&self, predicate: &Self::Predicate) -> Self::Reason {
-        predicate.field.get_field_name()
+        serde_json::to_string(predicate).unwrap_or_default()
     }
 
     fn is_blacklisted(&self) -> bool {

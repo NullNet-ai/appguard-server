@@ -18,18 +18,18 @@ pub enum IpInfoField {
 }
 
 impl IpInfoField {
-    pub fn get_field_name(&self) -> &str {
-        match self {
-            IpInfoField::Country(_) => "country",
-            IpInfoField::Asn(_) => "asn",
-            IpInfoField::Org(_) => "org",
-            IpInfoField::Continent(_) => "continent",
-            IpInfoField::City(_) => "city",
-            IpInfoField::Region(_) => "region",
-            IpInfoField::Postal(_) => "postal",
-            IpInfoField::Timezone(_) => "timezone",
-        }
-    }
+    // pub fn get_field_name(&self) -> &str {
+    //     match self {
+    //         IpInfoField::Country(_) => "country",
+    //         IpInfoField::Asn(_) => "asn",
+    //         IpInfoField::Org(_) => "org",
+    //         IpInfoField::Continent(_) => "continent",
+    //         IpInfoField::City(_) => "city",
+    //         IpInfoField::Region(_) => "region",
+    //         IpInfoField::Postal(_) => "postal",
+    //         IpInfoField::Timezone(_) => "timezone",
+    //     }
+    // }
 
     fn get_compare_fields<'a>(
         &'a self,
@@ -84,7 +84,7 @@ impl<'a> PredicateEvaluator for &'a AppGuardIpInfo {
     }
 
     fn get_reason(&self, predicate: &Self::Predicate) -> Self::Reason {
-        predicate.rule.field.get_field_name()
+        serde_json::to_string(predicate.rule).unwrap_or_default()
     }
 
     fn is_blacklisted(&self) -> bool {

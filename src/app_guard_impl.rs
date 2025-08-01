@@ -208,58 +208,6 @@ impl AppGuardImpl {
         Ok(res)
     }
 
-    // pub(crate) async fn heartbeat_impl(
-    //     &self,
-    //     request: Request<AuthenticationData>,
-    // ) -> Result<Response<<AppGuardImpl as AppGuard>::HeartbeatStream>, Error> {
-    //     let datastore = self.ctx.datastore.clone();
-    //     let remote_address = request
-    //         .remote_addr()
-    //         .map_or_else(|| "Unknown".to_string(), |addr| addr.ip().to_string());
-    //     log::info!("Received heartbeat request from {remote_address}");
-    //
-    //     let authenticate_request = request.into_inner();
-    //     let token_provider = TokenProvider::new(
-    //         authenticate_request.app_id.unwrap_or_default().clone(),
-    //         authenticate_request.app_secret.unwrap_or_default().clone(),
-    //         false,
-    //         datastore.clone(),
-    //     );
-    //     let token = token_provider.get().await?.jwt.clone();
-    //     let (_, token_info) = authenticate(token.clone())?;
-    //     let Some(device) = token_info.account.device else {
-    //         return Err("Device not found in token").handle_err(location!());
-    //     };
-    //     let device_id = device.id;
-    //
-    //     let status = datastore.device_status(device_id.clone(), &token).await?;
-    //     if status == DeviceStatus::Draft {
-    //         datastore
-    //             .device_setup(&token, device_id.clone(), remote_address)
-    //             .await?;
-    //     }
-    //
-    //     let (tx, rx) = mpsc::channel(6);
-    //
-    //     tokio::spawn(async move {
-    //         loop {
-    //             if let Ok(t) = token_provider.get().await {
-    //                 let token = t.jwt.clone();
-    //                 if let Ok(response) = datastore.heartbeat(&token, device_id.clone()).await {
-    //                     let response = HeartbeatResponse {
-    //                         token,
-    //                         status: response.status.into(),
-    //                     };
-    //                     tx.send(Ok(response)).await.unwrap();
-    //                 }
-    //             }
-    //             tokio::time::sleep(Duration::from_secs(10)).await;
-    //         }
-    //     });
-    //
-    //     Ok(Response::new(ReceiverStream::new(rx)))
-    // }
-
     pub(crate) fn control_channel_impl(
         &self,
         request: Request<Streaming<ClientMessage>>,
@@ -277,6 +225,7 @@ impl AppGuardImpl {
         let logs = request.into_inner();
         let (jwt_token, _) = authenticate(logs.token)?;
 
+        // TODO: call tx_store to store logs
         let _ = self
             .ctx
             .datastore
