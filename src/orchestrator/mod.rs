@@ -70,9 +70,7 @@ impl Orchestrator {
     }
 
     pub async fn get_client(&self, uuid: &str, instance_id: &str) -> Option<Arc<Mutex<Instance>>> {
-        let Some(instances) = self.get_client_instances(uuid).await else {
-            return None;
-        };
+        let instances = self.get_client_instances(uuid).await?;
 
         for instance in instances.lock().await.iter() {
             if instance.lock().await.instance_id == instance_id {

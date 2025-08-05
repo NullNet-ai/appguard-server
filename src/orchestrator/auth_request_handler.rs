@@ -235,7 +235,7 @@ impl AuthReqHandler {
 
         let instance = Arc::new(Mutex::new(Instance::new(
             device.uuid.clone(),
-            instance_id.into(),
+            instance_id,
             inbound,
             outbound,
             context,
