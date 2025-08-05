@@ -78,16 +78,49 @@ pub async fn update_client_firewall(
         .await
         .insert(device_id.clone(), firewall);
 
-    let Some(client) = context.orchestrator.get_client(&device.uuid).await else {
-        return HttpResponse::NotFound().json(ErrorJson::from("Device is not online"));
-    };
-
     let defaults = FirewallDefaults {
         timeout,
         policy: default_policy.into(),
     };
-    if let Err(err) = client.lock().await.set_firewall_defaults(defaults).await {
-        return HttpResponse::InternalServerError().json(ErrorJson::from(err));
+
+    let Some(instances) = context
+        .orchestrator
+        .get_client_instances(&device.uuid)
+        .await
+    else {
+        return HttpResponse::InternalServerError()
+            .json(ErrorJson::from("Device is not connected"));
+    };
+
+    if instances.lock().await.is_empty() {
+        return HttpResponse::InternalServerError()
+            .json(ErrorJson::from("Device is not connected"));
+    }
+
+    let instances_ids: Vec<String> = {
+        let instances_guard = instances.lock().await;
+        let mut ids = Vec::new();
+        for inst in instances_guard.iter() {
+            let id = inst.lock().await.instance_id.clone();
+            ids.push(id);
+        }
+        ids
+    };
+
+    for id in instances_ids {
+        let Some(instance) = context.orchestrator.get_client(&device.uuid, &id).await else {
+            return HttpResponse::InternalServerError().json(format!(
+                "Failed to find an instance {} of device {}",
+                id, device.uuid
+            ));
+        };
+
+        let mut lock = instance.lock().await;
+
+        if lock.set_firewall_defaults(defaults).await.is_err() {
+            return HttpResponse::InternalServerError()
+                .json(ErrorJson::from("Failed to send approval"));
+        }
     }
 
     HttpResponse::Ok().json(json!({}))

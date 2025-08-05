@@ -1,5 +1,5 @@
 use crate::config::Config;
-use crate::db::device::Device;
+use crate::db::device::{Device, DeviceInstance};
 use crate::db::entries::DbEntry;
 use crate::db::installation_code::InstallationCode;
 use crate::db::tables::DbTable;
@@ -7,10 +7,10 @@ use crate::firewall::firewall::Firewall;
 use crate::proto::appguard::{AppGuardIpInfo, Log};
 use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
-    BatchUpdateBody, BatchUpdateRequest, CreateBody, CreateParams, CreateRequest, GetByFilterBody,
-    GetByFilterRequest, GetByIdRequest, LoginBody, LoginData, LoginParams, LoginRequest,
-    MultipleSort, Params, Query, RegisterDeviceParams, RegisterDeviceRequest, Response,
-    ResponseData, UpdateRequest, UpsertBody, UpsertRequest,
+    BatchUpdateBody, BatchUpdateRequest, CreateBody, CreateParams, CreateRequest, DeleteQuery,
+    DeleteRequest, GetByFilterBody, GetByFilterRequest, GetByIdRequest, LoginBody, LoginData,
+    LoginParams, LoginRequest, MultipleSort, Params, Query, RegisterDeviceParams,
+    RegisterDeviceRequest, Response, ResponseData, UpdateRequest, UpsertBody, UpsertRequest,
 };
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
@@ -736,7 +736,7 @@ impl DatastoreWrapper {
         Ok(())
     }
 
-    pub async fn create_device(&self, token: &str, device: &Device) -> Result<(), Error> {
+    pub async fn create_device(&self, token: &str, device: &Device) -> Result<String, Error> {
         let mut json = json!(device);
 
         json.as_object_mut().unwrap().remove("id");
@@ -771,7 +771,74 @@ impl DatastoreWrapper {
             }),
         };
 
-        let _ = self.inner.clone().create(request, token).await?;
+        let response = self.inner.clone().create(request, token).await?;
+
+        let json_data = serde_json::from_str::<Value>(&response.data).handle_err(location!());
+        let data = json_data?
+            .as_array()
+            .and_then(|arr| arr.first())
+            .cloned()
+            .ok_or("Operation failed")
+            .handle_err(location!())?;
+
+        let retval = serde_json::from_value::<Device>(data).handle_err(location!())?;
+
+        Ok(retval.id)
+    }
+
+    pub async fn create_device_instance(
+        &self,
+        token: &str,
+        instance: &DeviceInstance,
+    ) -> Result<String, Error> {
+        let mut json = json!(instance);
+        json.as_object_mut().unwrap().remove("id");
+
+        let request = CreateRequest {
+            params: Some(CreateParams {
+                table: "device_instances".into(),
+            }),
+            query: Some(Query {
+                pluck: "id,device_id".into(),
+                durability: String::new(),
+            }),
+            body: Some(CreateBody {
+                record: json.to_string(),
+            }),
+        };
+
+        let response = self.inner.clone().create(request, token).await?;
+
+        let json_data = serde_json::from_str::<Value>(&response.data).handle_err(location!());
+        let data = json_data?
+            .as_array()
+            .and_then(|arr| arr.first())
+            .cloned()
+            .ok_or("Operation failed")
+            .handle_err(location!())?;
+
+        let retval = serde_json::from_value::<DeviceInstance>(data).handle_err(location!())?;
+
+        Ok(retval.id.clone())
+    }
+
+    pub async fn delete_device_instance(
+        &self,
+        token: &str,
+        instance_id: &str,
+    ) -> Result<(), Error> {
+        let request = DeleteRequest {
+            params: Some(Params {
+                id: instance_id.into(),
+                table: "device_instances".into(),
+                r#type: String::new(),
+            }),
+            query: Some(DeleteQuery {
+                is_permanent: String::new(),
+            }),
+        };
+
+        let _ = self.inner.clone().delete(request, token).await?;
 
         Ok(())
     }

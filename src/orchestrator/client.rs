@@ -15,36 +15,41 @@ pub(crate) type OutboundStream = mpsc::Sender<Result<ServerMessage, Status>>;
 pub(crate) type InboundStream = Streaming<ClientMessage>;
 
 #[derive(Debug)]
-pub struct Client {
-    uuid: String,
-    _org_id: String,
-    outbound: OutboundStream,
+pub struct Instance {
+    pub(crate) device_uuid: String,
+    pub(crate) instance_id: String,
+    pub(crate) outbound: OutboundStream,
 }
 
-impl Client {
+impl Instance {
     pub fn new(
-        uuid: String,
-        org_id: String,
+        device_uuid: String,
+        instance_id: String,
         inbound: InboundStream,
         outbound: OutboundStream,
         context: AppContext,
     ) -> Self {
         tokio::spawn(control_stream(
-            uuid.clone(),
+            device_uuid.clone(),
+            instance_id.clone(),
             inbound,
             outbound.clone(),
             context,
         ));
 
         Self {
-            uuid,
+            device_uuid,
+            instance_id,
             outbound,
-            _org_id: org_id,
         }
     }
 
     pub async fn authorize(&mut self, data: AuthenticationData) -> Result<(), Error> {
-        log::debug!("Authorizing device {}", self.uuid);
+        log::debug!(
+            "Authorizing device {}, instance {}",
+            self.device_uuid,
+            self.instance_id
+        );
 
         let message = ServerMessage {
             message: Some(Message::DeviceAuthorized(data)),
@@ -59,7 +64,11 @@ impl Client {
     }
 
     pub async fn _deauthorize(&mut self) -> Result<(), Error> {
-        log::debug!("Deauthorizing device {}", self.uuid);
+        log::debug!(
+            "Deauthorizing device {}, instance {}",
+            self.device_uuid,
+            self.instance_id
+        );
 
         let message = ServerMessage {
             message: Some(Message::DeviceDeauthorized(())),
