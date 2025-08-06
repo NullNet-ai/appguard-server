@@ -11,11 +11,12 @@ const TOKEN_UPDATE_TIME: Duration = Duration::from_secs(60);
 
 pub(crate) async fn control_stream(
     device_uuid: String,
+    instance_id: String,
     inbound: InboundStream,
     outbound: OutboundStream,
     context: AppContext,
 ) {
-    log::info!("Starting a control stream for device UUID {device_uuid}");
+    log::info!("Starting a control stream for device UUID {device_uuid}, Instance {instance_id}");
 
     tokio::select! {
         hres = healthcheck(outbound.clone()) => {
@@ -38,10 +39,25 @@ pub(crate) async fn control_stream(
         },
     };
 
+    let _ = context
+        .orchestrator
+        .on_disconnected(&device_uuid, &instance_id)
+        .await;
+
     if let Ok(token) = context.sysdev_token_provider.get().await {
+        let _ = context
+            .datastore
+            .delete_device_instance(&token.jwt, &instance_id)
+            .await;
+
+        let is_online = context
+            .orchestrator
+            .does_client_have_connected_instances(&device_uuid)
+            .await;
+
         if context
             .datastore
-            .update_device_online_status(&token.jwt, &device_uuid, false)
+            .update_device_online_status(&token.jwt, &device_uuid, is_online)
             .await
             .is_err()
         {
@@ -50,8 +66,6 @@ pub(crate) async fn control_stream(
     } else {
         log::error!("Failed to obtain system device token");
     }
-
-    let _ = context.orchestrator.on_disconnected(&device_uuid).await;
 }
 
 async fn healthcheck(stream: OutboundStream) -> Result<(), Error> {

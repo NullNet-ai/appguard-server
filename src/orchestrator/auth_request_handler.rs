@@ -10,11 +10,12 @@
 //! For rejected or failed authorization attempts, appropriate error messages are sent back via the outbound stream.
 
 use crate::app_context::AppContext;
-use crate::db::device::Device;
+use crate::db::device::{Device, DeviceInstance};
 use crate::helpers::generate_random_string;
-use crate::orchestrator::client::{Client, InboundStream, OutboundStream};
-use crate::proto::appguard_commands::server_message::Message;
-use crate::proto::appguard_commands::{AuthenticationData, AuthorizationRequest, ServerMessage};
+use crate::orchestrator::client::{InboundStream, Instance, OutboundStream};
+use crate::orchestrator::InstancesVector;
+use crate::proto::appguard_commands::{AuthenticationData, AuthorizationRequest};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tonic::Status;
@@ -49,19 +50,6 @@ impl AuthReqHandler {
         );
 
         let mut clients = self.context.orchestrator.clients.lock().await;
-
-        if clients.contains_key(&auth.uuid) {
-            log::warn!(
-                "Rejecting duplicate connection: device UUID {} is already connected",
-                auth.uuid
-            );
-            let _ = outbound
-                .send(Ok(ServerMessage {
-                    message: Some(Message::AuthorizationRejected(())),
-                }))
-                .await;
-            return;
-        }
 
         let root_token = match self.context.root_token_provider.get().await {
             Ok(token) => token,
@@ -143,24 +131,21 @@ impl AuthReqHandler {
                 fail_with_status!(outbound, "Failed to register device")
             }
 
-            let client = Arc::new(Mutex::new(Client::new(
-                auth.uuid.clone(),
-                installation_code.organization_id,
-                inbound,
-                outbound,
-                self.context.clone(),
-            )));
-
             let authentication = AuthenticationData {
                 app_id: Some(account_id),
                 app_secret: Some(account_secret),
             };
 
-            if client.lock().await.authorize(authentication).await.is_ok() {
-                clients.insert(auth.uuid, client.clone());
-            } else {
-                log::error!("Failed to authorize a device")
-            }
+            Self::add_device_instance(
+                &mut clients,
+                &device,
+                &sys_token.jwt,
+                inbound,
+                outbound,
+                self.context.clone(),
+                Some(authentication),
+            )
+            .await;
         } else {
             let device = match self
                 .context
@@ -175,27 +160,22 @@ impl AuthReqHandler {
             if device.is_some() {
                 let device = device.unwrap();
 
-                let client = Arc::new(Mutex::new(Client::new(
-                    auth.uuid.clone(),
-                    installation_code.organization_id,
+                Self::add_device_instance(
+                    &mut clients,
+                    &device,
+                    &sys_token.jwt,
                     inbound,
                     outbound,
                     self.context.clone(),
-                )));
-
-                if device.authorized {
-                    let authentication = AuthenticationData::default();
-
-                    if client.lock().await.authorize(authentication).await.is_ok() {
-                        clients.insert(auth.uuid, client.clone());
+                    if device.authorized {
+                        Some(AuthenticationData::default())
                     } else {
-                        log::error!("Failed to authorize a device")
-                    }
-                } else {
-                    clients.insert(auth.uuid, client.clone());
-                }
+                        None
+                    },
+                )
+                .await;
             } else {
-                let device = Device {
+                let mut device = Device {
                     authorized: false,
                     uuid: auth.uuid.clone(),
                     category: auth.category,
@@ -206,26 +186,83 @@ impl AuthReqHandler {
                     ..Default::default()
                 };
 
-                if self
+                let Ok(device_id) = self
                     .context
                     .datastore
                     .create_device(&sys_token.jwt, &device)
                     .await
-                    .is_err()
-                {
+                else {
                     fail_with_status!(outbound, "Failed to create device")
-                }
+                };
 
-                let client = Arc::new(Mutex::new(Client::new(
-                    auth.uuid.clone(),
-                    installation_code.organization_id,
+                device.id = device_id;
+
+                Self::add_device_instance(
+                    &mut clients,
+                    &device,
+                    &sys_token.jwt,
                     inbound,
                     outbound,
                     self.context.clone(),
-                )));
-
-                clients.insert(auth.uuid, client.clone());
+                    None,
+                )
+                .await;
             }
+        }
+    }
+
+    async fn add_device_instance(
+        clients: &mut HashMap<String, InstancesVector>,
+        device: &Device,
+        token: &str,
+        inbound: InboundStream,
+        outbound: OutboundStream,
+        context: AppContext,
+        authentication: Option<AuthenticationData>,
+    ) {
+        let device_instance = DeviceInstance {
+            device_id: device.id.clone(),
+            ..Default::default()
+        };
+
+        let Ok(instance_id) = context
+            .datastore
+            .create_device_instance(token, &device_instance)
+            .await
+        else {
+            fail_with_status!(outbound, "Failed to create device instance")
+        };
+
+        let instance = Arc::new(Mutex::new(Instance::new(
+            device.uuid.clone(),
+            instance_id,
+            inbound,
+            outbound,
+            context,
+        )));
+
+        if clients.get(&device.uuid).is_none() {
+            clients.insert(device.uuid.clone(), Default::default());
+        }
+
+        if let Some(auth_data) = authentication {
+            if instance.lock().await.authorize(auth_data).await.is_ok() {
+                clients
+                    .get(&device.uuid)
+                    .unwrap()
+                    .lock()
+                    .await
+                    .push(instance);
+            } else {
+                log::error!("Failed to authorize a device");
+            }
+        } else {
+            clients
+                .get(&device.uuid)
+                .unwrap()
+                .lock()
+                .await
+                .push(instance);
         }
     }
 }

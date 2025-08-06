@@ -27,3 +27,9 @@ pub struct Device {
     #[serde(rename = "organization_id")]
     pub organization: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct DeviceInstance {
+    pub id: String,
+    pub device_id: String,
+}
