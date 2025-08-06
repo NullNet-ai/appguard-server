@@ -792,7 +792,10 @@ impl DatastoreWrapper {
         instance: &DeviceInstance,
     ) -> Result<String, Error> {
         let mut json = json!(instance);
-        json.as_object_mut().unwrap().remove("id");
+        json.as_object_mut()
+            .ok_or("Expected JSON object")
+            .handle_err(location!())?
+            .remove("id");
 
         let request = CreateRequest {
             params: Some(CreateParams {
