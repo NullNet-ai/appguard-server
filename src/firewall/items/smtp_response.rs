@@ -1,11 +1,12 @@
-use rpn_predicate_interpreter::PredicateEvaluator;
-use serde::{Deserialize, Serialize};
-
+use crate::app_context::AppContext;
 use crate::firewall::rules::{
     FirewallCompareType, FirewallRule, FirewallRuleDirection, FirewallRuleField,
     FirewallRuleWithDirection,
 };
 use crate::proto::appguard::{AppGuardSmtpResponse, AppGuardTcpInfo};
+use rpn_predicate_interpreter::PredicateEvaluator;
+use serde::{Deserialize, Serialize};
+use async_trait::async_trait;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -33,11 +34,13 @@ impl SmtpResponseField {
     }
 }
 
+#[async_trait(?Send)]
 impl PredicateEvaluator for AppGuardSmtpResponse {
     type Predicate = FirewallRule;
     type Reason = String;
+    type Context = AppContext;
 
-    fn evaluate_predicate(&self, predicate: &Self::Predicate) -> bool {
+    async fn evaluate_predicate(&self, predicate: &Self::Predicate, context: &Self::Context) -> bool {
         if predicate.direction == Some(FirewallRuleDirection::In) {
             return false;
         }
@@ -48,10 +51,13 @@ impl PredicateEvaluator for AppGuardSmtpResponse {
             self.tcp_info
                 .as_ref()
                 .unwrap_or(&AppGuardTcpInfo::default())
-                .evaluate_predicate(&FirewallRuleWithDirection {
-                    rule: predicate,
-                    direction: FirewallRuleDirection::Out,
-                })
+                .evaluate_predicate(
+                    &FirewallRuleWithDirection {
+                        rule: predicate,
+                        direction: FirewallRuleDirection::Out,
+                    },
+                    context,
+                ).await
         }
     }
 

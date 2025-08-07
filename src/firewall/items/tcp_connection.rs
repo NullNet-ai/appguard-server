@@ -1,16 +1,17 @@
-use rpn_predicate_interpreter::PredicateEvaluator;
-use serde::{Deserialize, Serialize};
-
+use crate::app_context::AppContext;
 use crate::firewall::rules::{
     FirewallCompareType, FirewallRuleDirection, FirewallRuleField, FirewallRuleWithDirection,
 };
 use crate::proto::appguard::AppGuardTcpConnection;
+use rpn_predicate_interpreter::PredicateEvaluator;
+use serde::{Deserialize, Serialize};
+use async_trait::async_trait;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum TcpConnectionField {
-    SourceIp(Vec<String>),
-    DestinationIp(Vec<String>),
+    SourceIp(IpAlias),
+    DestinationIp(IpAlias),
     SourcePort(Vec<u32>),
     DestinationPort(Vec<u32>),
     Protocol(Vec<String>),
@@ -27,22 +28,35 @@ impl TcpConnectionField {
     //     }
     // }
 
-    fn get_compare_fields<'a>(
+    async fn get_compare_fields<'a>(
         &'a self,
         item: &'a AppGuardTcpConnection,
         direction: &FirewallRuleDirection,
+        context: &'a AppContext,
     ) -> Option<FirewallCompareType<'a>> {
         match self {
-            TcpConnectionField::SourceIp(v) => match direction {
-                FirewallRuleDirection::In => item.source_ip.as_ref(),
-                FirewallRuleDirection::Out => item.destination_ip.as_ref(),
+            TcpConnectionField::SourceIp(a) => {
+                let ip_opt = match direction {
+                    FirewallRuleDirection::In => item.source_ip.as_ref(),
+                    FirewallRuleDirection::Out => item.destination_ip.as_ref(),
+                };
+                if let Some(ip) = ip_opt {
+                    Some(FirewallCompareType::String((ip, a.to_ips(context).await?)))
+                } else {
+                    None
+                }
             }
-            .map(|ip| FirewallCompareType::String((ip, v))),
-            TcpConnectionField::DestinationIp(v) => match direction {
-                FirewallRuleDirection::In => item.destination_ip.as_ref(),
-                FirewallRuleDirection::Out => item.source_ip.as_ref(),
+            TcpConnectionField::DestinationIp(a) => {
+                let ip_opt = match direction {
+                    FirewallRuleDirection::In => item.destination_ip.as_ref(),
+                    FirewallRuleDirection::Out => item.source_ip.as_ref(),
+                };
+                if let Some(ip) = ip_opt {
+                    Some(FirewallCompareType::String((ip, a.to_ips(context).await?)))
+                } else {
+                    None
+                }
             }
-            .map(|ip| FirewallCompareType::String((ip, v))),
             TcpConnectionField::SourcePort(v) => match direction {
                 FirewallRuleDirection::In => item.source_port,
                 FirewallRuleDirection::Out => item.destination_port,
@@ -60,16 +74,19 @@ impl TcpConnectionField {
     }
 }
 
+#[async_trait(?Send)]
 impl<'a> PredicateEvaluator for &'a AppGuardTcpConnection {
     type Predicate = FirewallRuleWithDirection<'a>;
     type Reason = String;
+    type Context = AppContext;
 
-    fn evaluate_predicate(&self, predicate: &Self::Predicate) -> bool {
+    async fn evaluate_predicate(&self, predicate: &Self::Predicate, context: &Self::Context) -> bool {
         if let FirewallRuleField::TcpConnection(f) = &predicate.rule.field {
-            return predicate
-                .rule
-                .condition
-                .compare(f.get_compare_fields(self, &predicate.direction));
+            return predicate.rule.condition.compare(f.get_compare_fields(
+                self,
+                &predicate.direction,
+                context,
+            ).await);
         }
         false
     }
@@ -80,6 +97,25 @@ impl<'a> PredicateEvaluator for &'a AppGuardTcpConnection {
 
     fn get_remote_ip(&self) -> String {
         self.source_ip.clone().unwrap_or_default()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[serde(untagged)]
+enum IpAlias {
+    Name(String),
+    Addresses(Vec<String>),
+}
+
+impl IpAlias {
+    async fn to_ips(&self, context: &AppContext) -> Option<&Vec<String>> {
+        match self {
+            IpAlias::Name(name) => {
+                let token = context.root_token_provider.get().await.ok()?.jwt.clone();
+                context.datastore.clone().get_ip_alias(token, name).await.ok().as_ref()
+            }
+            IpAlias::Addresses(addresses) => Some(addresses),
+        }
     }
 }
 
@@ -102,7 +138,8 @@ mod tests {
     #[test]
     fn test_tcp_connection_get_source_ip() {
         let tcp_connection = sample_tcp_connection();
-        let tcp_connection_field = TcpConnectionField::SourceIp(vec!["8.8.8.8".to_string()]);
+        let tcp_connection_field =
+            TcpConnectionField::SourceIp(IpAlias::Addresses(vec!["8.8.8.8".to_string()]));
         for direction in [FirewallRuleDirection::In, FirewallRuleDirection::In].iter() {
             let ip = match direction {
                 FirewallRuleDirection::In => "1.1.1.1",
@@ -121,7 +158,8 @@ mod tests {
     #[test]
     fn test_tcp_connection_get_destination_ip() {
         let tcp_connection = sample_tcp_connection();
-        let tcp_connection_field = TcpConnectionField::DestinationIp(vec!["8.8.8.8".to_string()]);
+        let tcp_connection_field =
+            TcpConnectionField::DestinationIp(IpAlias::Addresses(vec!["8.8.8.8".to_string()]));
         for direction in [FirewallRuleDirection::In, FirewallRuleDirection::In].iter() {
             let ip = match direction {
                 FirewallRuleDirection::In => "2.2.2.2",

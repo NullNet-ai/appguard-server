@@ -170,7 +170,7 @@ impl AppGuardImpl {
     }
 
     async fn firewall_match_item<
-        I: PredicateEvaluator<Predicate = FirewallRule, Reason = String>,
+        I: PredicateEvaluator<Predicate = FirewallRule, Reason = String, Context = AppContext>,
     >(
         &self,
         token: &str,
@@ -190,7 +190,7 @@ impl AppGuardImpl {
         let default = Firewall::default();
         let fw = fws.get(&app_id).unwrap_or(&default);
 
-        let res = fw.match_item(item);
+        let res = fw.match_item(item, &self.ctx).await;
         if res.policy == FirewallPolicy::Deny {
             let denied_ip = DeniedIp {
                 ip: item.get_remote_ip(),

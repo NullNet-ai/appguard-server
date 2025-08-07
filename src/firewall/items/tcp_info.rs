@@ -1,24 +1,27 @@
-use rpn_predicate_interpreter::PredicateEvaluator;
-
+use crate::app_context::AppContext;
 use crate::firewall::rules::{FirewallRuleField, FirewallRuleWithDirection};
 use crate::proto::appguard::{AppGuardIpInfo, AppGuardTcpConnection, AppGuardTcpInfo};
+use rpn_predicate_interpreter::PredicateEvaluator;
+use async_trait::async_trait;
 
+#[async_trait(?Send)]
 impl<'a> PredicateEvaluator for &'a AppGuardTcpInfo {
     type Predicate = FirewallRuleWithDirection<'a>;
     type Reason = String;
+    type Context = AppContext;
 
-    fn evaluate_predicate(&self, predicate: &Self::Predicate) -> bool {
+    async fn evaluate_predicate(&self, predicate: &Self::Predicate, context: &Self::Context) -> bool {
         match &predicate.rule.field {
             FirewallRuleField::TcpConnection(_) => self
                 .connection
                 .as_ref()
                 .unwrap_or(&AppGuardTcpConnection::default())
-                .evaluate_predicate(predicate),
+                .evaluate_predicate(predicate, context).await,
             FirewallRuleField::IpInfo(_) => self
                 .ip_info
                 .as_ref()
                 .unwrap_or(&AppGuardIpInfo::default())
-                .evaluate_predicate(predicate),
+                .evaluate_predicate(predicate, context).await,
             _ => false,
         }
     }

@@ -1,3 +1,4 @@
+use crate::app_context::AppContext;
 use crate::firewall::header_val::HeaderVal;
 use crate::firewall::rules::{
     FirewallCompareType, FirewallRule, FirewallRuleDirection, FirewallRuleField,
@@ -7,6 +8,7 @@ use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardSmtpRequest, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
+use async_trait::async_trait;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[allow(clippy::enum_variant_names)]
@@ -50,11 +52,13 @@ impl SmtpRequestField {
     }
 }
 
+#[async_trait(?Send)]
 impl PredicateEvaluator for AppGuardSmtpRequest {
     type Predicate = FirewallRule;
     type Reason = String;
+    type Context = AppContext;
 
-    fn evaluate_predicate(&self, predicate: &Self::Predicate) -> bool {
+    async fn evaluate_predicate(&self, predicate: &Self::Predicate, context: &Self::Context) -> bool {
         if predicate.direction == Some(FirewallRuleDirection::Out) {
             return false;
         }
@@ -65,10 +69,13 @@ impl PredicateEvaluator for AppGuardSmtpRequest {
             self.tcp_info
                 .as_ref()
                 .unwrap_or(&AppGuardTcpInfo::default())
-                .evaluate_predicate(&FirewallRuleWithDirection {
-                    rule: predicate,
-                    direction: FirewallRuleDirection::In,
-                })
+                .evaluate_predicate(
+                    &FirewallRuleWithDirection {
+                        rule: predicate,
+                        direction: FirewallRuleDirection::In,
+                    },
+                    context,
+                ).await
         }
     }
 

@@ -1058,6 +1058,80 @@ impl DatastoreWrapper {
         log::trace!("After batch update to {table}: {count}");
         Ok(count)
     }
+
+    pub(crate) async fn get_ip_alias(
+        &mut self,
+        token: String,
+        name: &str,
+    ) -> Result<Vec<String>, Error> {
+        let table = "device_aliases";
+
+        let filter = AdvanceFilter {
+            r#type: String::from("criteria"),
+            field: String::from("name"),
+            operator: String::from("equal"),
+            entity: table.to_string(),
+            values: format!("[\"{name}\"]"),
+        };
+
+        let request = GetByFilterRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: table.into(),
+                r#type: String::from("root"),
+            }),
+            body: Some(GetByFilterBody {
+                pluck: vec!["value".to_string()],
+                advance_filters: vec![filter],
+                order_by: String::new(),
+                limit: 1,
+                offset: 0,
+                order_direction: String::new(),
+                joins: vec![],
+                multiple_sort: vec![],
+                pluck_object: HashMap::default(),
+                date_format: String::new(),
+                is_case_sensitive_sorting: false,
+            }),
+        };
+
+        log::trace!("Before get by filter to {table}");
+        let result = self.inner.get_by_filter(request, &token).await?.data;
+        log::trace!("After get by filter to {table}: {result}");
+
+        Self::internal_ip_alias_parse_response_data(result)
+    }
+
+    fn internal_ip_alias_parse_response_data(data: String) -> Result<Vec<String>, Error> {
+        let array_val = serde_json::from_str::<serde_json::Value>(&data).handle_err(location!())?;
+        let array = array_val
+            .as_array()
+            .ok_or("Failed to parse response")
+            .handle_err(location!())?;
+
+        let i = array
+            .first()
+            .ok_or("No alias found")
+            .handle_err(location!())?;
+
+        let Some(map) = i.as_object() else {
+            return Err("Failed to parse response").handle_err(location!());
+        };
+        let Some(alias_val) = map.get("value") else {
+            return Err("Failed to parse response").handle_err(location!());
+        };
+        let Some(alias) = alias_val.as_str() else {
+            return Err("Failed to parse response").handle_err(location!());
+        };
+
+        let ret_val = alias
+            .split_whitespace()
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect();
+
+        Ok(ret_val)
+    }
 }
 
 #[cfg(test)]
