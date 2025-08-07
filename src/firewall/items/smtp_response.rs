@@ -6,7 +6,6 @@ use crate::firewall::rules::{
 use crate::proto::appguard::{AppGuardSmtpResponse, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
-use async_trait::async_trait;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -34,7 +33,7 @@ impl SmtpResponseField {
     }
 }
 
-#[async_trait(?Send)]
+#[tonic::async_trait]
 impl PredicateEvaluator for AppGuardSmtpResponse {
     type Predicate = FirewallRule;
     type Reason = String;

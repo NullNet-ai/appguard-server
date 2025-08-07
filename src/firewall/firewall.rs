@@ -44,7 +44,7 @@ impl Firewall {
     }
 
     pub async fn match_item<
-        I: PredicateEvaluator<Predicate = FirewallRule, Reason = String, Context = AppContext>,
+        I: PredicateEvaluator<Predicate = FirewallRule, Reason = String, Context = AppContext> + Sync,
     >(
         &self,
         item: &I,

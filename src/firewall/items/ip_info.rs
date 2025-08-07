@@ -3,7 +3,6 @@ use crate::firewall::rules::{FirewallCompareType, FirewallRuleField, FirewallRul
 use crate::proto::appguard::AppGuardIpInfo;
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
-use async_trait::async_trait;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -73,7 +72,7 @@ impl IpInfoField {
     }
 }
 
-#[async_trait(?Send)]
+#[tonic::async_trait]
 impl<'a> PredicateEvaluator for &'a AppGuardIpInfo {
     type Predicate = FirewallRuleWithDirection<'a>;
     type Reason = String;

@@ -2053,7 +2053,7 @@ dependencies = [
 [[package]]
 name = "rpn-predicate-interpreter"
 version = "0.1.0"
-source = "git+https://github.com/GyulyVGC/postfix-predicate-interpreter.git?branch=appguard#94b0811907cb088051e0ea0628cbf51b826ddfc6"
+source = "git+https://github.com/GyulyVGC/postfix-predicate-interpreter.git?branch=appguard#1c7be73d7bf7879f9e7e73c65a5299d4df9786db"
 dependencies = [
  "async-trait",
  "serde",

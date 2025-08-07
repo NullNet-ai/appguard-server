@@ -2,9 +2,8 @@ use crate::app_context::AppContext;
 use crate::firewall::rules::{FirewallRuleField, FirewallRuleWithDirection};
 use crate::proto::appguard::{AppGuardIpInfo, AppGuardTcpConnection, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
-use async_trait::async_trait;
 
-#[async_trait(?Send)]
+#[tonic::async_trait]
 impl<'a> PredicateEvaluator for &'a AppGuardTcpInfo {
     type Predicate = FirewallRuleWithDirection<'a>;
     type Reason = String;

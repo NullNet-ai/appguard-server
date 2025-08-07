@@ -5,7 +5,6 @@ use crate::firewall::rules::{
 use crate::proto::appguard::AppGuardTcpConnection;
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
-use async_trait::async_trait;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -74,7 +73,7 @@ impl TcpConnectionField {
     }
 }
 
-#[async_trait(?Send)]
+#[tonic::async_trait]
 impl<'a> PredicateEvaluator for &'a AppGuardTcpConnection {
     type Predicate = FirewallRuleWithDirection<'a>;
     type Reason = String;
@@ -112,7 +111,7 @@ impl IpAlias {
         match self {
             IpAlias::Name(name) => {
                 let token = context.root_token_provider.get().await.ok()?.jwt.clone();
-                context.datastore.clone().get_ip_alias(token, name).await.ok().as_ref()
+                context.datastore.clone().get_ip_alias(token, name).await.ok()
             }
             IpAlias::Addresses(addresses) => Some(addresses),
         }

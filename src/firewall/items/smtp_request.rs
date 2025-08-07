@@ -8,7 +8,6 @@ use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardSmtpRequest, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
-use async_trait::async_trait;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[allow(clippy::enum_variant_names)]
@@ -52,7 +51,7 @@ impl SmtpRequestField {
     }
 }
 
-#[async_trait(?Send)]
+#[tonic::async_trait]
 impl PredicateEvaluator for AppGuardSmtpRequest {
     type Predicate = FirewallRule;
     type Reason = String;
