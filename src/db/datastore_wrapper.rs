@@ -1124,11 +1124,7 @@ impl DatastoreWrapper {
             return Err("Failed to parse response").handle_err(location!());
         };
 
-        let ret_val = alias
-            .split_whitespace()
-            .into_iter()
-            .map(|s| s.to_string())
-            .collect();
+        let ret_val = alias.split_whitespace().map(|s| s.to_string()).collect();
 
         Ok(ret_val)
     }

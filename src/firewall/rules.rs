@@ -131,7 +131,7 @@ impl FirewallRuleCondition {
 
 #[derive(Debug, PartialEq)]
 pub enum FirewallCompareType<'a> {
-    String((&'a String, Cow<'a, Vec<String>>)),
+    String((&'a String, Cow<'a, [String]>)),
     Usize((usize, &'a Vec<usize>)),
     U32((u32, &'a Vec<u32>)),
     U64((u64, &'a Vec<u64>)),

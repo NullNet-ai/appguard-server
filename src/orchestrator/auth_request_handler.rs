@@ -157,9 +157,7 @@ impl AuthReqHandler {
                 Err(_) => fail_with_status!(outbound, "Failed to obtain device"),
             };
 
-            if device.is_some() {
-                let device = device.unwrap();
-
+            if let Some(device) = device {
                 Self::add_device_instance(
                     &mut clients,
                     &device,

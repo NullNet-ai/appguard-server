@@ -112,7 +112,7 @@ pub enum IpAlias {
 }
 
 impl IpAlias {
-    async fn to_ips(&self, context: &AppContext) -> Option<Cow<'_, Vec<String>>> {
+    async fn to_ips(&self, context: &AppContext) -> Option<Cow<'_, [String]>> {
         match self {
             IpAlias::Name(name) => {
                 let token = context.root_token_provider.get().await.ok()?.jwt.clone();
@@ -122,7 +122,7 @@ impl IpAlias {
                     .get_ip_alias(token, name)
                     .await
                     .ok()
-                    .map(|a| Cow::Owned(a))
+                    .map(Cow::Owned)
             }
             IpAlias::Addresses(addresses) => Some(Cow::Borrowed(addresses)),
         }
