@@ -5,6 +5,7 @@ use crate::firewall::rules::{
 use crate::proto::appguard::AppGuardTcpConnection;
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -66,9 +67,10 @@ impl TcpConnectionField {
                 FirewallRuleDirection::Out => item.source_port,
             }
             .map(|p| FirewallCompareType::U32((p, v))),
-            TcpConnectionField::Protocol(v) => {
-                Some(FirewallCompareType::String((&item.protocol, v)))
-            }
+            TcpConnectionField::Protocol(v) => Some(FirewallCompareType::String((
+                &item.protocol,
+                Cow::Borrowed(v),
+            ))),
         }
     }
 }
@@ -79,13 +81,16 @@ impl<'a> PredicateEvaluator for &'a AppGuardTcpConnection {
     type Reason = String;
     type Context = AppContext;
 
-    async fn evaluate_predicate(&self, predicate: &Self::Predicate, context: &Self::Context) -> bool {
+    async fn evaluate_predicate(
+        &self,
+        predicate: &Self::Predicate,
+        context: &Self::Context,
+    ) -> bool {
         if let FirewallRuleField::TcpConnection(f) = &predicate.rule.field {
-            return predicate.rule.condition.compare(f.get_compare_fields(
-                self,
-                &predicate.direction,
-                context,
-            ).await);
+            return predicate.rule.condition.compare(
+                f.get_compare_fields(self, &predicate.direction, context)
+                    .await,
+            );
         }
         false
     }
@@ -101,19 +106,25 @@ impl<'a> PredicateEvaluator for &'a AppGuardTcpConnection {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(untagged)]
-enum IpAlias {
+pub enum IpAlias {
     Name(String),
     Addresses(Vec<String>),
 }
 
 impl IpAlias {
-    async fn to_ips(&self, context: &AppContext) -> Option<&Vec<String>> {
+    async fn to_ips(&self, context: &AppContext) -> Option<Cow<'_, Vec<String>>> {
         match self {
             IpAlias::Name(name) => {
                 let token = context.root_token_provider.get().await.ok()?.jwt.clone();
-                context.datastore.clone().get_ip_alias(token, name).await.ok()
+                context
+                    .datastore
+                    .clone()
+                    .get_ip_alias(token, name)
+                    .await
+                    .ok()
+                    .map(|a| Cow::Owned(a))
             }
-            IpAlias::Addresses(addresses) => Some(addresses),
+            IpAlias::Addresses(addresses) => Some(Cow::Borrowed(addresses)),
         }
     }
 }

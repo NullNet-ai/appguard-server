@@ -8,6 +8,7 @@ use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardSmtpRequest, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[allow(clippy::enum_variant_names)]
@@ -34,15 +35,14 @@ impl SmtpRequestField {
         item: &'a AppGuardSmtpRequest,
     ) -> Option<FirewallCompareType<'a>> {
         match self {
-            SmtpRequestField::SmtpRequestHeader(HeaderVal(k, v)) => {
-                get_header(&item.headers, k).map(|header| FirewallCompareType::String((header, v)))
-            }
+            SmtpRequestField::SmtpRequestHeader(HeaderVal(k, v)) => get_header(&item.headers, k)
+                .map(|header| FirewallCompareType::String((header, Cow::Borrowed(v)))),
             SmtpRequestField::SmtpRequestUserAgent(v) => get_header(&item.headers, "User-Agent")
-                .map(|user_agent| FirewallCompareType::String((user_agent, v))),
+                .map(|user_agent| FirewallCompareType::String((user_agent, Cow::Borrowed(v)))),
             SmtpRequestField::SmtpRequestBody(v) => item
                 .body
                 .as_ref()
-                .map(|body| FirewallCompareType::String((body, v))),
+                .map(|body| FirewallCompareType::String((body, Cow::Borrowed(v)))),
             SmtpRequestField::SmtpRequestBodyLen(l) => item
                 .body
                 .as_ref()
@@ -57,7 +57,11 @@ impl PredicateEvaluator for AppGuardSmtpRequest {
     type Reason = String;
     type Context = AppContext;
 
-    async fn evaluate_predicate(&self, predicate: &Self::Predicate, context: &Self::Context) -> bool {
+    async fn evaluate_predicate(
+        &self,
+        predicate: &Self::Predicate,
+        context: &Self::Context,
+    ) -> bool {
         if predicate.direction == Some(FirewallRuleDirection::Out) {
             return false;
         }
@@ -74,7 +78,8 @@ impl PredicateEvaluator for AppGuardSmtpRequest {
                         direction: FirewallRuleDirection::In,
                     },
                     context,
-                ).await
+                )
+                .await
         }
     }
 

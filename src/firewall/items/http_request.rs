@@ -8,6 +8,7 @@ use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardHttpRequest, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[allow(clippy::enum_variant_names)]
@@ -42,30 +43,30 @@ impl HttpRequestField {
         item: &'a AppGuardHttpRequest,
     ) -> Option<FirewallCompareType<'a>> {
         match self {
-            HttpRequestField::HttpRequestUrl(v) => {
-                Some(FirewallCompareType::String((&item.original_url, v)))
-            }
-            HttpRequestField::HttpRequestMethod(v) => {
-                Some(FirewallCompareType::String((&item.method, v)))
-            }
-            HttpRequestField::HttpRequestQuery(HeaderVal(k, v)) => {
-                get_header(&item.query, k).map(|query| FirewallCompareType::String((query, v)))
-            }
+            HttpRequestField::HttpRequestUrl(v) => Some(FirewallCompareType::String((
+                &item.original_url,
+                Cow::Borrowed(v),
+            ))),
+            HttpRequestField::HttpRequestMethod(v) => Some(FirewallCompareType::String((
+                &item.method,
+                Cow::Borrowed(v),
+            ))),
+            HttpRequestField::HttpRequestQuery(HeaderVal(k, v)) => get_header(&item.query, k)
+                .map(|query| FirewallCompareType::String((query, Cow::Borrowed(v)))),
             HttpRequestField::HttpRequestCookie(v) => get_header(&item.headers, "Cookie")
-                .map(|cookie| FirewallCompareType::String((cookie, v))),
-            HttpRequestField::HttpRequestHeader(HeaderVal(k, v)) => {
-                get_header(&item.headers, k).map(|header| FirewallCompareType::String((header, v)))
-            }
+                .map(|cookie| FirewallCompareType::String((cookie, Cow::Borrowed(v)))),
+            HttpRequestField::HttpRequestHeader(HeaderVal(k, v)) => get_header(&item.headers, k)
+                .map(|header| FirewallCompareType::String((header, Cow::Borrowed(v)))),
             HttpRequestField::HttpRequestBody(v) => item
                 .body
                 .as_ref()
-                .map(|body| FirewallCompareType::String((body, v))),
+                .map(|body| FirewallCompareType::String((body, Cow::Borrowed(v)))),
             HttpRequestField::HttpRequestBodyLen(v) => item
                 .body
                 .as_ref()
                 .map(|body| FirewallCompareType::Usize((body.len(), v))),
             HttpRequestField::HttpRequestUserAgent(v) => get_header(&item.headers, "User-Agent")
-                .map(|user_agent| FirewallCompareType::String((user_agent, v))),
+                .map(|user_agent| FirewallCompareType::String((user_agent, Cow::Borrowed(v)))),
         }
     }
 }
@@ -76,7 +77,11 @@ impl PredicateEvaluator for AppGuardHttpRequest {
     type Reason = String;
     type Context = AppContext;
 
-    async fn evaluate_predicate(&self, predicate: &Self::Predicate, context: &Self::Context) -> bool {
+    async fn evaluate_predicate(
+        &self,
+        predicate: &Self::Predicate,
+        context: &Self::Context,
+    ) -> bool {
         if predicate.direction == Some(FirewallRuleDirection::Out) {
             return false;
         }
@@ -93,7 +98,8 @@ impl PredicateEvaluator for AppGuardHttpRequest {
                         direction: FirewallRuleDirection::In,
                     },
                     context,
-                ).await
+                )
+                .await
         }
     }
 

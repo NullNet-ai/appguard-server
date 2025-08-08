@@ -8,6 +8,7 @@ use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardHttpResponse, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[allow(clippy::enum_variant_names)]
@@ -45,9 +46,8 @@ impl HttpResponseField {
                     None
                 }
             }
-            HttpResponseField::HttpResponseHeader(HeaderVal(k, v)) => {
-                get_header(&item.headers, k).map(|header| FirewallCompareType::String((header, v)))
-            }
+            HttpResponseField::HttpResponseHeader(HeaderVal(k, v)) => get_header(&item.headers, k)
+                .map(|header| FirewallCompareType::String((header, Cow::Borrowed(v)))),
         }
     }
 }
@@ -58,7 +58,11 @@ impl PredicateEvaluator for AppGuardHttpResponse {
     type Reason = String;
     type Context = AppContext;
 
-    async fn evaluate_predicate(&self, predicate: &Self::Predicate, context: &Self::Context) -> bool {
+    async fn evaluate_predicate(
+        &self,
+        predicate: &Self::Predicate,
+        context: &Self::Context,
+    ) -> bool {
         if predicate.direction == Some(FirewallRuleDirection::In) {
             return false;
         }
@@ -75,7 +79,8 @@ impl PredicateEvaluator for AppGuardHttpResponse {
                         direction: FirewallRuleDirection::Out,
                     },
                     context,
-                ).await
+                )
+                .await
         }
     }
 

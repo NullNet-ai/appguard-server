@@ -39,7 +39,11 @@ impl PredicateEvaluator for AppGuardSmtpResponse {
     type Reason = String;
     type Context = AppContext;
 
-    async fn evaluate_predicate(&self, predicate: &Self::Predicate, context: &Self::Context) -> bool {
+    async fn evaluate_predicate(
+        &self,
+        predicate: &Self::Predicate,
+        context: &Self::Context,
+    ) -> bool {
         if predicate.direction == Some(FirewallRuleDirection::In) {
             return false;
         }
@@ -56,7 +60,8 @@ impl PredicateEvaluator for AppGuardSmtpResponse {
                         direction: FirewallRuleDirection::Out,
                     },
                     context,
-                ).await
+                )
+                .await
         }
     }
 
