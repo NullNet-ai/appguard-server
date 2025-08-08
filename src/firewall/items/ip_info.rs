@@ -93,10 +93,6 @@ impl<'a> PredicateEvaluator for &'a AppGuardIpInfo {
     fn get_reason(&self, predicate: &Self::Predicate) -> Self::Reason {
         serde_json::to_string(predicate.rule).unwrap_or_default()
     }
-
-    fn is_blacklisted(&self) -> bool {
-        self.blacklist
-    }
 }
 
 #[cfg(test)]

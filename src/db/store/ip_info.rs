@@ -15,7 +15,7 @@ impl AppGuardIpInfo {
             "region": self.region,
             "postal": self.postal,
             "timezone": self.timezone,
-            "blacklist": self.blacklist,
+            // "blacklist": self.blacklist,
         })
         .to_string()
     }

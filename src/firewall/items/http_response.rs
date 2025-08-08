@@ -88,13 +88,6 @@ impl PredicateEvaluator for AppGuardHttpResponse {
         serde_json::to_string(predicate).unwrap_or_default()
     }
 
-    fn is_blacklisted(&self) -> bool {
-        self.tcp_info
-            .as_ref()
-            .unwrap_or(&AppGuardTcpInfo::default())
-            .is_blacklisted()
-    }
-
     fn get_remote_ip(&self) -> String {
         self.tcp_info
             .as_ref()

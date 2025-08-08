@@ -11,7 +11,6 @@ use crate::app_context::AppContext;
 use crate::db::entries::{DbDetails, DbEntry, EntryIds};
 use crate::db::helpers::{delete_old_entries, store_entries};
 use crate::db::tables::DbTable;
-use crate::fetch_data::fetch_ip_data;
 use crate::firewall::denied_ip::DeniedIp;
 use crate::firewall::firewall::{Firewall, FirewallResult};
 use crate::firewall::rules::FirewallRule;
@@ -64,7 +63,6 @@ impl AppGuardImpl {
     pub fn new(ctx: AppContext) -> AppGuardImpl {
         let ds = ctx.datastore.clone();
         let ds_2 = ctx.datastore.clone();
-        let ds_3 = ctx.datastore.clone();
 
         log::info!("Connected to Datastore");
 
@@ -91,10 +89,10 @@ impl AppGuardImpl {
         //     });
         // }
 
-        let root_token_provider = ctx.root_token_provider.clone();
-        tokio::spawn(async move {
-            fetch_ip_data(ds_3, root_token_provider).await;
-        });
+        // let root_token_provider = ctx.root_token_provider.clone();
+        // tokio::spawn(async move {
+        //     fetch_ip_data(ds_3, root_token_provider).await;
+        // });
 
         let root_token_provider = ctx.root_token_provider.clone();
         tokio::spawn(async move {
@@ -271,13 +269,7 @@ impl AppGuardImpl {
                 log::info!("IP information for {ip} already in database");
                 info
             } else {
-                ip_info = AppGuardIpInfo::lookup(
-                    ip,
-                    &self.ip_info_handler,
-                    &self.ctx.datastore,
-                    token.clone(),
-                )
-                .await?;
+                ip_info = AppGuardIpInfo::lookup(ip, &self.ip_info_handler).await?;
                 log::info!("Looked up new IP information: {ip_info:?}");
                 self.tx_store
                     .send(DbEntry::IpInfo((ip_info.clone(), token)))

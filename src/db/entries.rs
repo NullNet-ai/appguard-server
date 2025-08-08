@@ -3,13 +3,12 @@ use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::db::tables::DbTable;
 use crate::firewall::denied_ip::DeniedIp;
 use crate::firewall::firewall::{Firewall, FirewallResult};
-use crate::helpers::{authenticate, get_timestamp_string};
+use crate::helpers::authenticate;
 use crate::proto::appguard::{
     AppGuardHttpRequest, AppGuardHttpResponse, AppGuardIpInfo, AppGuardSmtpRequest,
     AppGuardSmtpResponse, AppGuardTcpConnection, AppGuardTcpInfo,
 };
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
-use std::fmt::Write;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -20,7 +19,7 @@ pub enum DbEntry {
     SmtpResponse((AppGuardSmtpResponse, DbDetails)),
     IpInfo((AppGuardIpInfo, String)),
     TcpConnection((AppGuardTcpConnection, u64)),
-    Blacklist((Vec<String>, String)),
+    // Blacklist((Vec<String>, String)),
     Firewall((String, Firewall, String)),
     DeniedIp((String, DeniedIp, String)),
     Config((Config, String)),
@@ -57,15 +56,15 @@ impl DbEntry {
                 let _ = ds.insert(self, token.as_str()).await?;
                 log::info!("TCP connection #{id} inserted in datastore");
             }
-            DbEntry::Blacklist(_) => {
-                ds.delete_old_entries(
-                    DbTable::Blacklist,
-                    get_timestamp_string().as_str(),
-                    token.as_str(),
-                )
-                .await?;
-                let _ = ds.insert_batch(self, token.as_str()).await?;
-            }
+            // DbEntry::Blacklist(_) => {
+            //     ds.delete_old_entries(
+            //         DbTable::Blacklist,
+            //         get_timestamp_string().as_str(),
+            //         token.as_str(),
+            //     )
+            //     .await?;
+            //     let _ = ds.insert_batch(self, token.as_str()).await?;
+            // }
             DbEntry::Firewall(_) => {
                 let _ = ds.insert(self, token.as_str()).await?;
                 log::info!("Firewall inserted in datastore");
@@ -94,15 +93,15 @@ impl DbEntry {
             DbEntry::SmtpResponse((r, d)) => r.to_json(d),
             DbEntry::IpInfo((i, _)) => Ok(i.to_json()),
             DbEntry::TcpConnection((c, _)) => Ok(c.to_json()),
-            DbEntry::Blacklist((v, _)) => {
-                let mut json = "[".to_string();
-                for ip in v {
-                    let _ = write!(json, "{{\"ip\":\"{ip}\"}},");
-                }
-                json.pop();
-                json.push(']');
-                Ok(json)
-            }
+            // DbEntry::Blacklist((v, _)) => {
+            //     let mut json = "[".to_string();
+            //     for ip in v {
+            //         let _ = write!(json, "{{\"ip\":\"{ip}\"}},");
+            //     }
+            //     json.pop();
+            //     json.push(']');
+            //     Ok(json)
+            // }
             DbEntry::Firewall((app_id, f, _)) => f.to_json(app_id),
             DbEntry::DeniedIp((app_id, denied_ip, _)) => denied_ip.to_json(app_id),
             DbEntry::Config((configs, _)) => serde_json::to_string(configs).handle_err(location!()),
@@ -117,7 +116,7 @@ impl DbEntry {
             DbEntry::SmtpResponse(_) => DbTable::SmtpResponse,
             DbEntry::IpInfo(_) => DbTable::IpInfo,
             DbEntry::TcpConnection(_) => DbTable::TcpConnection,
-            DbEntry::Blacklist(_) => DbTable::Blacklist,
+            // DbEntry::Blacklist(_) => DbTable::Blacklist,
             DbEntry::Firewall(_) => DbTable::Firewall,
             DbEntry::DeniedIp(_) => DbTable::DeniedIp,
             DbEntry::Config(_) => DbTable::Config,
@@ -133,7 +132,7 @@ impl DbEntry {
             DbEntry::TcpConnection((c, _)) => c.token.clone(),
             DbEntry::IpInfo((_, a))
             | DbEntry::Config((_, a))
-            | DbEntry::Blacklist((_, a))
+            // | DbEntry::Blacklist((_, a))
             | DbEntry::Firewall((_, _, a))
             | DbEntry::DeniedIp((_, _, a)) => a.clone(),
         }
@@ -189,7 +188,7 @@ impl EntryIds {
             DbTable::SmtpRequest => &self.smtp_request,
             DbTable::SmtpResponse => &self.smtp_response,
             DbTable::IpInfo
-            | DbTable::Blacklist
+            // | DbTable::Blacklist
             | DbTable::Firewall
             | DbTable::DeniedIp
             | DbTable::Config => return Err("Not applicable").handle_err(location!()),

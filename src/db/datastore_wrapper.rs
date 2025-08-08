@@ -54,30 +54,30 @@ impl DatastoreWrapper {
         Ok(result)
     }
 
-    pub(crate) async fn insert_batch(
-        &mut self,
-        entry: &DbEntry,
-        token: &str,
-    ) -> Result<ResponseData, Error> {
-        let records = entry.to_json()?;
-        let table = entry.table().to_str();
-
-        let request = BatchCreateRequest {
-            params: Some(CreateParams {
-                table: table.into(),
-            }),
-            query: Some(Query {
-                pluck: String::from("id"),
-                durability: String::from("soft"),
-            }),
-            body: Some(BatchCreateBody { records }),
-        };
-
-        log::trace!("Before create batch to {table}");
-        let result = self.inner.batch_create(request, token).await?;
-        log::trace!("After create batch to {table}");
-        Ok(result)
-    }
+    // pub(crate) async fn insert_batch(
+    //     &mut self,
+    //     entry: &DbEntry,
+    //     token: &str,
+    // ) -> Result<ResponseData, Error> {
+    //     let records = entry.to_json()?;
+    //     let table = entry.table().to_str();
+    //
+    //     let request = BatchCreateRequest {
+    //         params: Some(CreateParams {
+    //             table: table.into(),
+    //         }),
+    //         query: Some(Query {
+    //             pluck: String::from("id"),
+    //             durability: String::from("soft"),
+    //         }),
+    //         body: Some(BatchCreateBody { records }),
+    //     };
+    //
+    //     log::trace!("Before create batch to {table}");
+    //     let result = self.inner.batch_create(request, token).await?;
+    //     log::trace!("After create batch to {table}");
+    //     Ok(result)
+    // }
 
     pub(crate) async fn upsert(
         &mut self,
@@ -111,41 +111,41 @@ impl DatastoreWrapper {
     }
 
     // SELECT COUNT(*) FROM {table} WHERE ip = {ip}
-    pub(crate) async fn is_ip_blacklisted(&mut self, ip: &str, token: &str) -> Result<bool, Error> {
-        let table = DbTable::Blacklist.to_str();
-
-        let request = GetByFilterRequest {
-            params: Some(Params {
-                id: String::new(),
-                table: table.into(),
-                r#type: String::new(),
-            }),
-            body: Some(GetByFilterBody {
-                pluck: vec!["id".to_string()],
-                advance_filters: vec![AdvanceFilter {
-                    r#type: "criteria".to_string(),
-                    field: "ip".to_string(),
-                    operator: "equal".to_string(),
-                    entity: table.to_string(),
-                    values: format!("[\"{ip}\"]"),
-                }],
-                order_by: String::new(),
-                limit: 1,
-                offset: 0,
-                order_direction: String::new(),
-                joins: vec![],
-                multiple_sort: vec![],
-                pluck_object: HashMap::default(),
-                date_format: String::new(),
-                is_case_sensitive_sorting: false,
-            }),
-        };
-
-        log::trace!("Before get by filter to {table}");
-        let result = self.inner.get_by_filter(request, token).await?.count > 0;
-        log::trace!("After get by filter to {table}: {result}");
-        Ok(result)
-    }
+    // pub(crate) async fn is_ip_blacklisted(&mut self, ip: &str, token: &str) -> Result<bool, Error> {
+    //     let table = DbTable::Blacklist.to_str();
+    //
+    //     let request = GetByFilterRequest {
+    //         params: Some(Params {
+    //             id: String::new(),
+    //             table: table.into(),
+    //             r#type: String::new(),
+    //         }),
+    //         body: Some(GetByFilterBody {
+    //             pluck: vec!["id".to_string()],
+    //             advance_filters: vec![AdvanceFilter {
+    //                 r#type: "criteria".to_string(),
+    //                 field: "ip".to_string(),
+    //                 operator: "equal".to_string(),
+    //                 entity: table.to_string(),
+    //                 values: format!("[\"{ip}\"]"),
+    //             }],
+    //             order_by: String::new(),
+    //             limit: 1,
+    //             offset: 0,
+    //             order_direction: String::new(),
+    //             joins: vec![],
+    //             multiple_sort: vec![],
+    //             pluck_object: HashMap::default(),
+    //             date_format: String::new(),
+    //             is_case_sensitive_sorting: false,
+    //         }),
+    //     };
+    //
+    //     log::trace!("Before get by filter to {table}");
+    //     let result = self.inner.get_by_filter(request, token).await?.count > 0;
+    //     log::trace!("After get by filter to {table}: {result}");
+    //     Ok(result)
+    // }
 
     // SELECT * FROM {table} WHERE ip = {ip} LIMIT 1
     pub(crate) async fn get_ip_info(

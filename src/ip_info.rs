@@ -1,5 +1,4 @@
 use crate::constants::IP_INFO_API_KEY;
-use crate::db::datastore_wrapper::DatastoreWrapper;
 use crate::proto::appguard::AppGuardIpInfo;
 use nullnet_liberror::Error;
 use nullnet_libipinfo::{ApiFields, IpInfo, IpInfoHandler, IpInfoProvider};
@@ -10,21 +9,21 @@ impl AppGuardIpInfo {
     pub async fn lookup(
         ip: &str,
         ip_info_handler: &IpInfoHandler,
-        ds: &DatastoreWrapper,
-        token: String,
+        // ds: &DatastoreWrapper,
+        // token: String,
     ) -> Result<AppGuardIpInfo, Error> {
         let ip_info = ip_info_handler.lookup(ip).await?;
-        Self::from_ip_info(ip_info, ip, ds, token).await
+        Self::from_ip_info(ip_info, ip).await
     }
 
     /// This function is used to convert an `IpInfo` struct into an `AppGuardIpInfo` struct.
     async fn from_ip_info(
         info: IpInfo,
         ip: &str,
-        ds: &DatastoreWrapper,
-        token: String,
+        // ds: &DatastoreWrapper,
+        // token: String,
     ) -> Result<Self, Error> {
-        let blacklist = ds.clone().is_ip_blacklisted(ip, token.as_str()).await?;
+        // let blacklist = ds.clone().is_ip_blacklisted(ip, token.as_str()).await?;
 
         Ok(Self {
             ip: ip.to_string(),
@@ -36,7 +35,6 @@ impl AppGuardIpInfo {
             region: info.region,
             postal: info.postal,
             timezone: info.timezone,
-            blacklist,
         })
     }
 }

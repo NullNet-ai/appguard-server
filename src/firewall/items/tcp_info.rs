@@ -37,13 +37,6 @@ impl<'a> PredicateEvaluator for &'a AppGuardTcpInfo {
         serde_json::to_string(predicate.rule).unwrap_or_default()
     }
 
-    fn is_blacklisted(&self) -> bool {
-        self.ip_info
-            .as_ref()
-            .unwrap_or(&AppGuardIpInfo::default())
-            .is_blacklisted()
-    }
-
     fn get_remote_ip(&self) -> String {
         self.connection
             .as_ref()

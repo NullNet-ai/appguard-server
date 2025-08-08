@@ -51,10 +51,9 @@ pub struct AppGuardIpInfo {
     pub region: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "8")]
     pub postal: ::core::option::Option<::prost::alloc::string::String>,
+    ///   bool blacklist = 100;
     #[prost(string, optional, tag = "9")]
     pub timezone: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(bool, tag = "100")]
-    pub blacklist: bool,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AppGuardTcpInfo {
