@@ -125,7 +125,7 @@ mod tests {
             smtp_request_field.get_compare_fields(&smtp_request),
             Some(FirewallCompareType::String((
                 &"Thunderbird".to_string(),
-                &vec!["Marlon".to_string()]
+                Cow::Borrowed(&vec!["Marlon".to_string()])
             )))
         );
 
@@ -137,7 +137,7 @@ mod tests {
             smtp_request_field.get_compare_fields(&smtp_request),
             Some(FirewallCompareType::String((
                 &"Best-Mail UA".to_string(),
-                &vec!["sample_host".to_string()]
+                Cow::Borrowed(&vec!["sample_host".to_string()])
             )))
         );
 
@@ -157,7 +157,7 @@ mod tests {
             smtp_request_field.get_compare_fields(&smtp_request),
             Some(FirewallCompareType::String((
                 &"Hello, Jupiter!".to_string(),
-                &vec!["Hello".to_string(), "World!".to_string()]
+                Cow::Borrowed(&vec!["Hello".to_string(), "World!".to_string()])
             )))
         );
     }
@@ -181,7 +181,7 @@ mod tests {
             smtp_request_field.get_compare_fields(&smtp_request),
             Some(FirewallCompareType::String((
                 &"Thunderbird".to_string(),
-                &vec!["awesome_user_agent".to_string()]
+                Cow::Borrowed(&vec!["awesome_user_agent".to_string()])
             )))
         );
     }

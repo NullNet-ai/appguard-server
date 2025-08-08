@@ -149,7 +149,7 @@ mod tests {
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
                 &"https://example.com".to_string(),
-                &vec!["test.com".to_string()]
+                Cow::Borrowed(&vec!["test.com".to_string()])
             )))
         );
     }
@@ -163,7 +163,7 @@ mod tests {
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
                 &"GET".to_string(),
-                &vec!["GET".to_string(), "POST".to_string()]
+                Cow::Borrowed(&vec!["GET".to_string(), "POST".to_string()])
             )))
         );
     }
@@ -179,7 +179,7 @@ mod tests {
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
                 &"John".to_string(),
-                &vec!["Bob".to_string()]
+                Cow::Borrowed(&vec!["Bob".to_string()])
             )))
         );
 
@@ -199,7 +199,7 @@ mod tests {
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
                 &"biscuits".to_string(),
-                &vec!["awesome_cookie_99".to_string()]
+                Cow::Borrowed(&vec!["awesome_cookie_99".to_string()])
             )))
         );
     }
@@ -215,7 +215,7 @@ mod tests {
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
                 &"biscuits".to_string(),
-                &vec!["Marlon".to_string()]
+                Cow::Borrowed(&vec!["Marlon".to_string()])
             )))
         );
 
@@ -227,7 +227,7 @@ mod tests {
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
                 &"example.com".to_string(),
-                &vec!["sample_host".to_string()]
+                Cow::Borrowed(&vec!["sample_host".to_string()])
             )))
         );
 
@@ -247,7 +247,7 @@ mod tests {
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
                 &"Hello, World!".to_string(),
-                &vec!["Hello".to_string(), "World!".to_string()]
+                Cow::Borrowed(&vec!["Hello".to_string(), "World!".to_string()])
             )))
         );
     }
@@ -271,7 +271,7 @@ mod tests {
             http_request_field.get_compare_fields(&http_request),
             Some(FirewallCompareType::String((
                 &"Mozilla/5.0".to_string(),
-                &vec!["awesome_user_agent".to_string()]
+                Cow::Borrowed(&vec!["awesome_user_agent".to_string()])
             )))
         );
     }

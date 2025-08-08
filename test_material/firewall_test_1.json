@@ -110,6 +110,15 @@
             200,
             300
           ]
+        },
+        {
+          "type": "operator",
+          "value": "or"
+        },
+        {
+          "type": "predicate",
+          "condition": "contains",
+          "source_ip": "alias_name"
         }
       ]
     }

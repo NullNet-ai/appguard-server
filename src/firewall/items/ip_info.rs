@@ -110,7 +110,6 @@ mod tests {
             region: Some("Lazio".to_string()),
             postal: Some("00100".to_string()),
             timezone: Some("Europe/Rome".to_string()),
-            blacklist: true,
             ..Default::default()
         }
     }
@@ -123,7 +122,7 @@ mod tests {
             ip_info_field.get_compare_fields(&ip_info),
             Some(FirewallCompareType::String((
                 &"IT".to_string(),
-                &vec!["US".to_string()]
+                Cow::Borrowed(&vec!["US".to_string()])
             )))
         );
     }
@@ -136,7 +135,7 @@ mod tests {
             ip_info_field.get_compare_fields(&ip_info),
             Some(FirewallCompareType::String((
                 &"AS1234".to_string(),
-                &vec!["wow".to_string()]
+                Cow::Borrowed(&vec!["wow".to_string()])
             )))
         );
     }
@@ -149,7 +148,7 @@ mod tests {
             ip_info_field.get_compare_fields(&ip_info),
             Some(FirewallCompareType::String((
                 &"Example".to_string(),
-                &vec!["my_org_99".to_string(), "2nd org".to_string()]
+                Cow::Borrowed(&vec!["my_org_99".to_string(), "2nd org".to_string()])
             )))
         );
     }
@@ -162,7 +161,7 @@ mod tests {
             ip_info_field.get_compare_fields(&ip_info),
             Some(FirewallCompareType::String((
                 &"EU".to_string(),
-                &vec!["NA".to_string()]
+                Cow::Borrowed(&vec!["NA".to_string()])
             )))
         );
     }
@@ -175,7 +174,7 @@ mod tests {
             ip_info_field.get_compare_fields(&ip_info),
             Some(FirewallCompareType::String((
                 &"Rome".to_string(),
-                &vec!["New York".to_string()]
+                Cow::Borrowed(&vec!["New York".to_string()])
             )))
         );
     }
@@ -188,7 +187,7 @@ mod tests {
             ip_info_field.get_compare_fields(&ip_info),
             Some(FirewallCompareType::String((
                 &"Lazio".to_string(),
-                &vec!["California".to_string()]
+                Cow::Borrowed(&vec!["California".to_string()])
             )))
         );
     }
@@ -201,7 +200,7 @@ mod tests {
             ip_info_field.get_compare_fields(&ip_info),
             Some(FirewallCompareType::String((
                 &"00100".to_string(),
-                &vec!["123456".to_string()]
+                Cow::Borrowed(&vec!["123456".to_string()])
             )))
         );
     }
@@ -214,7 +213,7 @@ mod tests {
             ip_info_field.get_compare_fields(&ip_info),
             Some(FirewallCompareType::String((
                 &"Europe/Rome".to_string(),
-                &vec!["US central".to_string()]
+                Cow::Borrowed(&vec!["US central".to_string()])
             )))
         );
     }
