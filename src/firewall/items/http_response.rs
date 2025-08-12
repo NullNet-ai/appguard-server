@@ -146,7 +146,7 @@ mod tests {
             http_response_field.get_compare_fields(&http_response),
             Some(FirewallCompareType::String((
                 &"example.com".to_string(),
-                Cow::Borrowed(&vec!["ciao".to_string()])
+                &vec!["ciao".to_string()]
             )))
         );
 
@@ -158,7 +158,7 @@ mod tests {
             http_response_field.get_compare_fields(&http_response),
             Some(FirewallCompareType::String((
                 &"139".to_string(),
-                Cow::Borrowed(&vec!["9999".to_string()])
+                &vec!["9999".to_string()]
             )))
         );
 
