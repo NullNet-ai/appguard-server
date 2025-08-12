@@ -70,6 +70,7 @@ impl DbEntry {
                 log::info!("Firewall inserted in datastore");
             }
             DbEntry::DeniedIp((_, denied_ip, _)) => {
+                // todo: change this to a custom query to aliases
                 let _ = ds.insert(self, token.as_str()).await?;
                 log::info!(
                     "Denied IP inserted in datastore: {} {:?}",
@@ -118,7 +119,7 @@ impl DbEntry {
             DbEntry::TcpConnection(_) => DbTable::TcpConnection,
             // DbEntry::Blacklist(_) => DbTable::Blacklist,
             DbEntry::Firewall(_) => DbTable::Firewall,
-            DbEntry::DeniedIp(_) => DbTable::DeniedIp,
+            DbEntry::DeniedIp(_) => DbTable::Alias,
             DbEntry::Config(_) => DbTable::Config,
         }
     }
@@ -190,7 +191,7 @@ impl EntryIds {
             DbTable::IpInfo
             // | DbTable::Blacklist
             | DbTable::Firewall
-            | DbTable::DeniedIp
+            | DbTable::Alias
             | DbTable::Config => return Err("Not applicable").handle_err(location!()),
         }
         .lock()

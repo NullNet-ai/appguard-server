@@ -8,7 +8,6 @@ use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardHttpResponse, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[allow(clippy::enum_variant_names)]
@@ -46,8 +45,9 @@ impl HttpResponseField {
                     None
                 }
             }
-            HttpResponseField::HttpResponseHeader(HeaderVal(k, v)) => get_header(&item.headers, k)
-                .map(|header| FirewallCompareType::String((header, Cow::Borrowed(v)))),
+            HttpResponseField::HttpResponseHeader(HeaderVal(k, v)) => {
+                get_header(&item.headers, k).map(|header| FirewallCompareType::String((header, v)))
+            }
         }
     }
 }

@@ -8,7 +8,8 @@ use crate::firewall::items::smtp_request::SmtpRequestField;
 use crate::firewall::items::smtp_response::SmtpResponseField;
 use crate::firewall::items::tcp_connection::TcpConnectionField;
 use crate::proto::appguard_commands::FirewallPolicy;
-use std::borrow::Cow;
+use ipnetwork::IpNetwork;
+use std::net::IpAddr;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -86,10 +87,11 @@ impl FirewallRuleCondition {
     pub fn compare(&self, firewall_compare_type: Option<FirewallCompareType>) -> bool {
         if let Some(fields) = firewall_compare_type {
             return match fields {
-                FirewallCompareType::String((l, r)) => self.compare_vec(l, &r),
+                FirewallCompareType::String((l, r)) => self.compare_vec(l, r),
                 FirewallCompareType::Usize((l, r)) => self.compare_vec(&l, r),
                 FirewallCompareType::U32((l, r)) => self.compare_vec(&l, r),
                 FirewallCompareType::U64((l, r)) => self.compare_vec(&l, r),
+                FirewallCompareType::Ip((l, r)) => self.compare_ips(&l, &r),
             };
         }
         false
@@ -108,6 +110,23 @@ impl FirewallRuleCondition {
             | Self::NotContains
             | Self::NotStartsWith
             | Self::NotEndsWith => right.iter().all(|v| self.compare_single(left, v)),
+        }
+    }
+
+    fn compare_ips(&self, left: &IpAddr, right: &[IpNetwork]) -> bool {
+        match self {
+            Self::Contains => right.iter().any(|v| v.contains(*left)),
+            Self::NotContains => right.iter().all(|v| !v.contains(*left)),
+            Self::Equal | Self::StartsWith | Self::EndsWith => {
+                right.iter().any(|v| self.compare_single(left, &v.ip()))
+            }
+            Self::NotEqual
+            | Self::GreaterThan
+            | Self::LowerThan
+            | Self::GreaterEqual
+            | Self::LowerEqual
+            | Self::NotStartsWith
+            | Self::NotEndsWith => right.iter().all(|v| self.compare_single(left, &v.ip())),
         }
     }
 
@@ -131,10 +150,11 @@ impl FirewallRuleCondition {
 
 #[derive(Debug, PartialEq)]
 pub enum FirewallCompareType<'a> {
-    String((&'a String, Cow<'a, [String]>)),
+    String((&'a String, &'a Vec<String>)),
     Usize((usize, &'a Vec<usize>)),
     U32((u32, &'a Vec<u32>)),
     U64((u64, &'a Vec<u64>)),
+    Ip((IpAddr, Vec<IpNetwork>)),
 }
 
 #[cfg(test)]

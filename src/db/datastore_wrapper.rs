@@ -5,6 +5,7 @@ use crate::db::installation_code::InstallationCode;
 use crate::db::tables::DbTable;
 use crate::firewall::firewall::Firewall;
 use crate::proto::appguard::{AppGuardIpInfo, Log};
+use ipnetwork::IpNetwork;
 use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
     BatchUpdateBody, BatchUpdateRequest, CreateBody, CreateParams, CreateRequest, DeleteQuery,
@@ -16,6 +17,8 @@ use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::net::IpAddr;
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 pub struct DatastoreWrapper {
@@ -1059,12 +1062,12 @@ impl DatastoreWrapper {
         Ok(count)
     }
 
-    pub(crate) async fn get_ip_alias(
+    pub(crate) async fn get_ip_aliases(
         &mut self,
         token: String,
         name: &str,
-    ) -> Result<Vec<String>, Error> {
-        let table = "device_aliases";
+    ) -> Result<Vec<IpNetwork>, Error> {
+        let table = DbTable::Alias.to_str();
 
         let filter = AdvanceFilter {
             r#type: String::from("criteria"),
@@ -1081,13 +1084,15 @@ impl DatastoreWrapper {
                 r#type: String::from("root"),
             }),
             body: Some(GetByFilterBody {
-                pluck: vec!["value".to_string()],
+                pluck: vec!["ip".to_string(), "prefix".to_string()],
                 advance_filters: vec![filter],
                 order_by: String::new(),
                 limit: 1,
                 offset: 0,
                 order_direction: String::new(),
-                joins: vec![],
+                joins: vec![
+                    // TODO: join with ip_aliases table
+                ],
                 multiple_sort: vec![],
                 pluck_object: HashMap::default(),
                 date_format: String::new(),
@@ -1102,29 +1107,34 @@ impl DatastoreWrapper {
         Self::internal_ip_alias_parse_response_data(result)
     }
 
-    fn internal_ip_alias_parse_response_data(data: String) -> Result<Vec<String>, Error> {
+    fn internal_ip_alias_parse_response_data(data: String) -> Result<Vec<IpNetwork>, Error> {
         let array_val = serde_json::from_str::<serde_json::Value>(&data).handle_err(location!())?;
         let array = array_val
             .as_array()
             .ok_or("Failed to parse response")
             .handle_err(location!())?;
 
-        let i = array
-            .first()
-            .ok_or("No alias found")
-            .handle_err(location!())?;
+        let mut ret_val = Vec::new();
 
-        let Some(map) = i.as_object() else {
-            return Err("Failed to parse response").handle_err(location!());
-        };
-        let Some(alias_val) = map.get("value") else {
-            return Err("Failed to parse response").handle_err(location!());
-        };
-        let Some(alias) = alias_val.as_str() else {
-            return Err("Failed to parse response").handle_err(location!());
-        };
-
-        let ret_val = alias.split_whitespace().map(|s| s.to_string()).collect();
+        for i in array {
+            let Some(map) = i.as_object() else { continue };
+            let Some(ip_val) = map.get("ip") else {
+                continue;
+            };
+            let Some(ip_addr) = ip_val.as_str().and_then(|ip| IpAddr::from_str(ip).ok()) else {
+                continue;
+            };
+            let Some(prefix_val) = map.get("prefix") else {
+                continue;
+            };
+            let Some(prefix) = prefix_val.as_u64().and_then(|int| u8::try_from(int).ok()) else {
+                continue;
+            };
+            let Ok(ip_network) = IpNetwork::new(ip_addr, prefix) else {
+                continue;
+            };
+            ret_val.push(ip_network);
+        }
 
         Ok(ret_val)
     }

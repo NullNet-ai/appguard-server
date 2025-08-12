@@ -8,7 +8,6 @@ use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardHttpRequest, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[allow(clippy::enum_variant_names)]
@@ -43,30 +42,30 @@ impl HttpRequestField {
         item: &'a AppGuardHttpRequest,
     ) -> Option<FirewallCompareType<'a>> {
         match self {
-            HttpRequestField::HttpRequestUrl(v) => Some(FirewallCompareType::String((
-                &item.original_url,
-                Cow::Borrowed(v),
-            ))),
-            HttpRequestField::HttpRequestMethod(v) => Some(FirewallCompareType::String((
-                &item.method,
-                Cow::Borrowed(v),
-            ))),
-            HttpRequestField::HttpRequestQuery(HeaderVal(k, v)) => get_header(&item.query, k)
-                .map(|query| FirewallCompareType::String((query, Cow::Borrowed(v)))),
+            HttpRequestField::HttpRequestUrl(v) => {
+                Some(FirewallCompareType::String((&item.original_url, v)))
+            }
+            HttpRequestField::HttpRequestMethod(v) => {
+                Some(FirewallCompareType::String((&item.method, v)))
+            }
+            HttpRequestField::HttpRequestQuery(HeaderVal(k, v)) => {
+                get_header(&item.query, k).map(|query| FirewallCompareType::String((query, v)))
+            }
             HttpRequestField::HttpRequestCookie(v) => get_header(&item.headers, "Cookie")
-                .map(|cookie| FirewallCompareType::String((cookie, Cow::Borrowed(v)))),
-            HttpRequestField::HttpRequestHeader(HeaderVal(k, v)) => get_header(&item.headers, k)
-                .map(|header| FirewallCompareType::String((header, Cow::Borrowed(v)))),
+                .map(|cookie| FirewallCompareType::String((cookie, v))),
+            HttpRequestField::HttpRequestHeader(HeaderVal(k, v)) => {
+                get_header(&item.headers, k).map(|header| FirewallCompareType::String((header, v)))
+            }
             HttpRequestField::HttpRequestBody(v) => item
                 .body
                 .as_ref()
-                .map(|body| FirewallCompareType::String((body, Cow::Borrowed(v)))),
+                .map(|body| FirewallCompareType::String((body, v))),
             HttpRequestField::HttpRequestBodyLen(v) => item
                 .body
                 .as_ref()
                 .map(|body| FirewallCompareType::Usize((body.len(), v))),
             HttpRequestField::HttpRequestUserAgent(v) => get_header(&item.headers, "User-Agent")
-                .map(|user_agent| FirewallCompareType::String((user_agent, Cow::Borrowed(v)))),
+                .map(|user_agent| FirewallCompareType::String((user_agent, v))),
         }
     }
 }

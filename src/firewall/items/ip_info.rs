@@ -3,7 +3,6 @@ use crate::firewall::rules::{FirewallCompareType, FirewallRuleField, FirewallRul
 use crate::proto::appguard::AppGuardIpInfo;
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -40,35 +39,35 @@ impl IpInfoField {
             IpInfoField::Country(v) => item
                 .country
                 .as_ref()
-                .map(|country| FirewallCompareType::String((country, Cow::Borrowed(v)))),
+                .map(|country| FirewallCompareType::String((country, v))),
             IpInfoField::Asn(v) => item
                 .asn
                 .as_ref()
-                .map(|asn| FirewallCompareType::String((asn, Cow::Borrowed(v)))),
+                .map(|asn| FirewallCompareType::String((asn, v))),
             IpInfoField::Org(v) => item
                 .org
                 .as_ref()
-                .map(|org| FirewallCompareType::String((org, Cow::Borrowed(v)))),
+                .map(|org| FirewallCompareType::String((org, v))),
             IpInfoField::Continent(v) => item
                 .continent_code
                 .as_ref()
-                .map(|continent| FirewallCompareType::String((continent, Cow::Borrowed(v)))),
+                .map(|continent| FirewallCompareType::String((continent, v))),
             IpInfoField::City(v) => item
                 .city
                 .as_ref()
-                .map(|city| FirewallCompareType::String((city, Cow::Borrowed(v)))),
+                .map(|city| FirewallCompareType::String((city, v))),
             IpInfoField::Region(v) => item
                 .region
                 .as_ref()
-                .map(|region| FirewallCompareType::String((region, Cow::Borrowed(v)))),
+                .map(|region| FirewallCompareType::String((region, v))),
             IpInfoField::Postal(v) => item
                 .postal
                 .as_ref()
-                .map(|postal| FirewallCompareType::String((postal, Cow::Borrowed(v)))),
+                .map(|postal| FirewallCompareType::String((postal, v))),
             IpInfoField::Timezone(v) => item
                 .timezone
                 .as_ref()
-                .map(|timezone| FirewallCompareType::String((timezone, Cow::Borrowed(v)))),
+                .map(|timezone| FirewallCompareType::String((timezone, v))),
         }
     }
 }

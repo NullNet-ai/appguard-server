@@ -3,9 +3,11 @@ use crate::firewall::rules::{
     FirewallCompareType, FirewallRuleDirection, FirewallRuleField, FirewallRuleWithDirection,
 };
 use crate::proto::appguard::AppGuardTcpConnection;
+use ipnetwork::IpNetwork;
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
+use std::net::IpAddr;
+use std::str::FromStr;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -40,8 +42,8 @@ impl TcpConnectionField {
                     FirewallRuleDirection::In => item.source_ip.as_ref(),
                     FirewallRuleDirection::Out => item.destination_ip.as_ref(),
                 };
-                if let Some(ip) = ip_opt {
-                    Some(FirewallCompareType::String((ip, a.to_ips(context).await?)))
+                if let Some(ip) = ip_opt.and_then(|ip| IpAddr::from_str(ip).ok()) {
+                    Some(FirewallCompareType::Ip((ip, a.to_ips(context).await?)))
                 } else {
                     None
                 }
@@ -51,8 +53,8 @@ impl TcpConnectionField {
                     FirewallRuleDirection::In => item.destination_ip.as_ref(),
                     FirewallRuleDirection::Out => item.source_ip.as_ref(),
                 };
-                if let Some(ip) = ip_opt {
-                    Some(FirewallCompareType::String((ip, a.to_ips(context).await?)))
+                if let Some(ip) = ip_opt.and_then(|ip| IpAddr::from_str(ip).ok()) {
+                    Some(FirewallCompareType::Ip((ip, a.to_ips(context).await?)))
                 } else {
                     None
                 }
@@ -67,10 +69,9 @@ impl TcpConnectionField {
                 FirewallRuleDirection::Out => item.source_port,
             }
             .map(|p| FirewallCompareType::U32((p, v))),
-            TcpConnectionField::Protocol(v) => Some(FirewallCompareType::String((
-                &item.protocol,
-                Cow::Borrowed(v),
-            ))),
+            TcpConnectionField::Protocol(v) => {
+                Some(FirewallCompareType::String((&item.protocol, v)))
+            }
         }
     }
 }
@@ -112,19 +113,26 @@ pub enum IpAlias {
 }
 
 impl IpAlias {
-    async fn to_ips(&self, context: &AppContext) -> Option<Cow<'_, [String]>> {
+    async fn to_ips(&self, context: &AppContext) -> Option<Vec<IpNetwork>> {
         match self {
             IpAlias::Name(name) => {
                 let token = context.root_token_provider.get().await.ok()?.jwt.clone();
                 context
                     .datastore
                     .clone()
-                    .get_ip_alias(token, name)
+                    .get_ip_aliases(token, name)
                     .await
                     .ok()
-                    .map(Cow::Owned)
             }
-            IpAlias::Addresses(addresses) => Some(Cow::Borrowed(addresses)),
+            IpAlias::Addresses(addresses) => {
+                let mut ipnetworks = Vec::new();
+                for address in addresses {
+                    if let Ok(cidr) = IpNetwork::from_str(address) {
+                        ipnetworks.push(cidr);
+                    }
+                }
+                Some(ipnetworks)
+            }
         }
     }
 }

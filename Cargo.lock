@@ -321,6 +321,7 @@ dependencies = [
  "ctrlc",
  "env_logger",
  "indexmap 2.10.0",
+ "ipnetwork",
  "log",
  "nullnet-libdatastore",
  "nullnet-liberror",
