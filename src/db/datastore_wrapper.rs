@@ -9,9 +9,10 @@ use ipnetwork::IpNetwork;
 use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
     BatchUpdateBody, BatchUpdateRequest, CreateBody, CreateParams, CreateRequest, DeleteQuery,
-    DeleteRequest, GetByFilterBody, GetByFilterRequest, GetByIdRequest, LoginBody, LoginData,
-    LoginParams, LoginRequest, MultipleSort, Params, Query, RegisterDeviceParams,
-    RegisterDeviceRequest, Response, ResponseData, UpdateRequest, UpsertBody, UpsertRequest,
+    DeleteRequest, EntityFieldFrom, EntityFieldTo, FieldRelation, GetByFilterBody,
+    GetByFilterRequest, GetByIdRequest, Join, LoginBody, LoginData, LoginParams, LoginRequest,
+    MultipleSort, Params, Query, RegisterDeviceParams, RegisterDeviceRequest, Response,
+    ResponseData, UpdateRequest, UpsertBody, UpsertRequest,
 };
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
@@ -1067,42 +1068,62 @@ impl DatastoreWrapper {
         token: String,
         name: &str,
     ) -> Result<Vec<IpNetwork>, Error> {
-        let table = DbTable::Alias.to_str();
+        let table_aliases = DbTable::Alias.to_str();
+        let table_ip_aliases = DbTable::IpAlias.to_str();
 
         let filter = AdvanceFilter {
             r#type: String::from("criteria"),
             field: String::from("name"),
             operator: String::from("equal"),
-            entity: table.to_string(),
+            entity: table_aliases.to_string(),
             values: format!("[\"{name}\"]"),
+        };
+
+        let join = Join {
+            r#type: "left".to_string(),
+            field_relation: Some(FieldRelation {
+                to: Some(EntityFieldTo {
+                    entity: table_aliases.to_string(),
+                    field: String::from("id"),
+                    alias: String::from("alias"),
+                    limit: i32::MAX,
+                    order_by: String::new(),
+                    filters: Vec::new(),
+                }),
+                from: Some(EntityFieldFrom {
+                    entity: table_ip_aliases.to_string(),
+                    field: String::from("alias_id"),
+                }),
+            }),
         };
 
         let request = GetByFilterRequest {
             params: Some(Params {
                 id: String::new(),
-                table: table.into(),
+                table: table_aliases.into(),
                 r#type: String::from("root"),
             }),
             body: Some(GetByFilterBody {
-                pluck: vec!["ip".to_string(), "prefix".to_string()],
+                pluck: vec![],
                 advance_filters: vec![filter],
                 order_by: String::new(),
-                limit: 1,
+                limit: i32::MAX,
                 offset: 0,
                 order_direction: String::new(),
-                joins: vec![
-                    // TODO: join with ip_aliases table
-                ],
+                joins: vec![join],
                 multiple_sort: vec![],
-                pluck_object: HashMap::default(),
+                pluck_object: HashMap::from([(
+                    table_ip_aliases.to_string(),
+                    String::from("[\"ip\", \"prefix\"]"),
+                )]),
                 date_format: String::new(),
                 is_case_sensitive_sorting: false,
             }),
         };
 
-        log::trace!("Before get by filter to {table}");
+        log::trace!("Before get by filter to {table_aliases} and {table_ip_aliases}");
         let result = self.inner.get_by_filter(request, &token).await?.data;
-        log::trace!("After get by filter to {table}: {result}");
+        log::trace!("After get by filter to {table_aliases} and {table_ip_aliases}: {result}");
 
         Self::internal_ip_alias_parse_response_data(result)
     }

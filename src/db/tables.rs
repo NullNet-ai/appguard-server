@@ -8,8 +8,9 @@ pub enum DbTable {
     SmtpResponse,
     // Blacklist,
     Firewall,
-    Alias,
     Config,
+    Alias,
+    IpAlias,
 }
 
 impl DbTable {
@@ -23,8 +24,9 @@ impl DbTable {
             DbTable::SmtpResponse => "smtp_responses",
             // DbTable::Blacklist => "ip_blacklists",
             DbTable::Firewall => "app_firewalls",
-            DbTable::Alias => "aliases",
             DbTable::Config => "appguard_configs",
+            DbTable::Alias => "aliases",
+            DbTable::IpAlias => "ip_aliases",
         }
     }
 }

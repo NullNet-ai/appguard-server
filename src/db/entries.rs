@@ -192,6 +192,7 @@ impl EntryIds {
             // | DbTable::Blacklist
             | DbTable::Firewall
             | DbTable::Alias
+            | DbTable::IpAlias
             | DbTable::Config => return Err("Not applicable").handle_err(location!()),
         }
         .lock()
