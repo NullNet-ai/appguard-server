@@ -12,8 +12,8 @@ use std::str::FromStr;
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum TcpConnectionField {
-    SourceIp(IpAlias),
-    DestinationIp(IpAlias),
+    SourceIp(Vec<String>),
+    DestinationIp(Vec<String>),
     SourcePort(Vec<u32>),
     DestinationPort(Vec<u32>),
     Protocol(Vec<String>),
@@ -43,7 +43,7 @@ impl TcpConnectionField {
                     FirewallRuleDirection::Out => item.destination_ip.as_ref(),
                 };
                 if let Some(ip) = ip_opt.and_then(|ip| IpAddr::from_str(ip).ok()) {
-                    Some(FirewallCompareType::Ip((ip, a.to_ips(context).await?)))
+                    Some(FirewallCompareType::Ip((ip, to_ips(a, context).await?)))
                 } else {
                     None
                 }
@@ -54,7 +54,7 @@ impl TcpConnectionField {
                     FirewallRuleDirection::Out => item.source_ip.as_ref(),
                 };
                 if let Some(ip) = ip_opt.and_then(|ip| IpAddr::from_str(ip).ok()) {
-                    Some(FirewallCompareType::Ip((ip, a.to_ips(context).await?)))
+                    Some(FirewallCompareType::Ip((ip, to_ips(a, context).await?)))
                 } else {
                     None
                 }
@@ -105,36 +105,28 @@ impl<'a> PredicateEvaluator for &'a AppGuardTcpConnection {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-#[serde(untagged)]
-pub enum IpAlias {
-    Name(String),
-    Addresses(Vec<String>),
-}
+async fn to_ips(vec: &Vec<String>, context: &AppContext) -> Option<Vec<IpNetwork>> {
+    let mut ret_val = Vec::new();
 
-impl IpAlias {
-    async fn to_ips(&self, context: &AppContext) -> Option<Vec<IpNetwork>> {
-        match self {
-            IpAlias::Name(name) => {
-                let token = context.root_token_provider.get().await.ok()?.jwt.clone();
-                context
-                    .datastore
-                    .clone()
-                    .get_ip_aliases(token, name)
-                    .await
-                    .ok()
-            }
-            IpAlias::Addresses(addresses) => {
-                let mut ipnetworks = Vec::new();
-                for address in addresses {
-                    if let Ok(cidr) = IpNetwork::from_str(address) {
-                        ipnetworks.push(cidr);
-                    }
-                }
-                Some(ipnetworks)
-            }
+    for a in vec {
+        if let Ok(cidr) = IpNetwork::from_str(a) {
+            ret_val.push(cidr);
+        } else {
+            // alias
+            let token = context.root_token_provider.get().await.ok()?.jwt.clone();
+            let Ok(cidrs) = context
+                .datastore
+                .clone()
+                .get_ip_aliases(token, a)
+                .await
+            else {
+                continue;
+            };
+            ret_val.extend(cidrs);
         }
     }
+
+    Some(ret_val)
 }
 
 // #[cfg(test)]
