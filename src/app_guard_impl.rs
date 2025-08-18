@@ -40,6 +40,7 @@ pub struct AppGuardImpl {
     ip_info_handler: IpInfoHandler,
     tx_store: UnboundedSender<DbEntry>,
     ctx: AppContext,
+    quarantine_alias_id: u64,
     // tx_ai: Sender<AiEntry>,
 }
 
@@ -60,11 +61,17 @@ pub fn terminate_app_guard(exit_code: i32) -> Result<(), Error> {
 }
 
 impl AppGuardImpl {
-    pub fn new(ctx: AppContext) -> AppGuardImpl {
-        let ds = ctx.datastore.clone();
+    pub async fn new(ctx: AppContext) -> Result<AppGuardImpl, Error> {
+        let mut ds = ctx.datastore.clone();
         let ds_2 = ctx.datastore.clone();
 
         log::info!("Connected to Datastore");
+
+        // upsert the 'ip_quarantine' host alias in datastore retrieving its ID
+        let root_token_provider = ctx.root_token_provider.clone();
+        let quarantine_alias_id = ds
+            .upsert_quarantine_alias(&root_token_provider.get().await?.jwt)
+            .await?;
 
         let config_2 = ctx.config_pair.clone();
 
@@ -105,7 +112,7 @@ impl AppGuardImpl {
             store_entries(&ds, &mut rx_store).await;
         });
 
-        AppGuardImpl {
+        Ok(AppGuardImpl {
             entry_ids: EntryIds::default(),
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
             ip_info_cache,
@@ -113,7 +120,8 @@ impl AppGuardImpl {
             tx_store,
             // tx_ai,
             ctx,
-        }
+            quarantine_alias_id,
+        })
     }
 
     fn config_log_requests(&self) -> Result<bool, Error> {
@@ -192,11 +200,11 @@ impl AppGuardImpl {
         if res.policy == FirewallPolicy::Deny {
             let denied_ip = DeniedIp {
                 ip: item.get_remote_ip(),
-                deny_reasons: res.reasons.clone(),
+                _deny_reasons: res.reasons.clone(),
             };
             self.tx_store
                 .send(DbEntry::DeniedIp((
-                    app_id.clone(),
+                    self.quarantine_alias_id,
                     denied_ip,
                     token.to_string(),
                 )))

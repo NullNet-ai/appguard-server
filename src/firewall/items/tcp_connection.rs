@@ -100,8 +100,9 @@ impl<'a> PredicateEvaluator for &'a AppGuardTcpConnection {
         serde_json::to_string(predicate.rule).unwrap_or_default()
     }
 
-    fn get_remote_ip(&self) -> String {
-        self.source_ip.clone().unwrap_or_default()
+    fn get_remote_ip(&self) -> IpAddr {
+        IpAddr::from_str(&self.source_ip.clone().unwrap_or_default())
+            .unwrap_or(IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED))
     }
 }
 
@@ -114,12 +115,7 @@ async fn to_ips(vec: &Vec<String>, context: &AppContext) -> Option<Vec<IpNetwork
         } else {
             // alias
             let token = context.root_token_provider.get().await.ok()?.jwt.clone();
-            let Ok(cidrs) = context
-                .datastore
-                .clone()
-                .get_ip_aliases(token, a)
-                .await
-            else {
+            let Ok(cidrs) = context.datastore.clone().get_ip_aliases(token, a).await else {
                 continue;
             };
             ret_val.extend(cidrs);

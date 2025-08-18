@@ -1159,6 +1159,67 @@ impl DatastoreWrapper {
 
         Ok(ret_val)
     }
+
+    pub(crate) async fn upsert_quarantine_alias(&mut self, token: &str) -> Result<u64, Error> {
+        let record = json!(
+            {
+                "type": "host",
+                "name": "quarantine",
+                "description": "Alias for quarantined IPs",
+                "alias_status": "Applied",
+            }
+        )
+        .to_string();
+        let table = "aliases";
+
+        let request = UpsertRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: table.into(),
+                r#type: String::new(),
+            }),
+            query: Some(Query {
+                pluck: String::from("id"),
+                durability: String::from("soft"),
+            }),
+            body: Some(UpsertBody {
+                data: record,
+                conflict_columns: vec!["name".to_string()],
+            }),
+        };
+
+        log::trace!("Before upsert to {table}");
+        let result = self.inner.upsert(request, token).await?;
+        log::trace!("After upsert to {table}");
+
+        let id = Self::internal_upsert_quarantine_alias_parse_response_data(result.data)?;
+        Ok(id)
+    }
+
+    fn internal_upsert_quarantine_alias_parse_response_data(data: String) -> Result<u64, Error> {
+        let array_val = serde_json::from_str::<serde_json::Value>(&data).handle_err(location!())?;
+        let array = array_val
+            .as_array()
+            .ok_or("Failed to parse response")
+            .handle_err(location!())?;
+
+        let i = array
+            .first()
+            .ok_or("Error upserting quarantine alias")
+            .handle_err(location!())?;
+
+        let map = i
+            .as_object()
+            .ok_or("Invalid data")
+            .handle_err(location!())?;
+        let id = map
+            .get("id")
+            .and_then(serde_json::Value::as_u64)
+            .ok_or("Invalid data")
+            .handle_err(location!())?;
+
+        Ok(id)
+    }
 }
 
 #[cfg(test)]

@@ -21,7 +21,7 @@ pub enum DbEntry {
     TcpConnection((AppGuardTcpConnection, u64)),
     // Blacklist((Vec<String>, String)),
     Firewall((String, Firewall, String)),
-    DeniedIp((String, DeniedIp, String)),
+    DeniedIp((u64, DeniedIp, String)),
     Config((Config, String)),
 }
 
@@ -70,13 +70,9 @@ impl DbEntry {
                 log::info!("Firewall inserted in datastore");
             }
             DbEntry::DeniedIp((_, denied_ip, _)) => {
-                // todo: change this to a custom query to aliases
+                // insert the denied IP into the ip_aliases table
                 let _ = ds.insert(self, token.as_str()).await?;
-                log::info!(
-                    "Denied IP inserted in datastore: {} {:?}",
-                    denied_ip.ip,
-                    denied_ip.deny_reasons
-                );
+                log::info!("Denied IP inserted in datastore: {}", denied_ip.ip);
             }
             DbEntry::Config((configs, _)) => {
                 let _ = ds.insert(self, token.as_str()).await?;
@@ -104,7 +100,9 @@ impl DbEntry {
             //     Ok(json)
             // }
             DbEntry::Firewall((app_id, f, _)) => f.to_json(app_id),
-            DbEntry::DeniedIp((app_id, denied_ip, _)) => denied_ip.to_json(app_id),
+            DbEntry::DeniedIp((quarantine_alias_id, denied_ip, _)) => {
+                denied_ip.to_json(*quarantine_alias_id)
+            }
             DbEntry::Config((configs, _)) => serde_json::to_string(configs).handle_err(location!()),
         }
     }
@@ -119,7 +117,7 @@ impl DbEntry {
             DbEntry::TcpConnection(_) => DbTable::TcpConnection,
             // DbEntry::Blacklist(_) => DbTable::Blacklist,
             DbEntry::Firewall(_) => DbTable::Firewall,
-            DbEntry::DeniedIp(_) => DbTable::Alias,
+            DbEntry::DeniedIp(_) => DbTable::IpAlias,
             DbEntry::Config(_) => DbTable::Config,
         }
     }

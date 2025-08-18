@@ -8,6 +8,7 @@ use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardSmtpRequest, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[allow(clippy::enum_variant_names)]
@@ -87,7 +88,7 @@ impl PredicateEvaluator for AppGuardSmtpRequest {
         serde_json::to_string(predicate).unwrap_or_default()
     }
 
-    fn get_remote_ip(&self) -> String {
+    fn get_remote_ip(&self) -> IpAddr {
         self.tcp_info
             .as_ref()
             .unwrap_or(&AppGuardTcpInfo::default())

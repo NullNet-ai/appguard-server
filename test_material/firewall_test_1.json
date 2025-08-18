@@ -118,7 +118,9 @@
         {
           "type": "predicate",
           "condition": "contains",
-          "source_ip": "alias_name"
+          "source_ip": [
+            "alias_name"
+          ]
         }
       ]
     }

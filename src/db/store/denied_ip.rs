@@ -1,13 +1,15 @@
 use crate::firewall::denied_ip::DeniedIp;
-use nullnet_liberror::{location, Error, ErrorHandler, Location};
+use nullnet_liberror::Error;
 use serde_json::json;
 
 impl DeniedIp {
-    pub(crate) fn to_json(&self, app_id: &str) -> Result<String, Error> {
+    pub(crate) fn to_json(&self, quarantine_alias_id: u64) -> Result<String, Error> {
+        // a denied IP is always a single IP and (not a subnet)
+        let prefix = if self.ip.is_ipv4() { 32 } else { 128 };
         Ok(json!({
-            "app_id": app_id,
+            "alias_id": quarantine_alias_id,
             "ip": self.ip,
-            "deny_reasons": serde_json::to_string(&self.deny_reasons).handle_err(location!())?,
+            "prefix": prefix,
         })
         .to_string())
     }

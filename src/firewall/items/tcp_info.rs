@@ -2,6 +2,7 @@ use crate::app_context::AppContext;
 use crate::firewall::rules::{FirewallRuleField, FirewallRuleWithDirection};
 use crate::proto::appguard::{AppGuardIpInfo, AppGuardTcpConnection, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
+use std::net::IpAddr;
 
 #[tonic::async_trait]
 impl<'a> PredicateEvaluator for &'a AppGuardTcpInfo {
@@ -37,7 +38,7 @@ impl<'a> PredicateEvaluator for &'a AppGuardTcpInfo {
         serde_json::to_string(predicate.rule).unwrap_or_default()
     }
 
-    fn get_remote_ip(&self) -> String {
+    fn get_remote_ip(&self) -> IpAddr {
         self.connection
             .as_ref()
             .unwrap_or(&AppGuardTcpConnection::default())
