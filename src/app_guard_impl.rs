@@ -40,7 +40,7 @@ pub struct AppGuardImpl {
     ip_info_handler: IpInfoHandler,
     tx_store: UnboundedSender<DbEntry>,
     ctx: AppContext,
-    quarantine_alias_id: u64,
+    quarantine_alias_id: String,
     // tx_ai: Sender<AiEntry>,
 }
 
@@ -204,7 +204,7 @@ impl AppGuardImpl {
             };
             self.tx_store
                 .send(DbEntry::DeniedIp((
-                    self.quarantine_alias_id,
+                    self.quarantine_alias_id.clone(),
                     denied_ip,
                     token.to_string(),
                 )))

@@ -1160,7 +1160,7 @@ impl DatastoreWrapper {
         Ok(ret_val)
     }
 
-    pub(crate) async fn upsert_quarantine_alias(&mut self, token: &str) -> Result<u64, Error> {
+    pub(crate) async fn upsert_quarantine_alias(&mut self, token: &str) -> Result<String, Error> {
         let record = json!(
             {
                 "type": "host",
@@ -1176,7 +1176,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
-                r#type: String::new(),
+                r#type: String::from("root"),
             }),
             query: Some(Query {
                 pluck: String::from("id"),
@@ -1196,7 +1196,7 @@ impl DatastoreWrapper {
         Ok(id)
     }
 
-    fn internal_upsert_quarantine_alias_parse_response_data(data: String) -> Result<u64, Error> {
+    fn internal_upsert_quarantine_alias_parse_response_data(data: String) -> Result<String, Error> {
         let array_val = serde_json::from_str::<serde_json::Value>(&data).handle_err(location!())?;
         let array = array_val
             .as_array()
@@ -1214,9 +1214,10 @@ impl DatastoreWrapper {
             .handle_err(location!())?;
         let id = map
             .get("id")
-            .and_then(serde_json::Value::as_u64)
+            .and_then(serde_json::Value::as_str)
             .ok_or("Invalid data")
-            .handle_err(location!())?;
+            .handle_err(location!())?
+            .to_string();
 
         Ok(id)
     }

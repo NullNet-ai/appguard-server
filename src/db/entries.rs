@@ -21,7 +21,7 @@ pub enum DbEntry {
     TcpConnection((AppGuardTcpConnection, u64)),
     // Blacklist((Vec<String>, String)),
     Firewall((String, Firewall, String)),
-    DeniedIp((u64, DeniedIp, String)),
+    DeniedIp((String, DeniedIp, String)),
     Config((Config, String)),
 }
 
@@ -101,7 +101,7 @@ impl DbEntry {
             // }
             DbEntry::Firewall((app_id, f, _)) => f.to_json(app_id),
             DbEntry::DeniedIp((quarantine_alias_id, denied_ip, _)) => {
-                denied_ip.to_json(*quarantine_alias_id)
+                denied_ip.to_json(quarantine_alias_id)
             }
             DbEntry::Config((configs, _)) => serde_json::to_string(configs).handle_err(location!()),
         }
