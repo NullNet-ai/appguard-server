@@ -1112,10 +1112,13 @@ impl DatastoreWrapper {
                 order_direction: String::new(),
                 joins: vec![join],
                 multiple_sort: vec![],
-                pluck_object: HashMap::from([(
-                    table_ip_aliases.to_string(),
-                    String::from("[\"ip\", \"prefix\"]"),
-                )]),
+                pluck_object: HashMap::from([
+                    (
+                        table_ip_aliases.to_string(),
+                        String::from("[\"ip\", \"prefix\"]"),
+                    ),
+                    (table_aliases.to_string(), String::from("[\"id\"]")),
+                ]),
                 date_format: String::new(),
                 is_case_sensitive_sorting: false,
             }),
@@ -1139,13 +1142,18 @@ impl DatastoreWrapper {
 
         for i in array {
             let Some(map) = i.as_object() else { continue };
-            let Some(ip_val) = map.get("ip") else {
+            // this is the pluck object returned by a join query, so it's nested
+            let Some(ip_aliases) = map.get("ip_aliases") else {
+                continue;
+            };
+            let Some(ip_aliases_map) = ip_aliases.as_object() else { continue };
+            let Some(ip_val) = ip_aliases_map.get("ip") else {
                 continue;
             };
             let Some(ip_addr) = ip_val.as_str().and_then(|ip| IpAddr::from_str(ip).ok()) else {
                 continue;
             };
-            let Some(prefix_val) = map.get("prefix") else {
+            let Some(prefix_val) = ip_aliases_map.get("prefix") else {
                 continue;
             };
             let Some(prefix) = prefix_val.as_u64().and_then(|int| u8::try_from(int).ok()) else {

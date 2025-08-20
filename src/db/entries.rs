@@ -71,7 +71,13 @@ impl DbEntry {
             }
             DbEntry::DeniedIp((_, denied_ip, _)) => {
                 // insert the denied IP into the ip_aliases table
-                let _ = ds.insert(self, token.as_str()).await?;
+                let _ = ds
+                    .upsert(
+                        self,
+                        vec!["ip".to_string(), "prefix".to_string()],
+                        token.as_str(),
+                    )
+                    .await?;
                 log::info!("Denied IP inserted in datastore: {}", denied_ip.ip);
             }
             DbEntry::Config((configs, _)) => {
