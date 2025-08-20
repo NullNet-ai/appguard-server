@@ -1,3 +1,4 @@
+use crate::app_context::AppContext;
 use crate::firewall::header_val::HeaderVal;
 use crate::firewall::rules::{
     FirewallCompareType, FirewallRule, FirewallRuleDirection, FirewallRuleField,
@@ -7,6 +8,7 @@ use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardHttpResponse, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[allow(clippy::enum_variant_names)]
@@ -51,11 +53,17 @@ impl HttpResponseField {
     }
 }
 
+#[tonic::async_trait]
 impl PredicateEvaluator for AppGuardHttpResponse {
     type Predicate = FirewallRule;
     type Reason = String;
+    type Context = AppContext;
 
-    fn evaluate_predicate(&self, predicate: &Self::Predicate) -> bool {
+    async fn evaluate_predicate(
+        &self,
+        predicate: &Self::Predicate,
+        context: &Self::Context,
+    ) -> bool {
         if predicate.direction == Some(FirewallRuleDirection::In) {
             return false;
         }
@@ -66,10 +74,14 @@ impl PredicateEvaluator for AppGuardHttpResponse {
             self.tcp_info
                 .as_ref()
                 .unwrap_or(&AppGuardTcpInfo::default())
-                .evaluate_predicate(&FirewallRuleWithDirection {
-                    rule: predicate,
-                    direction: FirewallRuleDirection::Out,
-                })
+                .evaluate_predicate(
+                    &FirewallRuleWithDirection {
+                        rule: predicate,
+                        direction: FirewallRuleDirection::Out,
+                    },
+                    context,
+                )
+                .await
         }
     }
 
@@ -77,14 +89,7 @@ impl PredicateEvaluator for AppGuardHttpResponse {
         serde_json::to_string(predicate).unwrap_or_default()
     }
 
-    fn is_blacklisted(&self) -> bool {
-        self.tcp_info
-            .as_ref()
-            .unwrap_or(&AppGuardTcpInfo::default())
-            .is_blacklisted()
-    }
-
-    fn get_remote_ip(&self) -> String {
+    fn get_remote_ip(&self) -> IpAddr {
         self.tcp_info
             .as_ref()
             .unwrap_or(&AppGuardTcpInfo::default())

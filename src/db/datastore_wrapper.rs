@@ -5,17 +5,21 @@ use crate::db::installation_code::InstallationCode;
 use crate::db::tables::DbTable;
 use crate::firewall::firewall::Firewall;
 use crate::proto::appguard::{AppGuardIpInfo, Log};
+use ipnetwork::IpNetwork;
 use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
     BatchUpdateBody, BatchUpdateRequest, CreateBody, CreateParams, CreateRequest, DeleteQuery,
-    DeleteRequest, GetByFilterBody, GetByFilterRequest, GetByIdRequest, LoginBody, LoginData,
-    LoginParams, LoginRequest, MultipleSort, Params, Query, RegisterDeviceParams,
-    RegisterDeviceRequest, Response, ResponseData, UpdateRequest, UpsertBody, UpsertRequest,
+    DeleteRequest, EntityFieldFrom, EntityFieldTo, FieldRelation, GetByFilterBody,
+    GetByFilterRequest, GetByIdRequest, Join, LoginBody, LoginData, LoginParams, LoginRequest,
+    MultipleSort, Params, Query, RegisterDeviceParams, RegisterDeviceRequest, Response,
+    ResponseData, UpdateRequest, UpsertBody, UpsertRequest,
 };
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use std::net::IpAddr;
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 pub struct DatastoreWrapper {
@@ -54,30 +58,30 @@ impl DatastoreWrapper {
         Ok(result)
     }
 
-    pub(crate) async fn insert_batch(
-        &mut self,
-        entry: &DbEntry,
-        token: &str,
-    ) -> Result<ResponseData, Error> {
-        let records = entry.to_json()?;
-        let table = entry.table().to_str();
-
-        let request = BatchCreateRequest {
-            params: Some(CreateParams {
-                table: table.into(),
-            }),
-            query: Some(Query {
-                pluck: String::from("id"),
-                durability: String::from("soft"),
-            }),
-            body: Some(BatchCreateBody { records }),
-        };
-
-        log::trace!("Before create batch to {table}");
-        let result = self.inner.batch_create(request, token).await?;
-        log::trace!("After create batch to {table}");
-        Ok(result)
-    }
+    // pub(crate) async fn insert_batch(
+    //     &mut self,
+    //     entry: &DbEntry,
+    //     token: &str,
+    // ) -> Result<ResponseData, Error> {
+    //     let records = entry.to_json()?;
+    //     let table = entry.table().to_str();
+    //
+    //     let request = BatchCreateRequest {
+    //         params: Some(CreateParams {
+    //             table: table.into(),
+    //         }),
+    //         query: Some(Query {
+    //             pluck: String::from("id"),
+    //             durability: String::from("soft"),
+    //         }),
+    //         body: Some(BatchCreateBody { records }),
+    //     };
+    //
+    //     log::trace!("Before create batch to {table}");
+    //     let result = self.inner.batch_create(request, token).await?;
+    //     log::trace!("After create batch to {table}");
+    //     Ok(result)
+    // }
 
     pub(crate) async fn upsert(
         &mut self,
@@ -111,41 +115,41 @@ impl DatastoreWrapper {
     }
 
     // SELECT COUNT(*) FROM {table} WHERE ip = {ip}
-    pub(crate) async fn is_ip_blacklisted(&mut self, ip: &str, token: &str) -> Result<bool, Error> {
-        let table = DbTable::Blacklist.to_str();
-
-        let request = GetByFilterRequest {
-            params: Some(Params {
-                id: String::new(),
-                table: table.into(),
-                r#type: String::new(),
-            }),
-            body: Some(GetByFilterBody {
-                pluck: vec!["id".to_string()],
-                advance_filters: vec![AdvanceFilter {
-                    r#type: "criteria".to_string(),
-                    field: "ip".to_string(),
-                    operator: "equal".to_string(),
-                    entity: table.to_string(),
-                    values: format!("[\"{ip}\"]"),
-                }],
-                order_by: String::new(),
-                limit: 1,
-                offset: 0,
-                order_direction: String::new(),
-                joins: vec![],
-                multiple_sort: vec![],
-                pluck_object: HashMap::default(),
-                date_format: String::new(),
-                is_case_sensitive_sorting: false,
-            }),
-        };
-
-        log::trace!("Before get by filter to {table}");
-        let result = self.inner.get_by_filter(request, token).await?.count > 0;
-        log::trace!("After get by filter to {table}: {result}");
-        Ok(result)
-    }
+    // pub(crate) async fn is_ip_blacklisted(&mut self, ip: &str, token: &str) -> Result<bool, Error> {
+    //     let table = DbTable::Blacklist.to_str();
+    //
+    //     let request = GetByFilterRequest {
+    //         params: Some(Params {
+    //             id: String::new(),
+    //             table: table.into(),
+    //             r#type: String::new(),
+    //         }),
+    //         body: Some(GetByFilterBody {
+    //             pluck: vec!["id".to_string()],
+    //             advance_filters: vec![AdvanceFilter {
+    //                 r#type: "criteria".to_string(),
+    //                 field: "ip".to_string(),
+    //                 operator: "equal".to_string(),
+    //                 entity: table.to_string(),
+    //                 values: format!("[\"{ip}\"]"),
+    //             }],
+    //             order_by: String::new(),
+    //             limit: 1,
+    //             offset: 0,
+    //             order_direction: String::new(),
+    //             joins: vec![],
+    //             multiple_sort: vec![],
+    //             pluck_object: HashMap::default(),
+    //             date_format: String::new(),
+    //             is_case_sensitive_sorting: false,
+    //         }),
+    //     };
+    //
+    //     log::trace!("Before get by filter to {table}");
+    //     let result = self.inner.get_by_filter(request, token).await?.count > 0;
+    //     log::trace!("After get by filter to {table}: {result}");
+    //     Ok(result)
+    // }
 
     // SELECT * FROM {table} WHERE ip = {ip} LIMIT 1
     pub(crate) async fn get_ip_info(
@@ -1057,6 +1061,175 @@ impl DatastoreWrapper {
         let count = self.inner.batch_update(request, token).await?.count;
         log::trace!("After batch update to {table}: {count}");
         Ok(count)
+    }
+
+    pub(crate) async fn get_ip_aliases(
+        &mut self,
+        token: String,
+        name: &str,
+    ) -> Result<Vec<IpNetwork>, Error> {
+        let table_aliases = DbTable::Alias.to_str();
+        let table_ip_aliases = DbTable::IpAlias.to_str();
+
+        let filter = AdvanceFilter {
+            r#type: String::from("criteria"),
+            field: String::from("name"),
+            operator: String::from("equal"),
+            entity: table_aliases.to_string(),
+            values: format!("[\"{name}\"]"),
+        };
+
+        let join = Join {
+            r#type: "left".to_string(),
+            field_relation: Some(FieldRelation {
+                to: Some(EntityFieldTo {
+                    entity: table_ip_aliases.to_string(),
+                    field: String::from("alias_id"),
+                    alias: String::from(""),
+                    limit: i32::MAX,
+                    order_by: String::new(),
+                    filters: Vec::new(),
+                }),
+                from: Some(EntityFieldFrom {
+                    entity: table_aliases.to_string(),
+                    field: String::from("id"),
+                }),
+            }),
+        };
+
+        let request = GetByFilterRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: table_aliases.into(),
+                r#type: String::from("root"),
+            }),
+            body: Some(GetByFilterBody {
+                pluck: vec![],
+                advance_filters: vec![filter],
+                order_by: String::new(),
+                limit: i32::MAX,
+                offset: 0,
+                order_direction: String::new(),
+                joins: vec![join],
+                multiple_sort: vec![],
+                pluck_object: HashMap::from([
+                    (
+                        table_ip_aliases.to_string(),
+                        String::from("[\"ip\", \"prefix\"]"),
+                    ),
+                    (table_aliases.to_string(), String::from("[\"id\"]")),
+                ]),
+                date_format: String::new(),
+                is_case_sensitive_sorting: false,
+            }),
+        };
+
+        log::trace!("Before get by filter to {table_aliases} and {table_ip_aliases}");
+        let result = self.inner.get_by_filter(request, &token).await?.data;
+        log::trace!("After get by filter to {table_aliases} and {table_ip_aliases}: {result}");
+
+        Self::internal_ip_alias_parse_response_data(result)
+    }
+
+    fn internal_ip_alias_parse_response_data(data: String) -> Result<Vec<IpNetwork>, Error> {
+        let array_val = serde_json::from_str::<serde_json::Value>(&data).handle_err(location!())?;
+        let array = array_val
+            .as_array()
+            .ok_or("Failed to parse response")
+            .handle_err(location!())?;
+
+        let mut ret_val = Vec::new();
+
+        for i in array {
+            let Some(map) = i.as_object() else { continue };
+            // this is the pluck object returned by a join query, so it's nested
+            let Some(ip_aliases) = map.get("ip_aliases") else {
+                continue;
+            };
+            let Some(ip_aliases_map) = ip_aliases.as_object() else {
+                continue;
+            };
+            let Some(ip_val) = ip_aliases_map.get("ip") else {
+                continue;
+            };
+            let Some(ip_addr) = ip_val.as_str().and_then(|ip| IpAddr::from_str(ip).ok()) else {
+                continue;
+            };
+            let Some(prefix_val) = ip_aliases_map.get("prefix") else {
+                continue;
+            };
+            let Some(prefix) = prefix_val.as_u64().and_then(|int| u8::try_from(int).ok()) else {
+                continue;
+            };
+            let Ok(ip_network) = IpNetwork::new(ip_addr, prefix) else {
+                continue;
+            };
+            ret_val.push(ip_network);
+        }
+
+        Ok(ret_val)
+    }
+
+    pub(crate) async fn upsert_quarantine_alias(&mut self, token: &str) -> Result<String, Error> {
+        let record = json!(
+            {
+                "type": "host",
+                "name": "quarantine",
+                "description": "Alias for quarantined IPs",
+                "alias_status": "Applied",
+            }
+        )
+        .to_string();
+        let table = "aliases";
+
+        let request = UpsertRequest {
+            params: Some(Params {
+                id: String::new(),
+                table: table.into(),
+                r#type: String::new(),
+            }),
+            query: Some(Query {
+                pluck: String::from("id"),
+                durability: String::from("soft"),
+            }),
+            body: Some(UpsertBody {
+                data: record,
+                conflict_columns: vec!["name".to_string()],
+            }),
+        };
+
+        log::trace!("Before upsert to {table}");
+        let result = self.inner.upsert(request, token).await?;
+        log::trace!("After upsert to {table}");
+
+        let id = Self::internal_upsert_quarantine_alias_parse_response_data(result.data)?;
+        Ok(id)
+    }
+
+    fn internal_upsert_quarantine_alias_parse_response_data(data: String) -> Result<String, Error> {
+        let array_val = serde_json::from_str::<serde_json::Value>(&data).handle_err(location!())?;
+        let array = array_val
+            .as_array()
+            .ok_or("Failed to parse response")
+            .handle_err(location!())?;
+
+        let i = array
+            .first()
+            .ok_or("Error upserting quarantine alias")
+            .handle_err(location!())?;
+
+        let map = i
+            .as_object()
+            .ok_or("Invalid data")
+            .handle_err(location!())?;
+        let id = map
+            .get("id")
+            .and_then(serde_json::Value::as_str)
+            .ok_or("Invalid data")
+            .handle_err(location!())?
+            .to_string();
+
+        Ok(id)
     }
 }
 

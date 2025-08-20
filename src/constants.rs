@@ -51,12 +51,12 @@ pub static SYSTEM_ACCOUNT_SECRET: std::sync::LazyLock<String> = std::sync::LazyL
 // -------------------------------------------------------------------------------------------------
 
 // blacklist
-const DEFAULT_BLACKLIST_LINK: &str =
-    "https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt";
-
-pub static BLACKLIST_LINK: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
-    std::env::var("BLACKLIST_LINK").unwrap_or_else(|_| DEFAULT_BLACKLIST_LINK.to_string())
-});
+// const DEFAULT_BLACKLIST_LINK: &str =
+//     "https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt";
+//
+// pub static BLACKLIST_LINK: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+//     std::env::var("BLACKLIST_LINK").unwrap_or_else(|_| DEFAULT_BLACKLIST_LINK.to_string())
+// });
 
 // -------------------------------------------------------------------------------------------------
 

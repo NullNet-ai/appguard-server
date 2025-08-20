@@ -11,7 +11,6 @@ use crate::app_context::AppContext;
 use crate::db::entries::{DbDetails, DbEntry, EntryIds};
 use crate::db::helpers::{delete_old_entries, store_entries};
 use crate::db::tables::DbTable;
-use crate::fetch_data::fetch_ip_data;
 use crate::firewall::denied_ip::DeniedIp;
 use crate::firewall::firewall::{Firewall, FirewallResult};
 use crate::firewall::rules::FirewallRule;
@@ -41,6 +40,7 @@ pub struct AppGuardImpl {
     ip_info_handler: IpInfoHandler,
     tx_store: UnboundedSender<DbEntry>,
     ctx: AppContext,
+    quarantine_alias_id: String,
     // tx_ai: Sender<AiEntry>,
 }
 
@@ -61,12 +61,17 @@ pub fn terminate_app_guard(exit_code: i32) -> Result<(), Error> {
 }
 
 impl AppGuardImpl {
-    pub fn new(ctx: AppContext) -> AppGuardImpl {
-        let ds = ctx.datastore.clone();
+    pub async fn new(ctx: AppContext) -> Result<AppGuardImpl, Error> {
+        let mut ds = ctx.datastore.clone();
         let ds_2 = ctx.datastore.clone();
-        let ds_3 = ctx.datastore.clone();
 
         log::info!("Connected to Datastore");
+
+        // upsert the 'ip_quarantine' host alias in datastore retrieving its ID
+        let sysdev_token_provider = ctx.sysdev_token_provider.clone();
+        let quarantine_alias_id = ds
+            .upsert_quarantine_alias(&sysdev_token_provider.get().await?.jwt)
+            .await?;
 
         let config_2 = ctx.config_pair.clone();
 
@@ -91,10 +96,10 @@ impl AppGuardImpl {
         //     });
         // }
 
-        let root_token_provider = ctx.root_token_provider.clone();
-        tokio::spawn(async move {
-            fetch_ip_data(ds_3, root_token_provider).await;
-        });
+        // let root_token_provider = ctx.root_token_provider.clone();
+        // tokio::spawn(async move {
+        //     fetch_ip_data(ds_3, root_token_provider).await;
+        // });
 
         let root_token_provider = ctx.root_token_provider.clone();
         tokio::spawn(async move {
@@ -107,7 +112,7 @@ impl AppGuardImpl {
             store_entries(&ds, &mut rx_store).await;
         });
 
-        AppGuardImpl {
+        Ok(AppGuardImpl {
             entry_ids: EntryIds::default(),
             unanswered_connections: Arc::new(Mutex::new(HashMap::new())),
             ip_info_cache,
@@ -115,7 +120,8 @@ impl AppGuardImpl {
             tx_store,
             // tx_ai,
             ctx,
-        }
+            quarantine_alias_id,
+        })
     }
 
     fn config_log_requests(&self) -> Result<bool, Error> {
@@ -170,7 +176,7 @@ impl AppGuardImpl {
     }
 
     async fn firewall_match_item<
-        I: PredicateEvaluator<Predicate = FirewallRule, Reason = String>,
+        I: PredicateEvaluator<Predicate = FirewallRule, Reason = String, Context = AppContext> + Sync,
     >(
         &self,
         token: &str,
@@ -190,15 +196,15 @@ impl AppGuardImpl {
         let default = Firewall::default();
         let fw = fws.get(&app_id).unwrap_or(&default);
 
-        let res = fw.match_item(item);
+        let res = fw.match_item(item, &self.ctx).await;
         if res.policy == FirewallPolicy::Deny {
             let denied_ip = DeniedIp {
                 ip: item.get_remote_ip(),
-                deny_reasons: res.reasons.clone(),
+                _deny_reasons: res.reasons.clone(),
             };
             self.tx_store
                 .send(DbEntry::DeniedIp((
-                    app_id.clone(),
+                    self.quarantine_alias_id.clone(),
                     denied_ip,
                     token.to_string(),
                 )))
@@ -271,13 +277,7 @@ impl AppGuardImpl {
                 log::info!("IP information for {ip} already in database");
                 info
             } else {
-                ip_info = AppGuardIpInfo::lookup(
-                    ip,
-                    &self.ip_info_handler,
-                    &self.ctx.datastore,
-                    token.clone(),
-                )
-                .await?;
+                ip_info = AppGuardIpInfo::lookup(ip, &self.ip_info_handler).await?;
                 log::info!("Looked up new IP information: {ip_info:?}");
                 self.tx_store
                     .send(DbEntry::IpInfo((ip_info.clone(), token)))

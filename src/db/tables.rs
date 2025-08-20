@@ -6,10 +6,11 @@ pub enum DbTable {
     IpInfo,
     SmtpRequest,
     SmtpResponse,
-    Blacklist,
+    // Blacklist,
     Firewall,
-    DeniedIp,
     Config,
+    Alias,
+    IpAlias,
 }
 
 impl DbTable {
@@ -21,10 +22,11 @@ impl DbTable {
             DbTable::IpInfo => "ip_infos",
             DbTable::SmtpRequest => "smtp_requests",
             DbTable::SmtpResponse => "smtp_responses",
-            DbTable::Blacklist => "ip_blacklists",
+            // DbTable::Blacklist => "ip_blacklists",
             DbTable::Firewall => "app_firewalls",
-            DbTable::DeniedIp => "app_denied_ips",
             DbTable::Config => "appguard_configs",
+            DbTable::Alias => "aliases",
+            DbTable::IpAlias => "ip_aliases",
         }
     }
 }

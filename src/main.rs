@@ -6,7 +6,7 @@ mod db;
 mod deserialize;
 mod display;
 mod entrypoint;
-mod fetch_data;
+// mod fetch_data;
 mod firewall;
 mod helpers;
 mod http_proxy;

@@ -1,8 +1,8 @@
-use rpn_predicate_interpreter::PredicateEvaluator;
-use serde::{Deserialize, Serialize};
-
+use crate::app_context::AppContext;
 use crate::firewall::rules::{FirewallCompareType, FirewallRuleField, FirewallRuleWithDirection};
 use crate::proto::appguard::AppGuardIpInfo;
+use rpn_predicate_interpreter::PredicateEvaluator;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -72,11 +72,17 @@ impl IpInfoField {
     }
 }
 
+#[tonic::async_trait]
 impl<'a> PredicateEvaluator for &'a AppGuardIpInfo {
     type Predicate = FirewallRuleWithDirection<'a>;
     type Reason = String;
+    type Context = AppContext;
 
-    fn evaluate_predicate(&self, predicate: &Self::Predicate) -> bool {
+    async fn evaluate_predicate(
+        &self,
+        predicate: &Self::Predicate,
+        _context: &Self::Context,
+    ) -> bool {
         if let FirewallRuleField::IpInfo(f) = &predicate.rule.field {
             return predicate.rule.condition.compare(f.get_compare_fields(self));
         }
@@ -85,10 +91,6 @@ impl<'a> PredicateEvaluator for &'a AppGuardIpInfo {
 
     fn get_reason(&self, predicate: &Self::Predicate) -> Self::Reason {
         serde_json::to_string(predicate.rule).unwrap_or_default()
-    }
-
-    fn is_blacklisted(&self) -> bool {
-        self.blacklist
     }
 }
 
@@ -107,7 +109,6 @@ mod tests {
             region: Some("Lazio".to_string()),
             postal: Some("00100".to_string()),
             timezone: Some("Europe/Rome".to_string()),
-            blacklist: true,
             ..Default::default()
         }
     }
