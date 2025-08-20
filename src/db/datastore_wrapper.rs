@@ -1146,7 +1146,9 @@ impl DatastoreWrapper {
             let Some(ip_aliases) = map.get("ip_aliases") else {
                 continue;
             };
-            let Some(ip_aliases_map) = ip_aliases.as_object() else { continue };
+            let Some(ip_aliases_map) = ip_aliases.as_object() else {
+                continue;
+            };
             let Some(ip_val) = ip_aliases_map.get("ip") else {
                 continue;
             };
