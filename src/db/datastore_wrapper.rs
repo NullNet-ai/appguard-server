@@ -1083,16 +1083,16 @@ impl DatastoreWrapper {
             r#type: "left".to_string(),
             field_relation: Some(FieldRelation {
                 to: Some(EntityFieldTo {
-                    entity: table_aliases.to_string(),
-                    field: String::from("id"),
-                    alias: String::from("alias"),
+                    entity: table_ip_aliases.to_string(),
+                    field: String::from("alias_id"),
+                    alias: String::from(""),
                     limit: i32::MAX,
                     order_by: String::new(),
                     filters: Vec::new(),
                 }),
                 from: Some(EntityFieldFrom {
-                    entity: table_ip_aliases.to_string(),
-                    field: String::from("alias_id"),
+                    entity: table_aliases.to_string(),
+                    field: String::from("id"),
                 }),
             }),
         };
@@ -1176,7 +1176,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
-                r#type: String::from("root"),
+                r#type: String::new(),
             }),
             query: Some(Query {
                 pluck: String::from("id"),

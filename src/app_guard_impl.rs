@@ -68,9 +68,9 @@ impl AppGuardImpl {
         log::info!("Connected to Datastore");
 
         // upsert the 'ip_quarantine' host alias in datastore retrieving its ID
-        let root_token_provider = ctx.root_token_provider.clone();
+        let sysdev_token_provider = ctx.sysdev_token_provider.clone();
         let quarantine_alias_id = ds
-            .upsert_quarantine_alias(&root_token_provider.get().await?.jwt)
+            .upsert_quarantine_alias(&sysdev_token_provider.get().await?.jwt)
             .await?;
 
         let config_2 = ctx.config_pair.clone();
