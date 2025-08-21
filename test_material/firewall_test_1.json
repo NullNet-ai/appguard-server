@@ -52,7 +52,7 @@
         {
           "type": "predicate",
           "condition": "contains",
-          "smtp_request_body": [
+          "http_request_body": [
             "Hello"
           ]
         },
@@ -63,7 +63,7 @@
         {
           "type": "predicate",
           "condition": "greater_equal",
-          "smtp_request_header": {
+          "http_request_header": {
             "From": [
               "foo@bar.com",
               "bar@foo.com",
@@ -79,7 +79,7 @@
         {
           "type": "predicate",
           "condition": "lower_than",
-          "smtp_response_code": [
+          "http_response_code": [
             205,
             206
           ]
