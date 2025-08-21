@@ -33,7 +33,6 @@ nullnet-liberror = "0.1.1"
 nullnet-libipinfo = "0.2.0"
 nullnet-libtoken = "0.3.3"
 serde = { version = "1.0.218", features = ["derive"] }
-reqwest = { version = "0.12.12", features = ["json"] }
 serde_json = "1.0.139"
 tonic = { version = "0.13.1", features = ["_tls-any", "tls-native-roots"] }
 prost = "0.13.5"
@@ -54,7 +53,7 @@ ipnetwork = "0.21.1"
 tonic-build = "0.13.1"
 
 [dev-dependencies]
-serial_test = "3.2.0"
+#serial_test = "3.2.0"
 
 [badges]
 maintenance = { status = "actively-developed" }
