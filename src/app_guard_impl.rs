@@ -124,7 +124,7 @@ impl AppGuardImpl {
         })
     }
 
-    fn config_log_requests(&self) -> Result<bool, Error> {
+    fn is_log_request(&self) -> Result<bool, Error> {
         Ok(self
             .ctx
             .config_pair
@@ -134,7 +134,7 @@ impl AppGuardImpl {
             .log_request)
     }
 
-    fn config_log_responses(&self) -> Result<bool, Error> {
+    fn is_log_response(&self) -> Result<bool, Error> {
         Ok(self
             .ctx
             .config_pair
@@ -309,10 +309,10 @@ impl AppGuardImpl {
         let fw_res = self.firewall_match_item(token, req.get_ref()).await?;
         let policy = fw_res.policy;
 
-        let id = self.entry_ids.get_next(DbTable::HttpRequest).await?;
-        log::info!("***{policy:?}*** HTTP request #{id}: {}", req.get_ref());
+        if self.is_log_request()? {
+            let id = self.entry_ids.get_next(DbTable::HttpRequest).await?;
+            log::info!("***{policy:?}*** HTTP request #{id}: {}", req.get_ref());
 
-        if self.config_log_requests()? {
             let details = DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), None);
             self.tx_store
                 .send(DbEntry::HttpRequest((req.get_ref().clone(), details)))
@@ -337,10 +337,10 @@ impl AppGuardImpl {
         let fw_res = self.firewall_match_item(token, req.get_ref()).await?;
         let policy = fw_res.policy;
 
-        let id = self.entry_ids.get_next(DbTable::HttpResponse).await?;
-        log::info!("***{policy:?}*** HTTP response #{id}: {}", req.get_ref());
+        if self.is_log_response()? {
+            let id = self.entry_ids.get_next(DbTable::HttpResponse).await?;
+            log::info!("***{policy:?}*** HTTP response #{id}: {}", req.get_ref());
 
-        if self.config_log_responses()? {
             let tcp_id = req
                 .get_ref()
                 .tcp_info
@@ -367,10 +367,10 @@ impl AppGuardImpl {
         let fw_res = self.firewall_match_item(token, req.get_ref()).await?;
         let policy = fw_res.policy;
 
-        let id = self.entry_ids.get_next(DbTable::SmtpRequest).await?;
-        log::info!("***{policy:?}*** SMTP request #{id}: {}", req.get_ref());
+        if self.is_log_request()? {
+            let id = self.entry_ids.get_next(DbTable::SmtpRequest).await?;
+            log::info!("***{policy:?}*** SMTP request #{id}: {}", req.get_ref());
 
-        if self.config_log_requests()? {
             let details = DbDetails::new(id, fw_res, req.get_ref().tcp_info.as_ref(), None);
             self.tx_store
                 .send(DbEntry::SmtpRequest((req.into_inner(), details)))
@@ -388,10 +388,10 @@ impl AppGuardImpl {
         let fw_res = self.firewall_match_item(token, req.get_ref()).await?;
         let policy = fw_res.policy;
 
-        let id = self.entry_ids.get_next(DbTable::SmtpResponse).await?;
-        log::info!("***{policy:?}*** SMTP response #{id}: {}", req.get_ref());
+        if self.is_log_response()? {
+            let id = self.entry_ids.get_next(DbTable::SmtpResponse).await?;
+            log::info!("***{policy:?}*** SMTP response #{id}: {}", req.get_ref());
 
-        if self.config_log_responses()? {
             let tcp_id = req
                 .get_ref()
                 .tcp_info
