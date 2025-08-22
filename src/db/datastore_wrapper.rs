@@ -1049,7 +1049,7 @@ impl DatastoreWrapper {
             params: Some(Params {
                 id: String::new(),
                 table: table.into(),
-                r#type: String::from("root"),
+                r#type: String::from(""),
             }),
             body: Some(BatchUpdateBody {
                 advance_filters: vec![filter],

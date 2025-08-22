@@ -53,6 +53,7 @@ pub async fn update_config(
     HttpResponse::Ok().json(json!({}))
 }
 
+// we need to use root token for this: configs can potentially be created by different orgs
 async fn deactivate_old_configs(context: &AppContext) -> Result<(), nullnet_liberror::Error> {
     context
         .datastore
