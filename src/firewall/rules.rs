@@ -10,6 +10,7 @@ use crate::firewall::items::tcp_connection::TcpConnectionField;
 use crate::proto::appguard_commands::FirewallPolicy;
 use ipnetwork::IpNetwork;
 use std::net::IpAddr;
+use crate::firewall::rate_limit::RateLimit;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -92,6 +93,9 @@ impl FirewallRuleCondition {
                 FirewallCompareType::U32((l, r)) => self.compare_vec(&l, r),
                 FirewallCompareType::U64((l, r)) => self.compare_vec(&l, r),
                 FirewallCompareType::Ip((l, r)) => self.compare_ips(&l, &r),
+                FirewallCompareType::RateLimit((l, r)) => {
+                    self.compare_rate_limit(l, r)
+                }
             };
         }
         false
@@ -130,6 +134,17 @@ impl FirewallRuleCondition {
         }
     }
 
+    fn compare_rate_limit(&self, db_urls: Vec<String>, rate_limit: &RateLimit) -> bool {
+        // db_urls are the URLs for this client in the period of the rate limit
+        let mut count = 0;
+        for url in db_urls {
+            if self.compare_vec(&url, &rate_limit.urls) {
+                count += 1;
+            }
+        }
+        count > rate_limit.limit
+    }
+
     fn compare_single<T: PartialEq + PartialOrd + ToString>(&self, left: &T, right: &T) -> bool {
         match self {
             Self::Equal => left == right,
@@ -155,6 +170,7 @@ pub enum FirewallCompareType<'a> {
     U32((u32, &'a Vec<u32>)),
     U64((u64, &'a Vec<u64>)),
     Ip((IpAddr, Vec<IpNetwork>)),
+    RateLimit((Vec<String>, &'a RateLimit))
 }
 
 #[cfg(test)]

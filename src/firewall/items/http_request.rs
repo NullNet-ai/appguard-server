@@ -9,6 +9,7 @@ use crate::proto::appguard::{AppGuardHttpRequest, AppGuardTcpInfo};
 use rpn_predicate_interpreter::PredicateEvaluator;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
+use crate::firewall::rate_limit::RateLimit;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[allow(clippy::enum_variant_names)]
@@ -22,6 +23,7 @@ pub enum HttpRequestField {
     HttpRequestBody(Vec<String>),
     HttpRequestBodyLen(Vec<usize>),
     HttpRequestUserAgent(Vec<String>),
+    HttpRequestRateLimit(RateLimit),
 }
 
 impl HttpRequestField {
@@ -41,6 +43,7 @@ impl HttpRequestField {
     fn get_compare_fields<'a>(
         &'a self,
         item: &'a AppGuardHttpRequest,
+        context: &AppContext,
     ) -> Option<FirewallCompareType<'a>> {
         match self {
             HttpRequestField::HttpRequestUrl(v) => {
@@ -67,6 +70,10 @@ impl HttpRequestField {
                 .map(|body| FirewallCompareType::Usize((body.len(), v))),
             HttpRequestField::HttpRequestUserAgent(v) => get_header(&item.headers, "User-Agent")
                 .map(|user_agent| FirewallCompareType::String((user_agent, v))),
+            HttpRequestField::HttpRequestRateLimit(rate_limit) => {
+                let db_urls = rate_limit.get_urls(context, item.get_remote_ip());
+                Some(FirewallCompareType::RateLimit((db_urls, rate_limit)))
+            }
         }
     }
 }
@@ -87,7 +94,7 @@ impl PredicateEvaluator for AppGuardHttpRequest {
         }
 
         if let FirewallRuleField::HttpRequest(f) = &predicate.field {
-            predicate.condition.compare(f.get_compare_fields(self))
+            predicate.condition.compare(f.get_compare_fields(self, context))
         } else {
             self.tcp_info
                 .as_ref()
@@ -146,7 +153,7 @@ mod tests {
         let http_request = sample_http_request();
         let http_request_field = HttpRequestField::HttpRequestUrl(vec!["test.com".to_string()]);
         assert_eq!(
-            http_request_field.get_compare_fields(&http_request),
+            http_request_field.get_compare_fields(&http_request, ),
             Some(FirewallCompareType::String((
                 &"https://example.com".to_string(),
                 &vec!["test.com".to_string()]
@@ -160,7 +167,7 @@ mod tests {
         let http_request_field =
             HttpRequestField::HttpRequestMethod(vec!["GET".to_string(), "POST".to_string()]);
         assert_eq!(
-            http_request_field.get_compare_fields(&http_request),
+            http_request_field.get_compare_fields(&http_request, ),
             Some(FirewallCompareType::String((
                 &"GET".to_string(),
                 &vec!["GET".to_string(), "POST".to_string()]
@@ -176,7 +183,7 @@ mod tests {
             vec!["Bob".to_string()],
         ));
         assert_eq!(
-            http_request_field.get_compare_fields(&http_request),
+            http_request_field.get_compare_fields(&http_request, ),
             Some(FirewallCompareType::String((
                 &"John".to_string(),
                 &vec!["Bob".to_string()]
@@ -187,7 +194,7 @@ mod tests {
             "surname".to_string(),
             vec!["Smith".to_string()],
         ));
-        assert_eq!(http_request_field.get_compare_fields(&http_request), None);
+        assert_eq!(http_request_field.get_compare_fields(&http_request, ), None);
     }
 
     #[test]
@@ -196,7 +203,7 @@ mod tests {
         let http_request_field =
             HttpRequestField::HttpRequestCookie(vec!["awesome_cookie_99".to_string()]);
         assert_eq!(
-            http_request_field.get_compare_fields(&http_request),
+            http_request_field.get_compare_fields(&http_request, ),
             Some(FirewallCompareType::String((
                 &"biscuits".to_string(),
                 &vec!["awesome_cookie_99".to_string()]
@@ -212,7 +219,7 @@ mod tests {
             vec!["Marlon".to_string()],
         ));
         assert_eq!(
-            http_request_field.get_compare_fields(&http_request),
+            http_request_field.get_compare_fields(&http_request, ),
             Some(FirewallCompareType::String((
                 &"biscuits".to_string(),
                 &vec!["Marlon".to_string()]
@@ -224,7 +231,7 @@ mod tests {
             vec!["sample_host".to_string()],
         ));
         assert_eq!(
-            http_request_field.get_compare_fields(&http_request),
+            http_request_field.get_compare_fields(&http_request, ),
             Some(FirewallCompareType::String((
                 &"example.com".to_string(),
                 &vec!["sample_host".to_string()]
@@ -235,7 +242,7 @@ mod tests {
             "not_exists".to_string(),
             vec!["404".to_string()],
         ));
-        assert_eq!(http_request_field.get_compare_fields(&http_request), None);
+        assert_eq!(http_request_field.get_compare_fields(&http_request, ), None);
     }
 
     #[test]
@@ -244,7 +251,7 @@ mod tests {
         let http_request_field =
             HttpRequestField::HttpRequestBody(vec!["Hello".to_string(), "World!".to_string()]);
         assert_eq!(
-            http_request_field.get_compare_fields(&http_request),
+            http_request_field.get_compare_fields(&http_request, ),
             Some(FirewallCompareType::String((
                 &"Hello, World!".to_string(),
                 &vec!["Hello".to_string(), "World!".to_string()]
@@ -257,7 +264,7 @@ mod tests {
         let http_request = sample_http_request();
         let http_request_field = HttpRequestField::HttpRequestBodyLen(vec![7, 99]);
         assert_eq!(
-            http_request_field.get_compare_fields(&http_request),
+            http_request_field.get_compare_fields(&http_request, ),
             Some(FirewallCompareType::Usize((13, &vec![7, 99])))
         );
     }
@@ -268,7 +275,7 @@ mod tests {
         let http_request_field =
             HttpRequestField::HttpRequestUserAgent(vec!["awesome_user_agent".to_string()]);
         assert_eq!(
-            http_request_field.get_compare_fields(&http_request),
+            http_request_field.get_compare_fields(&http_request, ),
             Some(FirewallCompareType::String((
                 &"Mozilla/5.0".to_string(),
                 &vec!["awesome_user_agent".to_string()]
