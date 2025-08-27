@@ -5,6 +5,7 @@ use crate::db::installation_code::InstallationCode;
 use crate::db::tables::DbTable;
 use crate::firewall::firewall::Firewall;
 use crate::proto::appguard::{AppGuardIpInfo, Log};
+use chrono::Utc;
 use ipnetwork::IpNetwork;
 use nullnet_libdatastore::{
     AdvanceFilter, BatchCreateBody, BatchCreateRequest, BatchDeleteBody, BatchDeleteRequest,
@@ -19,7 +20,9 @@ use nullnet_liberror::{location, Error, ErrorHandler, Location};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::net::IpAddr;
+use std::ops::Sub;
 use std::str::FromStr;
+use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct DatastoreWrapper {
@@ -1230,6 +1233,91 @@ impl DatastoreWrapper {
             .to_string();
 
         Ok(id)
+    }
+
+    pub async fn get_recent_urls_for_ip(
+        &self,
+        token: &str,
+        ip: IpAddr,
+        period: usize,
+    ) -> Result<Vec<String>, Error> {
+        let table = DbTable::HttpRequest.to_str();
+        let filter_1 = AdvanceFilter {
+            r#type: String::from("criteria"),
+            field: String::from("ip"),
+            operator: String::from("equal"),
+            entity: String::from(table),
+            values: format!("[\"{ip}\"]"),
+        };
+
+        let filter_2 = AdvanceFilter {
+            r#type: String::from("operator"),
+            field: String::new(),
+            operator: String::from("and"),
+            entity: String::new(),
+            values: String::new(),
+        };
+
+        let timestamp = Utc::now()
+            .sub(Duration::from_secs(
+                u64::try_from(period).handle_err(location!())?,
+            ))
+            .to_rfc3339();
+        let filter_3 = AdvanceFilter {
+            r#type: String::from("criteria"),
+            field: String::from("timestamp"),
+            operator: String::from("greater_than_or_equal"),
+            entity: String::from(table),
+            values: format!("[\"{timestamp}\"]"),
+        };
+
+        let request = GetByFilterRequest {
+            body: Some(GetByFilterBody {
+                pluck: vec!["id".into(), "original_url".into()],
+                advance_filters: vec![filter_1, filter_2, filter_3],
+                order_by: String::new(),
+                limit: i32::MAX,
+                offset: 0,
+                order_direction: String::new(),
+                joins: vec![],
+                multiple_sort: vec![],
+                pluck_object: HashMap::new(),
+                date_format: String::new(),
+                is_case_sensitive_sorting: true,
+            }),
+            params: Some(Params {
+                id: String::new(),
+                table: table.to_string(),
+                r#type: String::from("root"),
+            }),
+        };
+
+        let result = self.inner.clone().get_by_filter(request, token).await?.data;
+
+        Self::internal_recent_urls_for_ip_parse_response_data(result)
+    }
+
+    fn internal_recent_urls_for_ip_parse_response_data(data: String) -> Result<Vec<String>, Error> {
+        let array_val = serde_json::from_str::<serde_json::Value>(&data).handle_err(location!())?;
+        let array = array_val
+            .as_array()
+            .ok_or("Failed to parse response")
+            .handle_err(location!())?;
+
+        let mut ret_val = Vec::new();
+
+        for i in array {
+            let Some(map) = i.as_object() else { continue };
+            let Some(original_url_val) = map.get("original_url") else {
+                continue;
+            };
+            let Some(original_url) = original_url_val.as_str() else {
+                continue;
+            };
+            ret_val.push(original_url.to_string());
+        }
+
+        Ok(ret_val)
     }
 }
 

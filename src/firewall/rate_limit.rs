@@ -1,4 +1,5 @@
 use crate::app_context::AppContext;
+use nullnet_liberror::Error;
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 
@@ -10,9 +11,11 @@ pub struct RateLimit {
 }
 
 impl RateLimit {
-    // TODO!
-    pub fn get_urls(&self, ctx: &AppContext, ip: IpAddr) -> Vec<String> {
-        // get from datastore all the urls queried by this ip in the last period seconds
-        vec![]
+    pub async fn get_urls(&self, ctx: &AppContext, ip: IpAddr) -> Result<Vec<String>, Error> {
+        let token = ctx.root_token_provider.get().await?;
+        let jwt = &token.jwt;
+        ctx.datastore
+            .get_recent_urls_for_ip(jwt, ip, self.period)
+            .await
     }
 }

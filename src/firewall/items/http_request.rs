@@ -40,7 +40,7 @@ impl HttpRequestField {
     //     }
     // }
 
-    fn get_compare_fields<'a>(
+    async fn get_compare_fields<'a>(
         &'a self,
         item: &'a AppGuardHttpRequest,
         context: &AppContext,
@@ -72,8 +72,11 @@ impl HttpRequestField {
                 .map(|user_agent| FirewallCompareType::String((user_agent, v))),
             HttpRequestField::HttpRequestRateLimit(rate_limit) => {
                 // TODO: only if matches this item's URL??
-                let db_urls = rate_limit.get_urls(context, item.get_remote_ip());
-                Some(FirewallCompareType::RateLimit((db_urls, rate_limit)))
+                rate_limit
+                    .get_urls(context, item.get_remote_ip())
+                    .await
+                    .ok()
+                    .map(|db_urls| FirewallCompareType::RateLimit((db_urls, rate_limit)))
             }
         }
     }
@@ -97,7 +100,7 @@ impl PredicateEvaluator for AppGuardHttpRequest {
         if let FirewallRuleField::HttpRequest(f) = &predicate.field {
             predicate
                 .condition
-                .compare(f.get_compare_fields(self, context))
+                .compare(f.get_compare_fields(self, context).await)
         } else {
             self.tcp_info
                 .as_ref()
