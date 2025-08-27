@@ -80,7 +80,7 @@
           "condition": "equal",
           "http_request_rate_limit": {
             "limit": 5,
-            "period": 60,
+            "period": 30,
             "urls": [
               "/account",
               "/some/other/path"
