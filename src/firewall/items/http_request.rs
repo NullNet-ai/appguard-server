@@ -77,7 +77,7 @@ impl HttpRequestField {
                     &rate_limit.urls,
                 )))) {
                     rate_limit
-                        .get_urls(context, item.get_remote_ip())
+                        .get_recent_urls_for_ip(context, item.get_remote_ip())
                         .await
                         .ok()
                         .map(|db_urls| FirewallCompareType::RateLimit((db_urls, rate_limit)))
