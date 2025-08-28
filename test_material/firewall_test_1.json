@@ -70,6 +70,22 @@
               "foo@baz.com"
             ]
           }
+        },
+        {
+          "type": "operator",
+          "value": "or"
+        },
+        {
+          "type": "predicate",
+          "condition": "equal",
+          "http_request_rate_limit": {
+            "limit": 5,
+            "period": 30,
+            "urls": [
+              "/account",
+              "/some/other/path"
+            ]
+          }
         }
       ]
     },
