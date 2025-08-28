@@ -2,8 +2,8 @@ use crate::app_context::AppContext;
 use crate::firewall::header_val::HeaderVal;
 use crate::firewall::rate_limit::RateLimit;
 use crate::firewall::rules::{
-    FirewallCompareType, FirewallRule, FirewallRuleCondition, FirewallRuleDirection,
-    FirewallRuleField, FirewallRuleWithDirection,
+    FirewallCompareType, FirewallRule, FirewallRuleDirection, FirewallRuleField,
+    FirewallRuleWithDirection,
 };
 use crate::helpers::get_header;
 use crate::proto::appguard::{AppGuardHttpRequest, AppGuardTcpInfo};
@@ -44,7 +44,6 @@ impl HttpRequestField {
         &'a self,
         item: &'a AppGuardHttpRequest,
         context: &AppContext,
-        condition: &'a FirewallRuleCondition,
     ) -> Option<FirewallCompareType<'a>> {
         match self {
             HttpRequestField::HttpRequestUrl(v) => {
@@ -71,20 +70,13 @@ impl HttpRequestField {
                 .map(|body| FirewallCompareType::Usize((body.len(), v))),
             HttpRequestField::HttpRequestUserAgent(v) => get_header(&item.headers, "User-Agent")
                 .map(|user_agent| FirewallCompareType::String((user_agent, v))),
-            HttpRequestField::HttpRequestRateLimit(rate_limit) => {
-                if condition.compare(Some(FirewallCompareType::String((
-                    &item.original_url,
-                    &rate_limit.urls,
-                )))) {
-                    rate_limit
-                        .get_recent_urls_for_ip(context, item.get_remote_ip())
-                        .await
-                        .ok()
-                        .map(|db_urls| FirewallCompareType::RateLimit((db_urls, rate_limit)))
-                } else {
-                    None
-                }
-            }
+            HttpRequestField::HttpRequestRateLimit(rate_limit) => rate_limit
+                .get_recent_urls_for_ip(context, item.get_remote_ip())
+                .await
+                .ok()
+                .map(|db_urls| {
+                    FirewallCompareType::RateLimit((&item.original_url, db_urls, rate_limit))
+                }),
         }
     }
 }
@@ -105,10 +97,9 @@ impl PredicateEvaluator for AppGuardHttpRequest {
         }
 
         if let FirewallRuleField::HttpRequest(f) = &predicate.field {
-            predicate.condition.compare(
-                f.get_compare_fields(self, context, &predicate.condition)
-                    .await,
-            )
+            predicate
+                .condition
+                .compare(f.get_compare_fields(self, context).await)
         } else {
             self.tcp_info
                 .as_ref()

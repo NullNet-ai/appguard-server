@@ -93,7 +93,9 @@ impl FirewallRuleCondition {
                 FirewallCompareType::U32((l, r)) => self.compare_vec(&l, r),
                 FirewallCompareType::U64((l, r)) => self.compare_vec(&l, r),
                 FirewallCompareType::Ip((l, r)) => self.compare_ips(&l, &r),
-                FirewallCompareType::RateLimit((l, r)) => self.compare_rate_limit(l, r),
+                FirewallCompareType::RateLimit((this_url, db_urls, rate_limit)) => {
+                    self.compare_rate_limit(this_url, db_urls, rate_limit)
+                }
             };
         }
         false
@@ -132,15 +134,23 @@ impl FirewallRuleCondition {
         }
     }
 
-    fn compare_rate_limit(&self, db_urls: Vec<String>, rate_limit: &RateLimit) -> bool {
-        // db_urls are the URLs for this client in the period of the rate limit
-        let mut count = 0;
-        for url in db_urls {
-            if self.compare_vec(&url, &rate_limit.urls) {
-                count += 1;
+    fn compare_rate_limit(
+        &self,
+        this_url: &String,
+        db_urls: Vec<String>,
+        rate_limit: &RateLimit,
+    ) -> bool {
+        if self.compare_vec(this_url, &rate_limit.urls) {
+            let mut count = 0;
+            for db_url in db_urls {
+                if self.compare_vec(&db_url, &rate_limit.urls) {
+                    count += 1;
+                }
             }
+            count >= rate_limit.limit
+        } else {
+            false
         }
-        count >= rate_limit.limit
     }
 
     fn compare_single<T: PartialEq + PartialOrd + ToString>(&self, left: &T, right: &T) -> bool {
@@ -168,7 +178,7 @@ pub enum FirewallCompareType<'a> {
     U32((u32, &'a Vec<u32>)),
     U64((u64, &'a Vec<u64>)),
     Ip((IpAddr, Vec<IpNetwork>)),
-    RateLimit((Vec<String>, &'a RateLimit)),
+    RateLimit((&'a String, Vec<String>, &'a RateLimit)),
 }
 
 #[cfg(test)]
