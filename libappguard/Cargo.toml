@@ -1,6 +1,6 @@
 [package]
 name = "nullnet-libappguard"
-version = "0.1.10"
+version = "0.1.11"
 edition = "2024"
 authors = ["Giuliano Bellini <gyulyvgc99@gmail.com>", "Anton Liashkevich <anton.liashkevich.eng@gmail.com>"]
 description = "An application-level firewall designed to secure and control network traffic"
