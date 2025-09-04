@@ -1,6 +1,7 @@
 {
   "timeout": 1000,
   "default_policy": "allow",
+  "cache": true,
   "expressions": [
     {
       "policy": "deny",

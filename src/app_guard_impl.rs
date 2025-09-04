@@ -427,6 +427,7 @@ impl AppGuardImpl {
         Ok(FirewallDefaults {
             timeout: fw.timeout,
             policy: fw.default_policy.into(),
+            cache: fw.cache,
         })
     }
 }

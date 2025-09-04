@@ -71,6 +71,8 @@ pub struct FirewallDefaults {
     pub timeout: u32,
     #[prost(enumeration = "FirewallPolicy", tag = "2")]
     pub policy: i32,
+    #[prost(bool, tag = "3")]
+    pub cache: bool,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

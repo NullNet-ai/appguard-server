@@ -12,6 +12,7 @@ use nullnet_liberror::{location, Error, ErrorHandler, Location};
 pub struct Firewall {
     pub(crate) timeout: u32,
     pub(crate) default_policy: FirewallPolicy,
+    pub(crate) cache: bool,
     pub(super) expressions: Vec<FirewallExpression>,
 }
 
@@ -68,6 +69,7 @@ impl Default for Firewall {
         Self {
             timeout: 1000, // default timeout in milliseconds
             default_policy: FirewallPolicy::Allow,
+            cache: true,
             expressions: Vec::new(),
         }
     }
@@ -110,6 +112,7 @@ mod tests {
         std::sync::LazyLock::new(|| Firewall {
             timeout: 1000,
             default_policy: FirewallPolicy::Allow,
+            cache: true,
             expressions: Vec::from([
                 FirewallExpression {
                     policy: FirewallPolicy::Deny,
@@ -228,7 +231,7 @@ mod tests {
             ]),
         });
 
-    const SERIALIZED_SAMPLE_FIREWALL: &str = r#"{"timeout":1000,"default_policy":"allow","expressions":[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"equal","protocol":["HTTP","HTTPS"],"direction":"in"},{"type":"predicate","condition":"contains","http_request_url":[".php"]},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","country":["US"]},{"type":"operator","value":"and"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","http_request_body":["Hello"]},{"type":"predicate","condition":"greater_equal","http_request_header":{"From":["foo@bar.com","bar@foo.com","foo@baz.com"]}},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","http_request_rate_limit":{"limit":5,"period":30,"urls":["/account","/some/other/path"]}},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","http_response_code":[205,206]},{"type":"predicate","condition":"not_starts_with","http_request_query":{"Name":["giuliano","giacomo"]}},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","http_response_size":[100,200,300]},{"type":"operator","value":"or"},{"type":"predicate","condition":"contains","source_ip":["alias_name"]},{"type":"operator","value":"or"}]}]}"#;
+    const SERIALIZED_SAMPLE_FIREWALL: &str = r#"{"timeout":1000,"default_policy":"allow","cache":true,"expressions":[{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"equal","protocol":["HTTP","HTTPS"],"direction":"in"},{"type":"predicate","condition":"contains","http_request_url":[".php"]},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","country":["US"]},{"type":"operator","value":"and"}]},{"policy":"allow","postfix_tokens":[{"type":"predicate","condition":"contains","http_request_body":["Hello"]},{"type":"predicate","condition":"greater_equal","http_request_header":{"From":["foo@bar.com","bar@foo.com","foo@baz.com"]}},{"type":"operator","value":"or"},{"type":"predicate","condition":"equal","http_request_rate_limit":{"limit":5,"period":30,"urls":["/account","/some/other/path"]}},{"type":"operator","value":"or"}]},{"policy":"deny","postfix_tokens":[{"type":"predicate","condition":"lower_than","http_response_code":[205,206]},{"type":"predicate","condition":"not_starts_with","http_request_query":{"Name":["giuliano","giacomo"]}},{"type":"operator","value":"or"},{"type":"predicate","condition":"ends_with","http_response_size":[100,200,300]},{"type":"operator","value":"or"},{"type":"predicate","condition":"contains","source_ip":["alias_name"]},{"type":"operator","value":"or"}]}]}"#;
 
     #[test]
     fn test_firewall_load_from_infix_json() {

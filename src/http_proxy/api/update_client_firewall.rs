@@ -56,6 +56,7 @@ pub async fn update_client_firewall(
     log::info!("Updating firewall for '{device_id}': {firewall:?}",);
     let default_policy = firewall.default_policy;
     let timeout = firewall.timeout;
+    let cache = firewall.cache;
 
     if deactivate_old_firewalls(&context, device_id, &jwt)
         .await
@@ -84,6 +85,7 @@ pub async fn update_client_firewall(
     let defaults = FirewallDefaults {
         timeout,
         policy: default_policy.into(),
+        cache,
     };
 
     let Some(instances) = context
