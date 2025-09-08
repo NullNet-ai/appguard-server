@@ -46,6 +46,7 @@ message ServerMessage {
 message FirewallDefaults {
     uint32 timeout = 1;
     FirewallPolicy policy = 2;
+    bool cache = 3;
 }
 
 enum FirewallPolicy {

@@ -10,6 +10,7 @@ use crate::proto::appguard_commands::FirewallPolicy;
 pub struct InfixFirewall {
     timeout: u32,
     default_policy: FirewallPolicy,
+    cache: bool,
     expressions: Vec<InfixFirewallExpression>,
 }
 
@@ -18,7 +19,8 @@ impl InfixFirewall {
         let mut firewall = Firewall {
             timeout: self.timeout,
             default_policy: self.default_policy,
-            ..Firewall::default()
+            cache: self.cache,
+            expressions: Vec::new(),
         };
         for expr in self.expressions {
             firewall.expressions.push(FirewallExpression {
@@ -41,6 +43,7 @@ impl Default for InfixFirewall {
         Self {
             timeout: 1000, // default timeout in milliseconds
             default_policy: FirewallPolicy::Allow,
+            cache: true,
             expressions: Vec::new(),
         }
     }
