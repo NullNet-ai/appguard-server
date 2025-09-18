@@ -8,12 +8,11 @@ use crate::proto::appguard::{AppGuardIpInfo, Log};
 use chrono::Utc;
 use ipnetwork::IpNetwork;
 use nullnet_libdatastore::{
-    AdvanceFilter, AdvanceFilterBuilder, BatchCreateRequestBuilder, BatchDeleteBody,
-    BatchDeleteRequest, BatchUpdateRequestBuilder, CreateRequestBuilder, DeleteRequestBuilder,
-    EntityFieldFrom, EntityFieldTo, FieldRelation, GetByFilterRequestBuilder,
-    GetByIdRequestBuilder, Join, LoginRequestBuilder, MultipleSort, Params, Query,
-    RegisterDeviceRequestBuilder, Response, ResponseData, UpdateRequestBuilder, UpsertBody,
-    UpsertRequest,
+    AdvanceFilterBuilder, BatchCreateRequestBuilder, BatchDeleteRequestBuilder,
+    BatchUpdateRequestBuilder, CreateRequestBuilder, DeleteRequestBuilder,
+    GetByFilterRequestBuilder, GetByIdRequestBuilder, JoinBuilder, LoginRequestBuilder,
+    MultipleSortBuilder, RegisterDeviceRequestBuilder, ResponseData, UpdateRequestBuilder,
+    UpsertRequestBuilder,
 };
 use nullnet_libdatastore::{DatastoreClient, DatastoreConfig};
 use nullnet_liberror::{location, Error, ErrorHandler, Location};
@@ -91,22 +90,12 @@ impl DatastoreWrapper {
         let record = entry.to_json()?;
         let table = entry.table().to_str();
 
-        // TODO: create builder for upsert requests
-        let request = UpsertRequest {
-            params: Some(Params {
-                id: String::new(),
-                table: table.into(),
-                r#type: String::new(),
-            }),
-            query: Some(Query {
-                pluck: String::from("id"),
-                durability: String::from("soft"),
-            }),
-            body: Some(UpsertBody {
-                data: record,
-                conflict_columns,
-            }),
-        };
+        let request = UpsertRequestBuilder::new()
+            .table(table)
+            .query("id", "soft")
+            .data(record)
+            .conflict_columns(conflict_columns)
+            .build();
 
         log::trace!("Before upsert to {table}");
         let result = self.inner.upsert(request, token).await?;
@@ -195,12 +184,10 @@ impl DatastoreWrapper {
     ) -> Result<Option<String>, Error> {
         let table = table.to_str();
 
-        // TODO: create builder for MultipleSort
-        let sort = MultipleSort {
-            by_field: format!("{table}.timestamp"),
-            by_direction: "asc".to_string(),
-            is_case_sensitive_sorting: false,
-        };
+        let sort = MultipleSortBuilder::new()
+            .by_field(format!("{table}.timestamp"))
+            .by_direction("asc")
+            .build();
 
         let request = GetByFilterRequestBuilder::new()
             .table(table)
@@ -227,23 +214,19 @@ impl DatastoreWrapper {
     ) -> Result<i32, Error> {
         let table = table.to_str();
 
-        // TODO: builder for BatchDeleteRequest
-        let request = BatchDeleteRequest {
-            params: Some(Params {
-                id: String::new(),
-                table: table.into(),
-                r#type: String::from("root"),
-            }),
-            body: Some(BatchDeleteBody {
-                advance_filters: vec![AdvanceFilter {
-                    r#type: "criteria".to_string(),
-                    field: "timestamp".to_string(),
-                    operator: "less_than_or_equal".to_string(),
-                    entity: table.to_string(),
-                    values: format!("[\"{timestamp}\"]"),
-                }],
-            }),
-        };
+        let filter = AdvanceFilterBuilder::new()
+            .r#type("criteria")
+            .field("timestamp")
+            .operator("less_than_or_equal")
+            .entity(table)
+            .values(format!("[\"{timestamp}\"]"))
+            .build();
+
+        let request = BatchDeleteRequestBuilder::new()
+            .table(table)
+            .performed_by_root(true)
+            .advance_filter(filter)
+            .build();
 
         log::trace!("Before delete old entries to {table}");
         let count = self.inner.batch_delete(request, token).await?.count;
@@ -576,7 +559,7 @@ impl DatastoreWrapper {
         account_id: &str,
         account_secret: &str,
         device: &Device,
-    ) -> Result<Response, Error> {
+    ) -> Result<ResponseData, Error> {
         let request = RegisterDeviceRequestBuilder::new()
             .organization_id(&device.organization)
             .account_id(account_id)
@@ -921,24 +904,14 @@ impl DatastoreWrapper {
             .values(format!("[\"{name}\"]"))
             .build();
 
-        // TODO: builder for Join
-        let join = Join {
-            r#type: "left".to_string(),
-            field_relation: Some(FieldRelation {
-                to: Some(EntityFieldTo {
-                    entity: table_ip_aliases.to_string(),
-                    field: String::from("alias_id"),
-                    alias: String::from(""),
-                    limit: i32::MAX,
-                    order_by: String::new(),
-                    filters: Vec::new(),
-                }),
-                from: Some(EntityFieldFrom {
-                    entity: table_aliases.to_string(),
-                    field: String::from("id"),
-                }),
-            }),
-        };
+        let join = JoinBuilder::new()
+            .r#type("left")
+            .to_entity(table_ip_aliases)
+            .to_field("alias_id")
+            .to_limit(i32::MAX)
+            .from_entity(table_aliases)
+            .from_field("id")
+            .build();
 
         let request = GetByFilterRequestBuilder::new()
             .table(table_aliases)
@@ -1013,22 +986,12 @@ impl DatastoreWrapper {
         .to_string();
         let table = "aliases";
 
-        // TODO: Upsert builder
-        let request = UpsertRequest {
-            params: Some(Params {
-                id: String::new(),
-                table: table.into(),
-                r#type: String::new(),
-            }),
-            query: Some(Query {
-                pluck: String::from("id"),
-                durability: String::from("soft"),
-            }),
-            body: Some(UpsertBody {
-                data: record,
-                conflict_columns: vec!["name".to_string()],
-            }),
-        };
+        let request = UpsertRequestBuilder::new()
+            .table(table)
+            .query("id", "soft")
+            .data(record)
+            .conflict_column("name")
+            .build();
 
         log::trace!("Before upsert to {table}");
         let result = self.inner.upsert(request, token).await?;

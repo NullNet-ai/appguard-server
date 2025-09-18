@@ -1523,9 +1523,9 @@ dependencies = [
 
 [[package]]
 name = "nullnet-libdatastore"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7568fdbc6447444a532a15d0b903e8636f4aa79c5a74d0c7f95296942cbe3288"
+checksum = "900c9bdef95a8cafd0b3822c8fa12593791738425af05218ad276a7dbae644d2"
 dependencies = [
  "log",
  "nullnet-liberror",
