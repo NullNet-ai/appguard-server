@@ -38,7 +38,7 @@ tonic = { version = "0.13.1", features = ["_tls-any", "tls-native-roots"] }
 prost = "0.13.5"
 tokio = { version = "1.45.0", features = ["rt-multi-thread"] }
 chrono = { version = "0.4.41", default-features = false, features = ["clock"] }
-ctrlc = { version = "3.4.5", features = ["termination"] }
+ctrlc = { version = "3.5.1", features = ["termination"] }
 log = "0.4.26"
 rpn-predicate-interpreter = { git = "https://github.com/GyulyVGC/postfix-predicate-interpreter.git", branch = "appguard" }
 indexmap = "2.7.1"
