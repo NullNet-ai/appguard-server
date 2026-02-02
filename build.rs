@@ -5,7 +5,7 @@ const PROTOBUF_DIR_PATH: &str = "./proto";
 
 fn main() {
     for out_dir in ["./src/proto", "./libappguard/src/proto"] {
-        tonic_build::configure()
+        tonic_prost_build::configure()
             .out_dir(out_dir)
             .type_attribute("appguard.AppGuardIpInfo", "#[derive(serde::Deserialize)]")
             .type_attribute(

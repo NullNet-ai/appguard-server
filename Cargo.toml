@@ -34,8 +34,9 @@ nullnet-libipinfo = "0.2.1"
 nullnet-libtoken = "0.3.3"
 serde = { version = "1.0.218", features = ["derive"] }
 serde_json = "1.0.139"
-tonic = { version = "0.13.1", features = ["_tls-any", "tls-native-roots"] }
-prost = "0.13.5"
+tonic = { version = "0.14.3", features = ["_tls-any", "tls-native-roots"] }
+prost = "0.14.3"
+tonic-prost = "0.14.3"
 tokio = { version = "1.45.0", features = ["rt-multi-thread"] }
 chrono = { version = "0.4.41", default-features = false, features = ["clock"] }
 ctrlc = { version = "3.4.5", features = ["termination"] }
@@ -50,7 +51,7 @@ async-trait = "0.1.88"
 ipnetwork = "0.21.1"
 
 [build-dependencies]
-tonic-build = "0.13.1"
+tonic-prost-build = "0.14.3"
 
 [dev-dependencies]
 #serial_test = "3.2.0"

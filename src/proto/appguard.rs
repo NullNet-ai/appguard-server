@@ -8,7 +8,7 @@ pub struct Logs {
     pub logs: ::prost::alloc::vec::Vec<Log>,
 }
 #[derive(serde::Serialize, serde::Deserialize)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Log {
     #[prost(string, tag = "1")]
     pub timestamp: ::prost::alloc::string::String,
@@ -17,7 +17,7 @@ pub struct Log {
     #[prost(string, tag = "3")]
     pub message: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppGuardTcpConnection {
     #[prost(string, tag = "1")]
     pub token: ::prost::alloc::string::String,
@@ -33,7 +33,7 @@ pub struct AppGuardTcpConnection {
     pub protocol: ::prost::alloc::string::String,
 }
 #[derive(serde::Deserialize)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppGuardIpInfo {
     #[prost(string, tag = "1")]
     pub ip: ::prost::alloc::string::String,
@@ -51,11 +51,11 @@ pub struct AppGuardIpInfo {
     pub region: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, optional, tag = "8")]
     pub postal: ::core::option::Option<::prost::alloc::string::String>,
-    ///   bool blacklist = 100;
+    /// bool blacklist = 100;
     #[prost(string, optional, tag = "9")]
     pub timezone: ::core::option::Option<::prost::alloc::string::String>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppGuardTcpInfo {
     #[prost(message, optional, tag = "1")]
     pub connection: ::core::option::Option<AppGuardTcpConnection>,
@@ -115,7 +115,7 @@ pub struct AppGuardSmtpRequest {
     #[prost(message, optional, tag = "100")]
     pub tcp_info: ::core::option::Option<AppGuardTcpInfo>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppGuardSmtpResponse {
     #[prost(string, tag = "1")]
     pub token: ::prost::alloc::string::String,
@@ -124,17 +124,17 @@ pub struct AppGuardSmtpResponse {
     #[prost(message, optional, tag = "100")]
     pub tcp_info: ::core::option::Option<AppGuardTcpInfo>,
 }
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppGuardResponse {
     #[prost(enumeration = "super::appguard_commands::FirewallPolicy", tag = "2")]
     pub policy: i32,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppGuardTcpResponse {
     #[prost(message, optional, tag = "1")]
     pub tcp_info: ::core::option::Option<AppGuardTcpInfo>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct Token {
     #[prost(string, tag = "1")]
     pub token: ::prost::alloc::string::String,
@@ -250,7 +250,7 @@ pub mod app_guard_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/appguard.AppGuard/ControlChannel",
             );
@@ -272,7 +272,7 @@ pub mod app_guard_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/appguard.AppGuard/HandleLogs",
             );
@@ -297,7 +297,7 @@ pub mod app_guard_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/appguard.AppGuard/HandleTcpConnection",
             );
@@ -322,7 +322,7 @@ pub mod app_guard_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/appguard.AppGuard/HandleHttpRequest",
             );
@@ -346,7 +346,7 @@ pub mod app_guard_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/appguard.AppGuard/HandleHttpResponse",
             );
@@ -371,7 +371,7 @@ pub mod app_guard_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/appguard.AppGuard/HandleSmtpRequest",
             );
@@ -395,7 +395,7 @@ pub mod app_guard_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/appguard.AppGuard/HandleSmtpResponse",
             );
@@ -420,7 +420,7 @@ pub mod app_guard_client {
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
-            let codec = tonic::codec::ProstCodec::default();
+            let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/appguard.AppGuard/FirewallDefaultsRequest",
             );
@@ -627,7 +627,7 @@ pub mod app_guard_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = ControlChannelSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -670,7 +670,7 @@ pub mod app_guard_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = HandleLogsSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -716,7 +716,7 @@ pub mod app_guard_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = HandleTcpConnectionSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -761,7 +761,7 @@ pub mod app_guard_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = HandleHttpRequestSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -806,7 +806,7 @@ pub mod app_guard_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = HandleHttpResponseSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -851,7 +851,7 @@ pub mod app_guard_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = HandleSmtpRequestSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -896,7 +896,7 @@ pub mod app_guard_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = HandleSmtpResponseSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
@@ -940,7 +940,7 @@ pub mod app_guard_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = FirewallDefaultsRequestSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
+                        let codec = tonic_prost::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
                                 accept_compression_encodings,
